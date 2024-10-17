@@ -1,89 +1,17 @@
 from ortools.sat.python import cp_model
-import xlsxwriter
+from club_data import get_fields, get_teams, get_time_slots
+from dbu_requirements import get_5_star_constraints, get_4_star_constraints
+from excel_export import export_schedule_to_excel
 
 def main():
-    # Fields
-    fields = [
-        {
-            'name': 'Græs 1',
-            'surface': 'grass',
-            'size': 'full',
-            'subfields': ['G1-1', 'G1-2', 'G1-3', 'G1-4']
-        },
-        {
-            'name': 'Græs 2',
-            'surface': 'grass',
-            'size': 'full',
-            'subfields': ['G2-1', 'G2-2', 'G2-3', 'G2-4']
-        },
-        {
-            'name': 'Græs 3',
-            'surface': 'grass',
-            'size': 'full',
-            'subfields': ['G3-1', 'G3-2', 'G3-3', 'G3-4']
-        },
-    ]
+    
+    fields = get_fields()
 
-    # Teams
-    teams = [
-        {'name': 'U19A', 'level': 'academy', 'gender': 'boys', 'year': 'U19'},
-        {'name': 'U17A', 'level': 'academy', 'gender': 'boys', 'year': 'U17'},
-        {'name': 'U19-2', 'level': 'youth', 'gender': 'boys', 'year': 'U19'},
-        {'name': 'U19A-girl', 'level': 'academy', 'gender': 'girls', 'year': 'U19-girl'},
-        {'name': 'U15A', 'level': 'academy', 'gender': 'boys', 'year': 'U15'},
-        {'name': 'U14A', 'level': 'academy', 'gender': 'boys', 'year': 'U14'},
-        {'name': 'U13A', 'level': 'academy', 'gender': 'boys', 'year': 'U13'},
-        {'name': 'U14A-girl', 'level': 'academy', 'gender': 'girls', 'year': 'U14-girl'},
-        {'name': 'U13A-girl', 'level': 'academy', 'gender': 'girls', 'year': 'U13-girl'},
-        {'name': 'U16A-girl', 'level': 'academy', 'gender': 'girls', 'year': 'U16-girl'},
-        {'name': 'U12A', 'level': 'academy', 'gender': 'boys', 'year': 'U12'},
-        {'name': 'U17-2', 'level': 'youth', 'gender': 'boys', 'year': 'U17'},
-        {'name': 'U11A', 'level': 'academy', 'gender': 'boys', 'year': 'U11'},
-        {'name': 'U10A', 'level': 'child', 'gender': 'boys', 'year': 'U10'},
-        {'name': 'U15-2', 'level': 'youth', 'gender': 'boys', 'year': 'U15'},
-        {'name': 'U15-3', 'level': 'youth', 'gender': 'boys', 'year': 'U15'},
-        {'name': 'U14-2', 'level': 'youth', 'gender': 'boys', 'year': 'U14'},
-        {'name': 'U14-3', 'level': 'youth', 'gender': 'boys', 'year': 'U14'},
-        {'name': 'U13-2', 'level': 'youth', 'gender': 'boys', 'year': 'U13'},
-        {'name': 'U11-A', 'level': 'child', 'gender': 'boys', 'year': 'U11'},
-        {'name': 'U13-3', 'level': 'youth', 'gender': 'boys', 'year': 'U13'},
-        {'name': 'U12-B', 'level': 'youth', 'gender': 'boys', 'year': 'U12'},
-        {'name': 'U11-B', 'level': 'youth', 'gender': 'boys', 'year': 'U11'},
-        {'name': 'U17-3', 'level': 'youth', 'gender': 'boys', 'year': 'U17'},
-        {'name': 'U15-4', 'level': 'youth', 'gender': 'boys', 'year': 'U15'},
-        {'name': 'U12-B+', 'level': 'youth', 'gender': 'boys', 'year': 'U12'},
-        {'name': 'U11-B+', 'level': 'youth', 'gender': 'boys', 'year': 'U11'},
-        {'name': 'U10-B+', 'level': 'child', 'gender': 'boys', 'year': 'U10'},
-        {'name': 'U16-2-girl', 'level': 'youth', 'gender': 'girls', 'year': 'U16-girl'},
-        {'name': 'U14-2-girl', 'level': 'youth', 'gender': 'girls', 'year': 'U14-girl'},
-        {'name': 'U13-2-girl', 'level': 'youth', 'gender': 'girls', 'year': 'U13-girl'},
-        {'name': 'U10-B', 'level': 'child', 'gender': 'boys', 'year': 'U10'},
-        {'name': 'U15-5', 'level': 'youth', 'gender': 'boys', 'year': 'U15'},
-    ]
-    # Time slots
-    time_slots = [
-        'Mon_16:00', 'Mon_17:30', 'Mon_19:00',
-        'Tue_16:00', 'Tue_17:30', 'Tue_19:00',
-        'Wed_16:00', 'Wed_17:30', 'Wed_19:00',
-        'Thu_16:00', 'Thu_17:30', 'Thu_19:00',
-        'Fri_16:00', 'Fri_17:30', 'Fri_19:00',
-    ]
+    teams = get_teams()
 
-    # General constraints for teams based on their year
-    year_constraints = {
-        'U19': {'required_size': 'full', 'sessions': 2},
-        'U17': {'required_size': 'full', 'sessions': 2},
-        'U15': {'required_size': 'full', 'sessions': 1},
-        'U14': {'required_size': 'half', 'sessions': 3},
-        'U13': {'required_size': 'half', 'sessions': 3},
-        'U10': {'required_size': 'quarter', 'sessions': 2},
-        'U11': {'required_size': 'quarter', 'sessions': 2},
-        'U12': {'required_size': 'quarter', 'sessions': 2},
-        'U13-girl': {'required_size': 'half', 'sessions': 3},
-        'U14-girl': {'required_size': 'half', 'sessions': 3},
-        'U16-girl': {'required_size': 'full', 'sessions': 2},
-        'U19-girl': {'required_size': 'full', 'sessions': 2},
-    }
+    time_slots = get_time_slots()
+
+    year_constraints = get_5_star_constraints() # get_4_star_constraints
 
     # Extract subfields and create a mapping from subfield to field
     subfields = []
@@ -200,44 +128,7 @@ def main():
             print('\t'.join(row))
 
         # Export schedule to Excel
-        workbook = xlsxwriter.Workbook('schedule.xlsx')
-        worksheet = workbook.add_worksheet()
-
-        # Define bold format for headers
-        bold_format = workbook.add_format({'bold': True})
-
-        # Write the headers to the Excel file with bold format
-        current_col = 0
-        worksheet.write(0, current_col, 'Time', bold_format)
-        current_col += 1
-        for field in fields:
-            for subfield in field['subfields']:
-                worksheet.write(0, current_col, subfield, bold_format)
-                current_col += 1
-            # Add a blank column for spacing after each group of subfields
-            worksheet.set_column(current_col, current_col, None)
-            current_col += 1
-
-        # Write the schedule data to the Excel file with spacing between groups of subfields
-        current_row = 1
-        for day in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']:
-            for ts in time_slots:
-                if ts.startswith(day):
-                    current_col = 0
-                    worksheet.write(current_row, current_col, ts.replace('_', ' '), bold_format)
-                    current_col += 1
-                    for field in fields:
-                        for subfield in field['subfields']:
-                            assignment = schedule[ts][subfield]
-                            worksheet.write(current_row, current_col, assignment if assignment else '-')
-                            current_col += 1
-                        # Add a blank column for spacing after each group of subfields
-                        current_col += 1
-                    current_row += 1
-            # Add a blank row to separate each day's timeslots
-            current_row += 1
-
-        workbook.close()
+        export_schedule_to_excel(schedule, fields, time_slots)
     else:
         print("No solution found.")
 
