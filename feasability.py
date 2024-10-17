@@ -7,7 +7,15 @@ def main():
     fields = get_fields()
     teams = get_teams()
     time_slots = get_time_slots()
-    year_constraints = get_5_star_constraints()
+    year_constraints_list = get_5_star_constraints()
+
+    # Build mapping from 'year' to list of constraints
+    year_constraints = {}
+    for constraint in year_constraints_list:
+        year = constraint['year']
+        if year not in year_constraints:
+            year_constraints[year] = []
+        year_constraints[year].append({'required_size': constraint['required_size'], 'sessions': constraint['sessions']})
 
     # Extract subfields and create a mapping from subfield to field
     subfields = [sf for field in fields for sf in field['subfields']]
@@ -24,46 +32,73 @@ def main():
     # Create the model
     model = cp_model.CpModel()
 
-    # Variables
-    x = {(t, ts, sf): model.NewBoolVar(f'x_{t}_{ts}_{sf}') for t in range(num_teams) for ts in range(num_timeslots) for sf in range(num_subfields)}
-    y = {(t, ts, f): model.NewBoolVar(f'y_{t}_{ts}_{f}') for t in range(num_teams) for ts in range(num_timeslots) for f in range(num_fields)}
-    ts_assigned = {(t, ts): model.NewBoolVar(f'ts_assigned_{t}_{ts}') for t in range(num_teams) for ts in range(num_timeslots)}
+    # Build team constraints
+    team_constraints = []
+    team_constraint_to_team = []
+    team_constraints_indices_per_team = [[] for _ in teams]  # list per team
+    for t, team in enumerate(teams):
+        team_year = team['year']
+        constraints = year_constraints.get(team_year, [{'required_size': 'any', 'sessions': 3}])
+        for c in constraints:
+            tc_index = len(team_constraints)
+            team_constraints.append({
+                'team_index': t,
+                'required_size': c['required_size'],
+                'sessions_required': c['sessions']
+            })
+            team_constraint_to_team.append(t)
+            team_constraints_indices_per_team[t].append(tc_index)
 
-    # Constraint 1: Each subfield at each timeslot is assigned to at most one team
+    num_team_constraints = len(team_constraints)
+
+    # Variables
+    x = {}
+    y = {}
+    ts_assigned = {}
+    for tc in range(num_team_constraints):
+        for ts in range(num_timeslots):
+            ts_assigned[(tc, ts)] = model.NewBoolVar(f'ts_assigned_{tc}_{ts}')
+            for f in range(num_fields):
+                y[(tc, ts, f)] = model.NewBoolVar(f'y_{tc}_{ts}_{f}')
+            for sf in range(num_subfields):
+                x[(tc, ts, sf)] = model.NewBoolVar(f'x_{tc}_{ts}_{sf}')
+
+    # Constraint 1: Each subfield at each timeslot is assigned to at most one team_constraint
     for ts in range(num_timeslots):
         for sf in range(num_subfields):
-            model.Add(sum(x[(t, ts, sf)] for t in range(num_teams)) <= 1)
+            model.Add(sum(x[(tc, ts, sf)] for tc in range(num_team_constraints)) <= 1)
 
-    # Read field size requirements and session counts from year_constraints
-    size_to_subfields = {'full': 4, 'half': 2, 'quarter': 1}
-    team_field_requirements = []
-    team_sessions_required = []
-    for team in teams:
-        team_year = team['year']
-        required_size = year_constraints.get(team_year, {}).get('required_size', 'any')
-        sessions_required = year_constraints.get(team_year, {}).get('sessions', 3)
-        team_field_requirements.append(required_size)
-        team_sessions_required.append(sessions_required)
+    # Size mapping
+    size_to_subfields = {'full': 4, 'half': 2, 'quarter': 1, 'any': 1}
 
-    # Constraint: Each team is assigned to the required number of sessions
-    for t in range(num_teams):
-        required_subfields = size_to_subfields.get(team_field_requirements[t], 1)
-        model.Add(sum(ts_assigned[(t, ts)] for ts in range(num_timeslots)) == team_sessions_required[t])
+    # Constraints for each team constraint
+    for tc in range(num_team_constraints):
+        required_subfields = size_to_subfields[team_constraints[tc]['required_size']]
+        sessions_required = team_constraints[tc]['sessions_required']
+
+        # Ensure that the total number of sessions is met
+        model.Add(sum(ts_assigned[(tc, ts)] for ts in range(num_timeslots)) == sessions_required)
 
         for ts in range(num_timeslots):
-            # Ensure that if a team is assigned to a timeslot, they are assigned to exactly one field
-            model.Add(ts_assigned[(t, ts)] == sum(y[(t, ts, f)] for f in range(num_fields)))
+            # Ensure that if a team constraint is assigned to a timeslot, they are assigned to exactly one field
+            model.Add(ts_assigned[(tc, ts)] == sum(y[(tc, ts, f)] for f in range(num_fields)))
 
             # Link ts_assigned and x variables
-            model.Add(sum(x[(t, ts, sf)] for sf in range(num_subfields)) == required_subfields * ts_assigned[(t, ts)])
+            model.Add(sum(x[(tc, ts, sf)] for sf in range(num_subfields)) == required_subfields * ts_assigned[(tc, ts)])
 
             for f in range(num_fields):
                 field_sf_indices = [subfield_indices[sf] for sf in field_subfields[fields[f]['name']]]
 
                 # Link y and x variables
+                model.Add(sum(x[(tc, ts, sf_idx)] for sf_idx in field_sf_indices) == required_subfields * y[(tc, ts, f)])
+
                 for sf_idx in field_sf_indices:
-                    model.Add(x[(t, ts, sf_idx)] <= y[(t, ts, f)])
-                model.Add(sum(x[(t, ts, sf_idx)] for sf_idx in field_sf_indices) == required_subfields * y[(t, ts, f)])
+                    model.Add(x[(tc, ts, sf_idx)] <= y[(tc, ts, f)])
+
+    # Ensure a team is not assigned more than one of its constraints in the same timeslot
+    for t in range(num_teams):
+        for ts in range(num_timeslots):
+            model.Add(sum(ts_assigned[(tc, ts)] for tc in team_constraints_indices_per_team[t]) <= 1)
 
     # Create the solver and solve
     solver = cp_model.CpSolver()
@@ -72,11 +107,12 @@ def main():
     # Initialize and populate the schedule with the solution
     schedule = {ts: {sf: None for sf in subfields} for ts in time_slots}
     if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
-        for t in range(num_teams):
+        for tc in range(num_team_constraints):
+            t = team_constraints[tc]['team_index']
             team_name = teams[t]['name']
             for ts in range(num_timeslots):
                 for sf in range(num_subfields):
-                    if solver.Value(x[(t, ts, sf)]):
+                    if solver.Value(x[(tc, ts, sf)]):
                         schedule[time_slots[ts]][subfields[sf]] = team_name
 
         # Print the schedule
