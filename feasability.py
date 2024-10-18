@@ -26,6 +26,10 @@ def main():
             year_constraints[year] = []
         year_constraints[year].append({'required_size': constraint['required_size'], 'sessions': constraint['sessions']})
 
+    # Filter teams based on defined constraints
+    valid_team_years = set(year_constraints.keys())
+    filtered_teams = [team for team in teams if team['year'] in valid_team_years]
+
     # Extract subfields and create a mapping from subfield to field
     subfields = [sf for field in fields for sf in field['subfields']]
     subfield_to_field = {sf: field['name'] for field in fields for sf in field['subfields']}
@@ -33,7 +37,7 @@ def main():
 
     # Build indices for teams, timeslots, subfields, and fields
     subfield_indices = {sf: idx for idx, sf in enumerate(subfields)}
-    num_teams = len(teams)
+    num_teams = len(filtered_teams)
     num_timeslots = len(time_slots)
     num_subfields = len(subfields)
     num_fields = len(fields)
@@ -44,8 +48,8 @@ def main():
     # Build team constraints
     team_constraints = []
     team_constraint_to_team = []
-    team_constraints_indices_per_team = [[] for _ in teams]  # list per team
-    for t, team in enumerate(teams):
+    team_constraints_indices_per_team = [[] for _ in filtered_teams]  # list per team
+    for t, team in enumerate(filtered_teams):
         team_year = team['year']
         constraints = year_constraints.get(team_year, [{'required_size': 'any', 'sessions': 3}])
         for c in constraints:
@@ -118,7 +122,7 @@ def main():
     if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
         for tc in range(num_team_constraints):
             t = team_constraints[tc]['team_index']
-            team_name = teams[t]['name']
+            team_name = filtered_teams[t]['name']
             for ts in range(num_timeslots):
                 for sf in range(num_subfields):
                     if solver.Value(x[(tc, ts, sf)]):
