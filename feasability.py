@@ -1,13 +1,22 @@
 from ortools.sat.python import cp_model
 from club_data import get_fields, get_teams, get_time_slots
-from dbu_requirements import get_5_star_constraints, get_4_star_constraints
+from dbu_requirements import get_5_star_constraints, get_3_star_constraints_girls
 from excel_export import export_schedule_to_excel
 
 def main():
     fields = get_fields()
     teams = get_teams()
     time_slots = get_time_slots()
-    year_constraints_list = get_5_star_constraints()
+
+    # Fetch constraints for boys and girls
+    boys_constraints_list = get_5_star_constraints()
+    girls_constraints_list = 'NA' #get_3_star_constraints_girls()
+
+    year_constraints_list = []
+    if boys_constraints_list != "NA":
+        year_constraints_list.extend(boys_constraints_list)
+    if girls_constraints_list != "NA":
+        year_constraints_list.extend(girls_constraints_list)
 
     # Build mapping from 'year' to list of constraints
     year_constraints = {}
