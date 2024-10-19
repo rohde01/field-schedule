@@ -27,6 +27,20 @@ def get_fields():
                 'Fri': {'start': '16:00', 'end': '21:00'},
             }
         },
+
+        {
+            'name': 'Græs 3',
+            'surface': 'grass',
+            'size': 'full',
+            'subfields': ['G3-1', 'G3-2', 'G3-3', 'G3-4'],
+            'availability': {
+                'Mon': {'start': '16:00', 'end': '21:00'},
+                'Tue': {'start': '16:00', 'end': '21:00'},
+                'Wed': {'start': '16:00', 'end': '21:00'},
+                'Thu': {'start': '16:00', 'end': '21:00'},
+                'Fri': {'start': '16:00', 'end': '21:00'},
+            }
+        },
         
     ]
 

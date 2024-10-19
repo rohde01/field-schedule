@@ -1,7 +1,10 @@
+# Filename: output.py
+# Description: Functions for exporting and printing the schedule.
+
 import xlsxwriter
 
 def export_schedule_to_excel(schedule, fields, time_slots):
-    # Export schedule to Excel
+    """Exports the schedule to an Excel file."""
     workbook = xlsxwriter.Workbook('schedule.xlsx')
     worksheet = workbook.add_worksheet()
 
@@ -34,3 +37,12 @@ def export_schedule_to_excel(schedule, fields, time_slots):
         current_row += 1
 
     workbook.close()
+
+def print_schedule(schedule, time_slots, subfields):
+    """Prints the schedule in a tabular format."""
+    header = ['Time'] + subfields
+    print('Schedule:')
+    print('\t'.join(header))
+    for ts in time_slots:
+        row = [ts.replace('_', ' ')] + [schedule[ts][sf] if schedule[ts][sf] else '-' for sf in subfields]
+        print('\t'.join(row))
