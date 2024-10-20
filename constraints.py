@@ -1,48 +1,89 @@
-# Filename: constraints.py
-# Description: Constraint generation functions for the scheduling algorithm.
+def add_team_session_constraints(model, teams, constraints, time_slots, size_to_combos,
+                                 y_vars, session_combo_vars):
+    """
+    Adds constraints related to the number of sessions each team must have
+    and limits sessions per day.
+    """
+    for team in teams:
+        team_name = team['name']
+        year = team['year']
+        team_constraint = constraints[year]
+        required_size = team_constraint['required_size']
+        sessions = team_constraint['sessions']
 
-from config import SIZE_TO_SUBFIELDS, SESSION_LENGTH_MINUTES
+        total_sessions = []
+        for day in time_slots:
+            # Add all session_combo_vars for this team and day
+            for s in y_vars[team_name][day]:
+                for combo in size_to_combos[required_size]:
+                    total_sessions.append(session_combo_vars[team_name][day][s][combo])
 
-def add_session_assignment_constraints(model, team_sessions):
-    """Ensures each session is assigned to exactly one field."""
-    for sessions in team_sessions.values():
-        for session in sessions:
-            presence_vars = [info['presence_var'] for info in session['intervals'].values()]
-            model.AddExactlyOne(presence_vars)
+            # Constraint: At most one session per day for each team
+            model.Add(sum(y_vars[team_name][day].values()) <= 1)
 
-def add_team_no_overlap_constraints(model, team_sessions):
-    """Ensures sessions for the same team do not overlap."""
-    for sessions in team_sessions.values():
-        intervals = [info['interval'] for session in sessions for info in session['intervals'].values()]
-        model.AddNoOverlap(intervals)
+        # Constraint: Each team must have exactly 'sessions' sessions in total
+        model.Add(sum(total_sessions) == sessions)
 
-def add_subfield_constraints(model, team_sessions, team_constraints, fields, field_subfields, subfield_indices):
-    """Enforces subfield resource constraints and assigns subfields to sessions."""
-    x = {}
-    subfield_intervals = {sf_idx: [] for sf_idx in subfield_indices.values()}
-    for tc, sessions in team_sessions.items():
-        required_subfields = SIZE_TO_SUBFIELDS[team_constraints[tc]['required_size']]
-        session_length = team_constraints[tc]['length']
-        for s_idx, session in enumerate(sessions):
-            subfield_vars = []
-            for f_idx, interval_info in session['intervals'].items():
-                field = fields[f_idx]
-                for sf in field_subfields[field['name']]:
-                    sf_idx = subfield_indices[sf]
-                    presence_var = model.NewBoolVar(f'x_tc{tc}_s{s_idx}_sf{sf_idx}_f{f_idx}')
-                    x[(tc, s_idx, sf_idx)] = presence_var
-                    # Link presence_var with session interval presence
-                    model.AddImplication(presence_var, interval_info['presence_var'])
-                    model.Add(presence_var <= interval_info['presence_var'])
-                    # Create optional interval for subfield usage
-                    optional_interval = model.NewOptionalIntervalVar(
-                        interval_info['start'], session_length, interval_info['start'] + session_length,
-                        presence_var, f'interval_sf{sf_idx}_tc{tc}_s{s_idx}_f{f_idx}')
-                    subfield_intervals[sf_idx].append(optional_interval)
-                    subfield_vars.append(presence_var)
-            # Ensure required number of subfields are assigned per session
-            model.Add(sum(subfield_vars) == required_subfields)
-    # Enforce no overlap for subfields
-    for intervals in subfield_intervals.values():
-        model.AddNoOverlap(intervals)
-    return x
+
+def add_variable_linking_constraints(model, teams, constraints, time_slots, size_to_combos,
+                                     y_vars, session_combo_vars, x_vars):
+    """
+    Adds constraints to link y_vars, session_combo_vars, and x_vars.
+    """
+    for team in teams:
+        team_name = team['name']
+        year = team['year']
+        team_constraint = constraints[year]
+        required_size = team_constraint['required_size']
+        length = team_constraint['length']
+
+        for day in time_slots:
+            # Link y_vars and session_combo_vars
+            for s in y_vars[team_name][day]:
+                session_vars = session_combo_vars[team_name][day][s].values()
+                model.Add(y_vars[team_name][day][s] == sum(session_vars))
+
+            # Link session_combo_vars and x_vars
+            num_slots_day = len(time_slots[day])
+            for t in range(num_slots_day):
+                relevant_starts = [s for s in y_vars[team_name][day] if s <= t < s + length]
+                for combo in size_to_combos[required_size]:
+                    vars_in_sum = [session_combo_vars[team_name][day][s][combo] for s in relevant_starts]
+                    if vars_in_sum:
+                        model.Add(x_vars[team_name][day][t][combo] == sum(vars_in_sum))
+                    else:
+                        model.Add(x_vars[team_name][day][t][combo] == 0)
+
+
+def add_no_double_booking_constraints(model, teams, constraints, time_slots, size_to_combos,
+                                      x_vars, all_subfields):
+    """
+    Adds constraints to prevent double-booking of subfields.
+    """
+    for day in time_slots:
+        num_slots_day = len(time_slots[day])
+        for t in range(num_slots_day):
+            for sf in all_subfields:
+                overlapping_vars = []
+                for team in teams:
+                    team_name = team['name']
+                    year = team['year']
+                    required_size = constraints[year]['required_size']
+                    for combo in size_to_combos[required_size]:
+                        if sf in combo:
+                            overlapping_vars.append(x_vars[team_name][day][t][combo])
+                # Constraint: No double-booking of subfields
+                model.Add(sum(overlapping_vars) <= 1)
+
+
+def add_no_overlapping_sessions_constraints(model, teams, time_slots, x_vars):
+    """
+    Adds constraints to prevent overlapping sessions for the same team.
+    """
+    for team in teams:
+        team_name = team['name']
+        for day in time_slots:
+            num_slots_day = len(time_slots[day])
+            for t in range(num_slots_day):
+                # Constraint: A team cannot have more than one session at the same time
+                model.Add(sum(x_vars[team_name][day][t].values()) <= 1)
