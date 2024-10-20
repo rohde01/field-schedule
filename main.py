@@ -1,3 +1,6 @@
+# Filename: main.py
+# Discription: Main script to run the scheduling algorithm
+
 from club_data import get_fields, get_teams
 from config import SIZE_TO_SUBFIELDS, SESSION_LENGTH_MINUTES
 from utils import (

@@ -1,3 +1,6 @@
+# Filename: club_data.py
+# Discription: Data source for the scheduling algorithm
+
 def get_fields():
     return [
         {
