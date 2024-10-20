@@ -1,70 +1,73 @@
-# Filename: model.py
-# Description: Constraint programming model creation and solution processing functions.
-
-from datetime import datetime, timedelta
 from ortools.sat.python import cp_model
-from config import SIZE_TO_SUBFIELDS, SESSION_LENGTH_MINUTES
-
-def create_cp_model(filtered_teams, team_constraints, fields, time_slots, time_slot_indices, field_subfields):
-    """Creates the constraint programming model and variables."""
-    model = cp_model.CpModel()
-    team_sessions = {}
-    for tc, constraint in enumerate(team_constraints):
-        team_sessions[tc] = []
-        sessions_required = constraint['sessions_required']
-        session_length = constraint['length']
-        for s in range(sessions_required):
-            session = {'intervals': {}}
-            for f_idx, field in enumerate(fields):
-                # Get available time slots indices for the field
-                field_available_ts_indices = []
-                for ts in time_slots:
-                    day, time_str = ts.split('_')
-                    if day in field['availability']:
-                        field_start = datetime.strptime(field['availability'][day]['start'], '%H:%M')
-                        field_end = datetime.strptime(field['availability'][day]['end'], '%H:%M')
-                        ts_time = datetime.strptime(time_str, '%H:%M')
-                        if field_start <= ts_time <= field_end - timedelta(minutes=SESSION_LENGTH_MINUTES * session_length):
-                            field_available_ts_indices.append(time_slot_indices[ts])
-                if not field_available_ts_indices:
-                    continue  # Field not available for this session length
-                start_domain = field_available_ts_indices
-                start_var = model.NewIntVarFromDomain(cp_model.Domain.FromValues(start_domain), f'start_tc{tc}_s{s}_f{f_idx}')
-                presence_var = model.NewBoolVar(f'y_tc{tc}_s{s}_f{f_idx}')
-                interval_var = model.NewOptionalIntervalVar(
-                    start_var, session_length, start_var + session_length,
-                    presence_var, f'session_tc{tc}_s{s}_f{f_idx}')
-                session['intervals'][f_idx] = {
-                    'interval': interval_var,
-                    'start': start_var,
-                    'presence_var': presence_var
-                }
-            team_sessions[tc].append(session)
-    return model, team_sessions
+from constraints import (
+    add_team_session_constraints,
+    add_variable_linking_constraints,
+    add_no_double_booking_constraints,
+    add_no_overlapping_sessions_constraints
+)
 
 
-def process_solution(solver, team_sessions, team_constraints, filtered_teams, fields, field_subfields, subfield_indices, time_slots, x):
-    """Processes the solver's solution and constructs the schedule."""
-    schedule = {ts: {sf: None for sf in subfield_indices.keys()} for ts in time_slots}
-    for tc, sessions in team_sessions.items():
-        t_idx = team_constraints[tc]['team_index']
-        team_name = filtered_teams[t_idx]['name']
-        for s_idx, session in enumerate(sessions):
-            for f_idx, interval_info in session['intervals'].items():
-                if solver.Value(interval_info['presence_var']):
-                    start = solver.Value(interval_info['start'])
-                    duration = team_constraints[tc]['length']
-                    for offset in range(duration):
-                        ts_idx = start + offset
-                        if ts_idx >= len(time_slots):
-                            continue  # Skip invalid timeslot indices
-                        ts = time_slots[ts_idx]
-                        for sf in field_subfields[fields[f_idx]['name']]:
-                            sf_idx = subfield_indices[sf]
-                            if (tc, s_idx, sf_idx) in x and solver.Value(x[(tc, s_idx, sf_idx)]):
-                                if schedule[ts][sf] is None:
-                                    schedule[ts][sf] = team_name
-                                else:
-                                    # Conflict detected, should not happen
-                                    print(f"Conflict at timeslot {ts}, subfield {sf}")
-    return schedule
+def create_variables(model, teams, constraints, time_slots, size_to_combos):
+    """
+    Creates decision variables for the model.
+    """
+    y_vars = {}  # y_vars[team][day][start_time_slot]
+    session_combo_vars = {}  # session_combo_vars[team][day][start][combo]
+    x_vars = {}  # x_vars[team][day][time_slot][combo]
+
+    for team in teams:
+        team_name = team['name']
+        year = team['year']
+        constraint = constraints[year]
+        required_size = constraint['required_size']
+        length = constraint['length']
+
+        y_vars[team_name] = {}
+        session_combo_vars[team_name] = {}
+        x_vars[team_name] = {}
+
+        for day in time_slots:
+            num_slots_day = len(time_slots[day])
+            possible_starts = list(range(num_slots_day - length + 1))
+
+            y_vars[team_name][day] = {}
+            session_combo_vars[team_name][day] = {}
+            x_vars[team_name][day] = {}
+
+            for s in possible_starts:
+                y_var = model.NewBoolVar(f'y_{team_name}_{day}_{s}')
+                y_vars[team_name][day][s] = y_var
+                session_combo_vars[team_name][day][s] = {}
+                for combo in size_to_combos[required_size]:
+                    combo_name = '_'.join(combo)
+                    var = model.NewBoolVar(f'session_{team_name}_{day}_{s}_{combo_name}')
+                    session_combo_vars[team_name][day][s][combo] = var
+
+            for t in range(num_slots_day):
+                x_vars[team_name][day][t] = {}
+                for combo in size_to_combos[required_size]:
+                    combo_name = '_'.join(combo)
+                    var = model.NewBoolVar(f'x_{team_name}_{day}_{t}_{combo_name}')
+                    x_vars[team_name][day][t][combo] = var
+
+    return y_vars, session_combo_vars, x_vars
+
+
+def add_constraints(model, teams, constraints, time_slots, size_to_combos,
+                    y_vars, session_combo_vars, x_vars, all_subfields):
+    """
+    Adds all constraints to the model by delegating to specialized functions.
+    """
+    add_team_session_constraints(model, teams, constraints, time_slots, size_to_combos, y_vars, session_combo_vars)
+    add_variable_linking_constraints(model, teams, constraints, time_slots, size_to_combos, y_vars, session_combo_vars, x_vars)
+    add_no_double_booking_constraints(model, teams, constraints, time_slots, size_to_combos, x_vars, all_subfields)
+    add_no_overlapping_sessions_constraints(model, teams, time_slots, x_vars)
+
+
+def solve_model(model):
+    """
+    Solves the CP-SAT model.
+    """
+    solver = cp_model.CpSolver()
+    status = solver.Solve(model)
+    return solver, status
