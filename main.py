@@ -1,54 +1,57 @@
-# Filename: main.py
-# Discription: Main script to run the scheduling algorithm
-
-from club_data import get_fields, get_teams
-from config import SIZE_TO_SUBFIELDS, SESSION_LENGTH_MINUTES
-from utils import (
-    generate_time_slots,
-    extract_subfields,
-    filter_teams_by_constraints,
-    build_team_constraints,
-    get_year_constraints,
-)
-from constraints import (
-    add_session_assignment_constraints,
-    add_team_no_overlap_constraints,
-    add_subfield_constraints,
-)
-from model import create_cp_model, process_solution
-from output import print_schedule, export_schedule_to_excel
 from ortools.sat.python import cp_model
+from data import get_teams, get_fields, get_constraints
+from utils import build_time_slots, get_subfields, get_size_to_combos, print_solution
+from model import create_variables, add_constraints, solve_model
+
+
+def solve_soccer_scheduling():
+    """
+    Main function to solve the soccer scheduling problem.
+    """
+    # Data loading
+    teams = get_teams()
+    fields = get_fields()
+    constraints_list = get_constraints()
+
+    # Map years to constraints
+    year_constraints = {constraint['year']: constraint for constraint in constraints_list}
+
+    # Build time slots and get all days
+    time_slots, all_days = build_time_slots(fields)
+
+    # Get all subfields
+    all_subfields = get_subfields(fields)
+
+    # Get field combinations per required size
+    size_to_combos = get_size_to_combos(fields)
+
+    # Initialize the model
+    model = cp_model.CpModel()
+
+    # Create variables
+    y_vars, session_combo_vars, x_vars = create_variables(
+        model, teams, year_constraints, time_slots, size_to_combos
+    )
+
+    # Add constraints
+    add_constraints(
+        model, teams, year_constraints, time_slots, size_to_combos,
+        y_vars, session_combo_vars, x_vars, all_subfields
+    )
+
+    # Solve the model
+    solver, status = solve_model(model)
+
+    # Print the solution
+    if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+        print_solution(solver, teams, time_slots, x_vars, all_subfields)
+    else:
+        print('No feasible solution found.')
+
 
 def main():
-    fields = get_fields()
-    teams = get_teams()
-    # Generate dynamic time slots based on fields' availability
-    time_slots, time_slot_indices = generate_time_slots(fields)
-    # Fetch constraints and build mapping
-    year_constraints = get_year_constraints()
-    # Filter teams based on defined constraints
-    filtered_teams = filter_teams_by_constraints(teams, year_constraints)
-    # Extract subfields and create mappings
-    subfields, subfield_indices, _, field_subfields = extract_subfields(fields)
-    # Build team constraints
-    team_constraints, _, _ = build_team_constraints(filtered_teams, year_constraints)
-    # Create the model and variables
-    model, team_sessions = create_cp_model(filtered_teams, team_constraints, fields, time_slots, time_slot_indices, field_subfields)
-    # Add constraints to the model
-    add_session_assignment_constraints(model, team_sessions)
-    add_team_no_overlap_constraints(model, team_sessions)
-    x = add_subfield_constraints(model, team_sessions, team_constraints, fields, field_subfields, subfield_indices)
-    # Solve the model
-    solver = cp_model.CpSolver()
-    status = solver.Solve(model)
-    # Process and display the solution
-    if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
-        schedule = process_solution(solver, team_sessions, team_constraints, filtered_teams, fields, field_subfields, subfield_indices, time_slots, x)
-        print_schedule(schedule, time_slots, subfields)
-        # Export schedule to Excel
-        export_schedule_to_excel(schedule, fields, time_slots)
-    else:
-        print("No solution found.")
+    solve_soccer_scheduling()
+
 
 if __name__ == "__main__":
     main()
