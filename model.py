@@ -6,49 +6,54 @@ from constraints import (
     add_no_overlapping_sessions_constraints
 )
 
-
 def create_variables(model, teams, constraints, time_slots, size_to_combos):
     """
     Creates decision variables for the model.
     """
-    y_vars = {}  # y_vars[team][day][start_time_slot]
-    session_combo_vars = {}  # session_combo_vars[team][day][start][combo]
-    x_vars = {}  # x_vars[team][day][time_slot][combo]
+    y_vars = {}  # y_vars[team][constraint_index][day][start_time_slot]
+    session_combo_vars = {}  # session_combo_vars[team][constraint_index][day][start][combo]
+    x_vars = {}  # x_vars[team][constraint_index][day][time_slot][combo]
 
     for team in teams:
         team_name = team['name']
         year = team['year']
-        constraint = constraints[year]
-        required_size = constraint['required_size']
-        length = constraint['length']
+        team_constraints = constraints[year]
 
         y_vars[team_name] = {}
         session_combo_vars[team_name] = {}
         x_vars[team_name] = {}
 
-        for day in time_slots:
-            num_slots_day = len(time_slots[day])
-            possible_starts = list(range(num_slots_day - length + 1))
+        for idx, constraint in enumerate(team_constraints):
+            required_size = constraint['required_size']
+            length = constraint['length']
 
-            y_vars[team_name][day] = {}
-            session_combo_vars[team_name][day] = {}
-            x_vars[team_name][day] = {}
+            y_vars[team_name][idx] = {}
+            session_combo_vars[team_name][idx] = {}
+            x_vars[team_name][idx] = {}
 
-            for s in possible_starts:
-                y_var = model.NewBoolVar(f'y_{team_name}_{day}_{s}')
-                y_vars[team_name][day][s] = y_var
-                session_combo_vars[team_name][day][s] = {}
-                for combo in size_to_combos[required_size]:
-                    combo_name = '_'.join(combo)
-                    var = model.NewBoolVar(f'session_{team_name}_{day}_{s}_{combo_name}')
-                    session_combo_vars[team_name][day][s][combo] = var
+            for day in time_slots:
+                num_slots_day = len(time_slots[day])
+                possible_starts = list(range(num_slots_day - length + 1))
 
-            for t in range(num_slots_day):
-                x_vars[team_name][day][t] = {}
-                for combo in size_to_combos[required_size]:
-                    combo_name = '_'.join(combo)
-                    var = model.NewBoolVar(f'x_{team_name}_{day}_{t}_{combo_name}')
-                    x_vars[team_name][day][t][combo] = var
+                y_vars[team_name][idx][day] = {}
+                session_combo_vars[team_name][idx][day] = {}
+                x_vars[team_name][idx][day] = {}
+
+                for s in possible_starts:
+                    y_var = model.NewBoolVar(f'y_{team_name}_{idx}_{day}_{s}')
+                    y_vars[team_name][idx][day][s] = y_var
+                    session_combo_vars[team_name][idx][day][s] = {}
+                    for combo in size_to_combos[required_size]:
+                        combo_name = '_'.join(combo)
+                        var = model.NewBoolVar(f'session_{team_name}_{idx}_{day}_{s}_{combo_name}')
+                        session_combo_vars[team_name][idx][day][s][combo] = var
+
+                for t in range(num_slots_day):
+                    x_vars[team_name][idx][day][t] = {}
+                    for combo in size_to_combos[required_size]:
+                        combo_name = '_'.join(combo)
+                        var = model.NewBoolVar(f'x_{team_name}_{idx}_{day}_{t}_{combo_name}')
+                        x_vars[team_name][idx][day][t][combo] = var
 
     return y_vars, session_combo_vars, x_vars
 

@@ -2,7 +2,7 @@ from ortools.sat.python import cp_model
 from data import get_teams, get_fields, get_constraints
 from utils import build_time_slots, get_subfields, get_size_to_combos, print_solution
 from model import create_variables, add_constraints, solve_model
-
+from collections import defaultdict
 
 def solve_soccer_scheduling():
     """
@@ -13,8 +13,10 @@ def solve_soccer_scheduling():
     fields = get_fields()
     constraints_list = get_constraints()
 
-    # Map years to constraints
-    year_constraints = {constraint['year']: constraint for constraint in constraints_list}
+    # Map years to a list of constraints
+    year_constraints = defaultdict(list)
+    for constraint in constraints_list:
+        year_constraints[constraint['year']].append(constraint)
 
     # Build time slots and get all days
     time_slots, all_days = build_time_slots(fields)

@@ -63,11 +63,11 @@ def print_solution(solver, teams, time_slots, x_vars, all_subfields):
             assignments = [''] * len(all_subfields)
             for team in teams:
                 team_name = team['name']
-                for combo, var in x_vars[team_name][day][t].items():
-                    if solver.Value(var) == 1:
-                        for sf in combo:
-                            idx = sf_indices[sf]
-                            assignments[idx] = team_name
+                for idx in x_vars[team_name]:
+                    for combo, var in x_vars[team_name][idx][day][t].items():
+                        if solver.Value(var) == 1:
+                            for sf in combo:
+                                idx_sf = sf_indices[sf]
+                                assignments[idx_sf] = team_name
             print(f'{slot_time}\t' + '\t'.join(assignments))
         print("\n")
-pass
