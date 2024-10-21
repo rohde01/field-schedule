@@ -1,9 +1,12 @@
+# filename: model.py
+
 from ortools.sat.python import cp_model
 from constraints import (
     add_team_session_constraints,
     add_variable_linking_constraints,
     add_no_double_booking_constraints,
-    add_no_overlapping_sessions_constraints
+    add_no_overlapping_sessions_constraints,
+    add_field_availability_constraints
 )
 
 def create_variables(model, teams, constraints, time_slots, size_to_combos):
@@ -59,7 +62,7 @@ def create_variables(model, teams, constraints, time_slots, size_to_combos):
 
 
 def add_constraints(model, teams, constraints, time_slots, size_to_combos,
-                    y_vars, session_combo_vars, x_vars, all_subfields):
+                    y_vars, session_combo_vars, x_vars, all_subfields, subfield_availability):
     """
     Adds all constraints to the model by delegating to specialized functions.
     """
@@ -67,6 +70,7 @@ def add_constraints(model, teams, constraints, time_slots, size_to_combos,
     add_variable_linking_constraints(model, teams, constraints, time_slots, size_to_combos, y_vars, session_combo_vars, x_vars)
     add_no_double_booking_constraints(model, teams, constraints, time_slots, size_to_combos, x_vars, all_subfields)
     add_no_overlapping_sessions_constraints(model, teams, time_slots, x_vars)
+    add_field_availability_constraints(model, x_vars, time_slots, subfield_availability)  # Call the new function
 
 
 def solve_model(model):

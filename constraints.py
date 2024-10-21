@@ -1,3 +1,5 @@
+# filename: constraints.py
+
 def add_team_session_constraints(model, teams, constraints, time_slots, size_to_combos,
                                  y_vars, session_combo_vars):
     """
@@ -102,3 +104,20 @@ def add_no_overlapping_sessions_constraints(model, teams, time_slots, x_vars):
                     vars_at_t.extend(x_vars[team_name][idx][day][t].values())
                 # Constraint: A team cannot have more than one session at the same time
                 model.Add(sum(vars_at_t) <= 1)
+
+def add_field_availability_constraints(model, x_vars, time_slots, subfield_availability):
+    """
+    Adds constraints to ensure that fields are only used when they are available.
+    """
+    for team_name in x_vars:
+        for idx in x_vars[team_name]:
+            for day in time_slots:
+                num_slots_day = len(time_slots[day])
+                for t in range(num_slots_day):
+                    for combo in x_vars[team_name][idx][day][t]:
+                        # Check if all subfields in combo are available at time t on day
+                        available = all(subfield_availability[sf][day][t] for sf in combo)
+                        if not available:
+                            # Set variable to 0 if any subfield in combo is unavailable
+                            model.Add(x_vars[team_name][idx][day][t][combo] == 0)
+

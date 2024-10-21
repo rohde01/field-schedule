@@ -1,3 +1,5 @@
+# filename: data.py
+
 def get_teams():
     return [
         {'name': 'U19A', 'year': 'U19'},
@@ -42,11 +44,10 @@ def get_fields():
                 ['G1-3', 'G1-4']
             ],
             'availability': {
-                'Mon': {'start': '16:00', 'end': '19:00'},
                 'Tue': {'start': '16:00', 'end': '19:00'},
                 'Wed': {'start': '16:00', 'end': '19:00'},
                 'Thu': {'start': '16:00', 'end': '19:00'},
-                'Fri': {'start': '16:00', 'end': '19:00'},
+                'Fri': {'start': '16:00', 'end': '23:15'},
             }
         },
         {

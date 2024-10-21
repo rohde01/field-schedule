@@ -1,6 +1,8 @@
+# filename: main.py
+
 from ortools.sat.python import cp_model
 from data import get_teams, get_fields, get_constraints
-from utils import build_time_slots, get_subfields, get_size_to_combos, print_solution
+from utils import build_time_slots, get_subfields, get_size_to_combos, print_solution, get_subfield_availability
 from model import create_variables, add_constraints, solve_model
 from collections import defaultdict
 
@@ -21,8 +23,11 @@ def solve_soccer_scheduling():
     # Build time slots and get all days
     time_slots, all_days = build_time_slots(fields)
 
-    # Get all subfields
+     # Get all subfields
     all_subfields = get_subfields(fields)
+
+    # Get subfield availability
+    subfield_availability = get_subfield_availability(fields, time_slots, all_subfields)
 
     # Get field combinations per required size
     size_to_combos = get_size_to_combos(fields)
@@ -38,7 +43,7 @@ def solve_soccer_scheduling():
     # Add constraints
     add_constraints(
         model, teams, year_constraints, time_slots, size_to_combos,
-        y_vars, session_combo_vars, x_vars, all_subfields
+        y_vars, session_combo_vars, x_vars, all_subfields, subfield_availability  # Pass subfield_availability here
     )
 
     # Solve the model
