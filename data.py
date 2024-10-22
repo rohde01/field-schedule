@@ -2,6 +2,7 @@
 
 def get_teams():
     return [
+        # boys
         {'name': 'U19A', 'year': 'U19'},
         {'name': 'U17A', 'year': 'U17'},
         {'name': 'U19-2', 'year': 'U19'},
@@ -28,6 +29,14 @@ def get_teams():
         {'name': 'U10-B+', 'year': 'U10'},
         {'name': 'U10-B', 'year': 'U10'},
         {'name': 'U15-5', 'year': 'U15'},
+        # girls
+        {'name': 'U19AG', 'year': 'U19-girl'},
+        {'name': 'U14AG', 'year': 'U14-girl'},
+        {'name': 'U13AG', 'year': 'U13-girl'},
+        {'name': 'U16AG', 'year': 'U16-girl'},
+        {'name': 'U16-2-G', 'year': 'U16-girl'},
+        {'name': 'U14-2-G', 'year': 'U14-girl'},
+        {'name': 'U13-2-G', 'year': 'U13-girl'},
     ]
 
 def get_fields():
@@ -59,11 +68,11 @@ def get_fields():
                 ['G2-3', 'G2-4']
             ],
             'availability': {
-                'Mon': {'start': '16:00', 'end': '19:00'},
-                'Tue': {'start': '16:00', 'end': '19:00'},
-                'Wed': {'start': '16:00', 'end': '19:00'},
-                'Thu': {'start': '16:00', 'end': '19:00'},
-                'Fri': {'start': '16:00', 'end': '19:00'},
+                'Mon': {'start': '16:00', 'end': '23:00'},
+                'Tue': {'start': '16:00', 'end': '23:00'},
+                'Wed': {'start': '16:00', 'end': '23:00'},
+                'Thu': {'start': '16:00', 'end': '23:00'},
+                'Fri': {'start': '16:00', 'end': '23:00'},
             }
         },
         {
@@ -85,7 +94,7 @@ def get_fields():
     ]
 pass
 
-def get_constraints():
+def get_5_star_constraints():
     return [
         #U19
         {'year': 'U19', 'required_size': 'full', 'sessions': 2, 'length': 4},
@@ -111,3 +120,19 @@ def get_constraints():
         {'year': 'U10', 'required_size': 'quarter', 'sessions': 2, 'length': 4},
     ]
 
+# 3-star constraints (girls)
+def get_3_star_constraints_girls():
+    return [
+        #U19-girl
+        {'year': 'U19-girl', 'required_size': 'full', 'sessions': 1, 'length': 4},
+        {'year': 'U19-girl', 'required_size': 'half', 'sessions': 3, 'length': 4},
+        #U16-girl
+        {'year': 'U16-girl', 'required_size': 'full', 'sessions': 1, 'length': 8},
+        {'year': 'U16-girl', 'required_size': 'half', 'sessions': 3, 'length': 4},
+        #U14-girl
+        {'year': 'U14-girl', 'required_size': 'half', 'sessions': 3, 'length': 4},
+        {'year': 'U14-girl', 'required_size': 'half', 'sessions': 1, 'length': 4},
+        #U13-girl
+        {'year': 'U13-girl', 'required_size': 'half', 'sessions': 3, 'length': 4},
+        {'year': 'U13-girl', 'required_size': 'half', 'sessions': 1, 'length': 4},
+    ]

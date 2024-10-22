@@ -1,7 +1,7 @@
 # filename: main.py
 
 from ortools.sat.python import cp_model
-from data import get_teams, get_fields, get_constraints
+from data import get_teams, get_fields, get_5_star_constraints, get_3_star_constraints_girls
 from utils import build_time_slots, get_subfields, get_size_to_combos, print_solution, get_subfield_availability
 from model import create_variables, add_constraints, solve_model
 from collections import defaultdict
@@ -10,10 +10,19 @@ def solve_soccer_scheduling():
     """
     Main function to solve the soccer scheduling problem.
     """
-    # Data loading
+    
+    # Fetch constraints for boys and girls
+    boys_constraints_list = 'NA'
+    girls_constraints_list = get_3_star_constraints_girls()
+    constraints_list = []
+    if boys_constraints_list != "NA":
+        constraints_list.extend(boys_constraints_list)
+    if girls_constraints_list != "NA":
+        constraints_list.extend(girls_constraints_list)
+
+    # Get teams and fields
     teams = get_teams()
     fields = get_fields()
-    constraints_list = get_constraints()
 
     # Map years to a list of constraints
     year_constraints = defaultdict(list)
