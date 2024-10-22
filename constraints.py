@@ -16,13 +16,17 @@ def add_team_session_constraints(model, teams, constraints, time_slots, size_to_
 
         for idx, team_constraint in enumerate(team_constraints):
             required_size = team_constraint['required_size']
+            subfield_type = team_constraint['subfield_type']
             sessions = team_constraint['sessions']
+
+            key = (required_size, subfield_type)
+            possible_combos = size_to_combos.get(key, [])
 
             total_sessions = []
             for day in time_slots:
                 # Add all session_combo_vars for this team and day
                 for s in y_vars[team_name][idx][day]:
-                    for combo in size_to_combos[required_size]:
+                    for combo in possible_combos:
                         total_sessions.append(session_combo_vars[team_name][idx][day][s][combo])
                         daily_sessions[day].append(session_combo_vars[team_name][idx][day][s][combo])
 
@@ -46,19 +50,23 @@ def add_variable_linking_constraints(model, teams, constraints, time_slots, size
 
         for idx, team_constraint in enumerate(team_constraints):
             required_size = team_constraint['required_size']
+            subfield_type = team_constraint['subfield_type']
             length = team_constraint['length']
+
+            key = (required_size, subfield_type)
+            possible_combos = size_to_combos.get(key, [])
 
             for day in time_slots:
                 # Link y_vars and session_combo_vars
                 for s in y_vars[team_name][idx][day]:
-                    session_vars = session_combo_vars[team_name][idx][day][s].values()
+                    session_vars = [session_combo_vars[team_name][idx][day][s][combo] for combo in possible_combos]
                     model.Add(y_vars[team_name][idx][day][s] == sum(session_vars))
 
                 # Link session_combo_vars and x_vars
                 num_slots_day = len(time_slots[day])
                 for t in range(num_slots_day):
                     relevant_starts = [s for s in y_vars[team_name][idx][day] if s <= t < s + length]
-                    for combo in size_to_combos[required_size]:
+                    for combo in possible_combos:
                         vars_in_sum = [session_combo_vars[team_name][idx][day][s][combo] for s in relevant_starts]
                         if vars_in_sum:
                             model.Add(x_vars[team_name][idx][day][t][combo] == sum(vars_in_sum))
@@ -82,9 +90,15 @@ def add_no_double_booking_constraints(model, teams, constraints, time_slots, siz
                     team_constraints = constraints[year]
                     for idx, team_constraint in enumerate(team_constraints):
                         required_size = team_constraint['required_size']
-                        for combo in size_to_combos[required_size]:
+                        subfield_type = team_constraint['subfield_type']
+
+                        key = (required_size, subfield_type)
+                        possible_combos = size_to_combos.get(key, [])
+
+                        for combo in possible_combos:
                             if sf in combo:
-                                overlapping_vars.append(x_vars[team_name][idx][day][t][combo])
+                                if combo in x_vars[team_name][idx][day][t]:
+                                    overlapping_vars.append(x_vars[team_name][idx][day][t][combo])
                 # Constraint: No double-booking of subfields
                 model.Add(sum(overlapping_vars) <= 1)
 
