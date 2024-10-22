@@ -28,7 +28,11 @@ def create_variables(model, teams, constraints, time_slots, size_to_combos):
 
         for idx, constraint in enumerate(team_constraints):
             required_size = constraint['required_size']
+            subfield_type = constraint['subfield_type']
             length = constraint['length']
+
+            key = (required_size, subfield_type)
+            possible_combos = size_to_combos.get(key, [])
 
             y_vars[team_name][idx] = {}
             session_combo_vars[team_name][idx] = {}
@@ -46,19 +50,20 @@ def create_variables(model, teams, constraints, time_slots, size_to_combos):
                     y_var = model.NewBoolVar(f'y_{team_name}_{idx}_{day}_{s}')
                     y_vars[team_name][idx][day][s] = y_var
                     session_combo_vars[team_name][idx][day][s] = {}
-                    for combo in size_to_combos[required_size]:
+                    for combo in possible_combos:
                         combo_name = '_'.join(combo)
                         var = model.NewBoolVar(f'session_{team_name}_{idx}_{day}_{s}_{combo_name}')
                         session_combo_vars[team_name][idx][day][s][combo] = var
 
                 for t in range(num_slots_day):
                     x_vars[team_name][idx][day][t] = {}
-                    for combo in size_to_combos[required_size]:
+                    for combo in possible_combos:
                         combo_name = '_'.join(combo)
                         var = model.NewBoolVar(f'x_{team_name}_{idx}_{day}_{t}_{combo_name}')
                         x_vars[team_name][idx][day][t][combo] = var
 
     return y_vars, session_combo_vars, x_vars
+
 
 
 def add_constraints(model, teams, constraints, time_slots, size_to_combos,
