@@ -12,7 +12,7 @@ def solve_soccer_scheduling():
     """
     
     # Fetch constraints for boys and girls
-    boys_constraints_list = 'NA'
+    boys_constraints_list = get_5_star_constraints()
     girls_constraints_list = get_3_star_constraints_girls()
     constraints_list = []
     if boys_constraints_list != "NA":
