@@ -6,7 +6,7 @@ from utils import build_time_slots, get_subfields, get_size_to_combos, print_sol
 from model import create_variables, add_constraints, solve_model
 from collections import defaultdict
 
-def solve_soccer_scheduling():
+def main():
     """
     Main function to solve the soccer scheduling problem.
     """
@@ -63,11 +63,6 @@ def solve_soccer_scheduling():
         print_solution(solver, teams, time_slots, x_vars, all_subfields)
     else:
         print('No feasible solution found.')
-
-
-def main():
-    solve_soccer_scheduling()
-
 
 if __name__ == "__main__":
     main()

@@ -1,4 +1,7 @@
 # filename: utils.py
+import pandas as pd
+from tabulate import tabulate
+
 
 def build_time_slots(fields):
     """
@@ -70,38 +73,6 @@ def get_size_to_combos(fields):
                 size_to_combos.setdefault(combo_key, []).append((quarter_name,))
     return size_to_combos
 
-def print_solution(solver, teams, time_slots, x_vars, all_subfields):
-    """
-    Prints the solution in a tabular format with enhanced alignment.
-    """
-    # Prepare mapping from subfields to indices
-    sf_indices = {sf: idx for idx, sf in enumerate(all_subfields)}
-    
-    # Define column width for better alignment
-    column_width = max(len(sf) for sf in all_subfields) + 4
-    
-    for day in time_slots:
-        print(f"Day: {day}")
-        # Print header with aligned columns
-        header = "Time".ljust(column_width) + "".join(sf.ljust(column_width) for sf in all_subfields)
-        print(header)
-        print("-" * len(header))  # Separator line for better readability
-        
-        for t, slot_time in enumerate(time_slots[day]):
-            assignments = [''] * len(all_subfields)
-            for team in teams:
-                team_name = team['name']
-                for idx in x_vars[team_name]:
-                    for combo, var in x_vars[team_name][idx][day][t].items():
-                        if solver.Value(var) == 1:
-                            for sf in combo:
-                                idx_sf = sf_indices[sf]
-                                assignments[idx_sf] = team_name
-            # Print each row with aligned columns
-            print(slot_time.ljust(column_width) + "".join(assignment.ljust(column_width) for assignment in assignments))
-        print("\n")
-
-
 def get_subfield_availability(fields, time_slots, all_subfields):
     """
     Returns a dictionary indicating availability of each subfield per day per time slot.
@@ -135,3 +106,41 @@ def get_subfield_availability(fields, time_slots, all_subfields):
                         for sf in field_subfields:
                             subfield_availability[sf][day][t] = True
     return subfield_availability
+
+def print_solution(solver, teams, time_slots, x_vars, all_subfields):
+    """
+    Prints the solution in a visually pleasing format using tables and colors.
+    """
+    # Prepare mapping from subfields to indices
+    sf_indices = {sf: idx for idx, sf in enumerate(all_subfields)}
+
+    for day in time_slots:
+        print(f"\nDay: {day}\n")
+
+        # Prepare data to be displayed in table and for visual representation
+        data = []
+        time_labels = []
+        subfields_labels = all_subfields
+        assignments_data = []
+        
+        for t, slot_time in enumerate(time_slots[day]):
+            assignments = [''] * len(all_subfields)
+            for team in teams:
+                team_name = team['name']
+                for idx in x_vars[team_name]:
+                    for combo, var in x_vars[team_name][idx][day][t].items():
+                        if solver.Value(var) == 1:
+                            for sf in combo:
+                                idx_sf = sf_indices[sf]
+                                assignments[idx_sf] = team_name
+
+            # Prepare data for table
+            row = [slot_time] + assignments
+            data.append(row)
+            assignments_data.append(assignments)
+            time_labels.append(slot_time)
+
+        # Print formatted table using tabulate
+        headers = ["Time"] + subfields_labels
+        table = tabulate(data, headers=headers, tablefmt="fancy_grid")
+        print(table)
