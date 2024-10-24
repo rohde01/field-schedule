@@ -1,15 +1,11 @@
-# filename: utils.py
+# Filename: utils.py
+
 import pandas as pd
 from tabulate import tabulate
-
 
 def build_time_slots(fields):
     """
     Builds and returns a dictionary of time slots per day.
-
-    Returns:
-        time_slots (dict): Dictionary where keys are days and values are lists of time slots.
-        all_days (list): Sorted list of all days.
     """
     time_slots = {}
     all_days = sorted({day for field in fields for day in field['availability']})
@@ -56,16 +52,13 @@ def get_size_to_combos(fields):
     for field in fields:
         field_size = field['size']
         field_name = field['name']
-        # For 'full' subfield
         combo_key = (field_size, 'full')
         size_to_combos.setdefault(combo_key, []).append((field_name,))
-        # For 'half' subfields
         if 'half_subfields' in field:
             for half in field['half_subfields']:
                 half_name = half['name']
                 combo_key = (field_size, 'half')
                 size_to_combos.setdefault(combo_key, []).append((half_name,))
-        # For 'quarter' subfields
         if 'quarter_subfields' in field:
             for quarter in field['quarter_subfields']:
                 quarter_name = quarter['name']
@@ -107,6 +100,38 @@ def get_subfield_availability(fields, time_slots, all_subfields):
                             subfield_availability[sf][day][t] = True
     return subfield_availability
 
+def get_subfield_areas(fields):
+    """
+    Returns a dictionary mapping each subfield to the areas it covers.
+    """
+    subfield_areas = {}
+    for field in fields:
+        field_name = field['name']
+        areas = []
+        if 'quarter_subfields' in field:
+            quarter_names = [quarter['name'] for quarter in field['quarter_subfields']]
+            areas.extend(quarter_names)
+            for quarter in field['quarter_subfields']:
+                subfield_areas[quarter['name']] = [quarter['name']]
+        elif 'half_subfields' in field:
+            half_names = [half['name'] for half in field['half_subfields']]
+            areas.extend(half_names)
+            for half in field['half_subfields']:
+                subfield_areas[half['name']] = [half['name']]
+        else:
+            areas.append(field_name)
+            subfield_areas[field_name] = [field_name]
+
+        subfield_areas[field_name] = areas
+
+        if 'half_subfields' in field and 'quarter_subfields' in field:
+            for half in field['half_subfields']:
+                half_name = half['name']
+                half_fields = half['fields']
+                subfield_areas[half_name] = half_fields
+
+    return subfield_areas
+
 def print_solution(solver, teams, time_slots, x_vars, all_subfields):
     """
     Prints the solution in a visually pleasing format using tables and colors.
@@ -117,11 +142,8 @@ def print_solution(solver, teams, time_slots, x_vars, all_subfields):
     for day in time_slots:
         print(f"\nDay: {day}\n")
 
-        # Prepare data to be displayed in table and for visual representation
         data = []
-        time_labels = []
         subfields_labels = all_subfields
-        assignments_data = []
         
         for t, slot_time in enumerate(time_slots[day]):
             assignments = [''] * len(all_subfields)
@@ -134,13 +156,9 @@ def print_solution(solver, teams, time_slots, x_vars, all_subfields):
                                 idx_sf = sf_indices[sf]
                                 assignments[idx_sf] = team_name
 
-            # Prepare data for table
             row = [slot_time] + assignments
             data.append(row)
-            assignments_data.append(assignments)
-            time_labels.append(slot_time)
 
-        # Print formatted table using tabulate
         headers = ["Time"] + subfields_labels
         table = tabulate(data, headers=headers, tablefmt="fancy_grid")
         print(table)
