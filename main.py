@@ -2,9 +2,10 @@
 
 from ortools.sat.python import cp_model
 from test_data import get_teams, get_fields, get_5_star_constraints, get_3_star_constraints_girls
-from utils import build_time_slots, get_subfields, get_size_to_combos, print_solution, get_subfield_availability, get_subfield_areas
+from utils import build_time_slots, get_subfields, get_size_to_combos, get_subfield_availability, get_subfield_areas
 from model import create_variables, add_constraints, solve_model
 from collections import defaultdict
+from output import get_field_to_smallest_subfields, print_solution
 
 def main():
     """
@@ -22,6 +23,7 @@ def main():
 
     teams = get_teams()
     fields = get_fields()
+    field_to_smallest_subfields, smallest_subfields_list = get_field_to_smallest_subfields(fields)
 
     year_constraints = defaultdict(list)
     for constraint in constraints_list:
@@ -47,7 +49,7 @@ def main():
     solver, status = solve_model(model)
 
     if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
-        print_solution(solver, teams, time_slots, x_vars, all_subfields)
+        print_solution(solver, teams, time_slots, x_vars, field_to_smallest_subfields, smallest_subfields_list)
     else:
         print('No feasible solution found.')
 

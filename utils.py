@@ -131,34 +131,3 @@ def get_subfield_areas(fields):
                 subfield_areas[half_name] = half_fields
 
     return subfield_areas
-
-def print_solution(solver, teams, time_slots, x_vars, all_subfields):
-    """
-    Prints the solution in a visually pleasing format using tables and colors.
-    """
-    # Prepare mapping from subfields to indices
-    sf_indices = {sf: idx for idx, sf in enumerate(all_subfields)}
-
-    for day in time_slots:
-        print(f"\nDay: {day}\n")
-
-        data = []
-        subfields_labels = all_subfields
-        
-        for t, slot_time in enumerate(time_slots[day]):
-            assignments = [''] * len(all_subfields)
-            for team in teams:
-                team_name = team['name']
-                for idx in x_vars[team_name]:
-                    for combo, var in x_vars[team_name][idx][day][t].items():
-                        if solver.Value(var) == 1:
-                            for sf in combo:
-                                idx_sf = sf_indices[sf]
-                                assignments[idx_sf] = team_name
-
-            row = [slot_time] + assignments
-            data.append(row)
-
-        headers = ["Time"] + subfields_labels
-        table = tabulate(data, headers=headers, tablefmt="fancy_grid")
-        print(table)
