@@ -1,4 +1,4 @@
-# output.py
+#Filename: output.py
 
 def get_field_to_smallest_subfields(fields):
     """
@@ -60,12 +60,12 @@ def get_field_to_smallest_subfields(fields):
 
 from tabulate import tabulate
 
-def print_solution(solver, teams, time_slots, x_vars, field_to_smallest_subfields, smallest_subfields_list):
-    """
-    Prints the solution in a visually pleasing format using the smallest subfields.
-    """
+def print_solution(solver, teams, time_slots, interval_vars, field_to_smallest_subfields, smallest_subfields_list, global_time_slots):
     # Prepare mapping from smallest subfields to indices
     sf_indices = {sf: idx for idx, sf in enumerate(smallest_subfields_list)}
+
+    # Map global time slots back to day and time
+    idx_to_time = {idx: (day, t) for idx, (day, t) in enumerate(global_time_slots)}
 
     for day in time_slots:
         print(f"\nDay: {day}\n")
@@ -73,19 +73,36 @@ def print_solution(solver, teams, time_slots, x_vars, field_to_smallest_subfield
         data = []
         subfields_labels = smallest_subfields_list
 
-        for t, slot_time in enumerate(time_slots[day]):
+        num_slots_day = len(time_slots[day])
+
+        for t in range(num_slots_day):
             assignments = [''] * len(smallest_subfields_list)
+            global_t = None
+            # Find the global index for this time slot
+            for idx, (d, time_idx) in idx_to_time.items():
+                if d == day and time_idx == t:
+                    global_t = idx
+                    break
+            if global_t is None:
+                continue
+            slot_time = time_slots[day][t]
+
             for team in teams:
                 team_name = team['name']
-                for idx in x_vars[team_name]:
-                    for combo, var in x_vars[team_name][idx][day][t].items():
-                        if solver.Value(var) == 1:
-                            for field in combo:
+                for idx_constraint in interval_vars[team_name]:
+                    sessions = interval_vars[team_name][idx_constraint]
+                    for session_idx, session in enumerate(sessions):
+                        start = solver.Value(session['start'])
+                        end = solver.Value(session['end'])
+                        assigned_combo_idx = solver.Value(session['assigned_combo'])
+                        assigned_combo = session['possible_combos'][assigned_combo_idx]
+
+                        if start <= global_t < end:
+                            for field in assigned_combo:
                                 smallest_subfields = field_to_smallest_subfields[field]
                                 for sf in smallest_subfields:
                                     idx_sf = sf_indices[sf]
                                     assignments[idx_sf] = team_name
-
             row = [slot_time] + assignments
             data.append(row)
 
