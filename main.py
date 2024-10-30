@@ -11,7 +11,7 @@ def main():
     """
     Main function to solve the soccer scheduling problem.
     """
-    
+
     # Fetch constraints for boys and girls
     boys_constraints_list = get_5_star_constraints()
     girls_constraints_list = get_3_star_constraints_girls()
@@ -37,19 +37,19 @@ def main():
 
     model = cp_model.CpModel()
 
-    y_vars, session_combo_vars, x_vars = create_variables(
+    interval_vars, assigned_fields, global_time_slots = create_variables(
         model, teams, year_constraints, time_slots, size_to_combos
     )
 
     add_constraints(
         model, teams, year_constraints, time_slots, size_to_combos,
-        y_vars, session_combo_vars, x_vars, subfield_areas, subfield_availability
+        interval_vars, assigned_fields, subfield_areas, subfield_availability, global_time_slots
     )
 
     solver, status = solve_model(model)
 
     if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
-        print_solution(solver, teams, time_slots, x_vars, field_to_smallest_subfields, smallest_subfields_list)
+        print_solution(solver, teams, time_slots, interval_vars, field_to_smallest_subfields, smallest_subfields_list, global_time_slots)
     else:
         print('No feasible solution found.')
 
