@@ -1,9 +1,14 @@
-# Filename: main.py
+"""
+Filename: main.py
+Main module to solve the soccer scheduling problem.
+
+Fetches data, builds the model, adds constraints, solves the model, and outputs the solution.
+"""
 
 import cProfile
 import pstats
 from ortools.sat.python import cp_model
-from b93 import get_teams, get_fields, get_5_star_constraints, get_3_star_constraints_girls
+from test_data import get_teams, get_fields, get_5_star_constraints, get_3_star_constraints_girls
 from utils import build_time_slots, get_subfields, get_size_to_combos, get_subfield_availability, get_subfield_areas
 from model import create_variables, add_constraints, solve_model
 from collections import defaultdict
@@ -56,7 +61,7 @@ def main():
         print_solution(solver, teams, time_slots, interval_vars, field_to_smallest_subfields, smallest_subfields_list, global_time_slots)
     else:
         print('No feasible solution found.')
-    
+
     profiler.disable()
     stats = pstats.Stats(profiler).sort_stats('cumtime')
     stats.print_stats(10)  # Print top 10 functions by cumulative time

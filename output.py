@@ -1,4 +1,11 @@
-#Filename: output.py
+"""
+Filename: output.py
+Output module for the scheduling problem.
+
+Contains functions to process and display the solution in a readable format.
+"""
+
+from tabulate import tabulate
 
 def get_field_to_smallest_subfields(fields):
     """
@@ -7,7 +14,6 @@ def get_field_to_smallest_subfields(fields):
     field_to_smallest_subfields = {}
     smallest_subfields_set = set()
 
-    # Collect all field definitions
     field_defs = {}
 
     for field in fields:
@@ -21,50 +27,43 @@ def get_field_to_smallest_subfields(fields):
             for half in field['half_subfields']:
                 field_defs[half['name']] = half
 
-    # Recursive function to get smallest subfields
     def get_smallest_subfields(field_name):
         field = field_defs[field_name]
 
         if 'quarter_subfields' in field:
-            # Quarter subfields are the smallest subfields
             smallest = [quarter['name'] for quarter in field['quarter_subfields']]
             for name in smallest:
                 smallest_subfields_set.add(name)
             return smallest
 
         elif 'fields' in field:
-            # This field contains other fields
             smallest = []
             for subfield_name in field['fields']:
                 smallest.extend(get_smallest_subfields(subfield_name))
             return smallest
 
         elif 'half_subfields' in field:
-            # The field has half subfields
             smallest = []
             for half in field['half_subfields']:
                 smallest.extend(get_smallest_subfields(half['name']))
             return smallest
 
         else:
-            # No subfields, this is a smallest subfield
             smallest_subfields_set.add(field_name)
             return [field_name]
 
-    # Build mapping
     for field_name in field_defs:
         field_to_smallest_subfields[field_name] = get_smallest_subfields(field_name)
 
     smallest_subfields_list = sorted(smallest_subfields_set)
     return field_to_smallest_subfields, smallest_subfields_list
 
-from tabulate import tabulate
-
 def print_solution(solver, teams, time_slots, interval_vars, field_to_smallest_subfields, smallest_subfields_list, global_time_slots):
-    # Prepare mapping from smallest subfields to indices
+    """
+    Prints the solution in a tabulated format.
+    """
     sf_indices = {sf: idx for idx, sf in enumerate(smallest_subfields_list)}
 
-    # Map global time slots back to day and time
     idx_to_time = {idx: (day, t) for idx, (day, t) in enumerate(global_time_slots)}
 
     for day in time_slots:
@@ -78,7 +77,6 @@ def print_solution(solver, teams, time_slots, interval_vars, field_to_smallest_s
         for t in range(num_slots_day):
             assignments = [''] * len(smallest_subfields_list)
             global_t = None
-            # Find the global index for this time slot
             for idx, (d, time_idx) in idx_to_time.items():
                 if d == day and time_idx == t:
                     global_t = idx
