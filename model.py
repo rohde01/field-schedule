@@ -1,6 +1,7 @@
 # Filename: model.py
 
 from ortools.sat.python import cp_model
+from collections import defaultdict
 from constraints import (
     add_no_overlapping_sessions_constraints,
     add_no_double_booking_constraints,
@@ -29,6 +30,14 @@ def create_variables(model, teams, constraints, time_slots, size_to_combos):
             idx += 1
     num_global_slots = idx
 
+    # Build mappings for days and time slots
+    day_to_global_indices = defaultdict(list)
+    for idx, (day, t) in enumerate(global_time_slots):
+        day_to_global_indices[day].append(idx)
+
+    day_names = list(time_slots.keys())
+    day_name_to_index = {day_name: index for index, day_name in enumerate(day_names)}
+
     # For each team and each required session
     for team in teams:
         team_name = team['name']
@@ -53,24 +62,43 @@ def create_variables(model, teams, constraints, time_slots, size_to_combos):
 
             for session_idx in range(sessions):
                 # Create variables:
-                # Start variable, integer variable over possible start times
-                # Duration is length
-                # Interval variable
-                # Assigned field combo variable
+                # Start variable with adjusted domain
+                allowed_assignments = []
+                allowed_start_times = set()
 
-                start_var = model.NewIntVar(0, num_global_slots - length, f'start_{team_name}_{idx_constraint}_{session_idx}')
+                for day_name in time_slots:
+                    day_idx = day_name_to_index[day_name]
+                    day_global_indices = day_to_global_indices[day_name]
+                    num_slots_day = len(day_global_indices)
+
+                    for s_local in range(num_slots_day - length + 1):
+                        s_global = day_global_indices[s_local]
+                        allowed_assignments.append([day_idx, s_global])
+                        allowed_start_times.add(s_global)
+
+                allowed_start_times = sorted(allowed_start_times)
+                start_var = model.NewIntVarFromDomain(
+                    cp_model.Domain.FromValues(allowed_start_times),
+                    f'start_{team_name}_{idx_constraint}_{session_idx}'
+                )
+
                 end_var = model.NewIntVar(0, num_global_slots, f'end_{team_name}_{idx_constraint}_{session_idx}')
-                interval_var = model.NewIntervalVar(start_var, length, end_var, f'interval_{team_name}_{idx_constraint}_{session_idx}')
+                interval_var = model.NewIntervalVar(
+                    start_var, length, end_var,
+                    f'interval_{team_name}_{idx_constraint}_{session_idx}'
+                )
 
                 if len(possible_combos) > 1:
-                    assigned_combo = model.NewIntVar(0, len(possible_combos) - 1, f'assigned_combo_{team_name}_{idx_constraint}_{session_idx}')
+                    assigned_combo = model.NewIntVar(0, len(possible_combos) - 1,
+                                                     f'assigned_combo_{team_name}_{idx_constraint}_{session_idx}')
                 else:
                     assigned_combo = model.NewConstant(0)
 
                 # Create day variable
                 day_var = model.NewIntVar(0, len(time_slots) - 1, f'day_{team_name}_{idx_constraint}_{session_idx}')
-                # Link start_var to day_var using AddElement
-                model.AddElement(start_var, idx_to_day, day_var)
+
+                # Add the allowed assignments constraint
+                model.AddAllowedAssignments([day_var, start_var], allowed_assignments)
 
                 interval_vars[team_name][idx_constraint].append({
                     'start': start_var,
