@@ -110,20 +110,20 @@ def get_fields():
 def get_5_star_constraints():
     return [
         # U19 - Boys
-        {'year': 'U19', 'required_size': '11v11', 'subfield_type': 'full', 'sessions': 2, 'length': 2},
-        {'year': 'U19', 'required_size': '11v11', 'subfield_type': 'half', 'sessions': 2, 'length': 2},
+        {'year': 'U19', 'required_size': '11v11', 'subfield_type': 'full', 'sessions': 2, 'length': 4},
+        {'year': 'U19', 'required_size': '11v11', 'subfield_type': 'half', 'sessions': 2, 'length': 4},
         
         # U17 - Boys
-        {'year': 'U17', 'required_size': '11v11', 'subfield_type': 'full', 'sessions': 2, 'length': 2},
-        {'year': 'U17', 'required_size': '11v11', 'subfield_type': 'half', 'sessions': 2, 'length': 2},
+        {'year': 'U17', 'required_size': '11v11', 'subfield_type': 'full', 'sessions': 2, 'length': 4},
+        {'year': 'U17', 'required_size': '11v11', 'subfield_type': 'half', 'sessions': 2, 'length': 4},
         
         # U15 - Boys
-        {'year': 'U15', 'required_size': '11v11', 'subfield_type': 'full', 'sessions': 2, 'length': 2},
-        {'year': 'U15', 'required_size': '11v11', 'subfield_type': 'half', 'sessions': 2, 'length': 2},
+        {'year': 'U15', 'required_size': '11v11', 'subfield_type': 'full', 'sessions': 2, 'length': 6},
+        {'year': 'U15', 'required_size': '11v11', 'subfield_type': 'half', 'sessions': 2, 'length': 6},
 
         # U14 - Boys
-        {'year': 'U14', 'required_size': '11v11', 'subfield_type': 'quarter', 'sessions': 1, 'length': 2},
-        {'year': 'U14', 'required_size': '11v11', 'subfield_type': 'half', 'sessions': 3, 'length': 2},
+        {'year': 'U14', 'required_size': '11v11', 'subfield_type': 'quarter', 'sessions': 1, 'length': 4},
+        {'year': 'U14', 'required_size': '11v11', 'subfield_type': 'half', 'sessions': 3, 'length': 4},
         
         # U13 - Boys
         {'year': 'U13', 'required_size': '11v11', 'subfield_type': 'quarter', 'sessions': 1, 'length': 4},
