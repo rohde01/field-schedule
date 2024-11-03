@@ -1,5 +1,12 @@
-# Filename: main.py
+"""
+Filename: main.py
+Main module to solve the soccer scheduling problem.
 
+Fetches data, builds the model, adds constraints, solves the model, and outputs the solution.
+"""
+
+import cProfile
+import pstats
 from ortools.sat.python import cp_model
 from test_data import get_teams, get_fields, get_5_star_constraints, get_3_star_constraints_girls
 from utils import build_time_slots, get_subfields, get_size_to_combos, get_subfield_availability, get_subfield_areas
@@ -11,7 +18,9 @@ def main():
     """
     Main function to solve the soccer scheduling problem.
     """
-    
+    profiler = cProfile.Profile()
+    profiler.enable()
+
     # Fetch constraints for boys and girls
     boys_constraints_list = get_5_star_constraints()
     girls_constraints_list = get_3_star_constraints_girls()
@@ -37,21 +46,25 @@ def main():
 
     model = cp_model.CpModel()
 
-    y_vars, session_combo_vars, x_vars = create_variables(
+    interval_vars, assigned_fields, global_time_slots = create_variables(
         model, teams, year_constraints, time_slots, size_to_combos
     )
 
     add_constraints(
         model, teams, year_constraints, time_slots, size_to_combos,
-        y_vars, session_combo_vars, x_vars, subfield_areas, subfield_availability
+        interval_vars, assigned_fields, subfield_areas, subfield_availability, global_time_slots
     )
 
     solver, status = solve_model(model)
 
     if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
-        print_solution(solver, teams, time_slots, x_vars, field_to_smallest_subfields, smallest_subfields_list)
+        print_solution(solver, teams, time_slots, interval_vars, field_to_smallest_subfields, smallest_subfields_list, global_time_slots)
     else:
         print('No feasible solution found.')
+
+    profiler.disable()
+    stats = pstats.Stats(profiler).sort_stats('cumtime')
+    stats.print_stats(10)  # Print top 10 functions by cumulative time
 
 if __name__ == "__main__":
     main()

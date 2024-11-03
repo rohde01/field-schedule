@@ -1,7 +1,9 @@
-# Filename: utils.py
+"""
+Filename: utils.py
+Utility functions for the scheduling problem.
 
-import pandas as pd
-from tabulate import tabulate
+Contains helper functions for building time slots, subfield data, and availability mappings.
+"""
 
 def build_time_slots(fields):
     """
@@ -15,8 +17,11 @@ def build_time_slots(fields):
             if day in field['availability']:
                 start = field['availability'][day]['start']
                 end = field['availability'][day]['end']
-                start_hour, start_minute = map(int, start.split(':'))
-                end_hour, end_minute = map(int, end.split(':'))
+                try:
+                    start_hour, start_minute = map(int, start.split(':'))
+                    end_hour, end_minute = map(int, end.split(':'))
+                except ValueError as e:
+                    raise ValueError(f"Invalid time format in field '{field['name']}' on day '{day}': {e}")
                 total_start_minutes = start_hour * 60 + start_minute
                 total_end_minutes = end_hour * 60 + end_minute
                 num_intervals = (total_end_minutes - total_start_minutes) // 15
@@ -88,8 +93,11 @@ def get_subfield_availability(fields, time_slots, all_subfields):
             if day in field_availability:
                 start_time = field_availability[day]['start']
                 end_time = field_availability[day]['end']
-                start_hour, start_minute = map(int, start_time.split(':'))
-                end_hour, end_minute = map(int, end_time.split(':'))
+                try:
+                    start_hour, start_minute = map(int, start_time.split(':'))
+                    end_hour, end_minute = map(int, end_time.split(':'))
+                except ValueError as e:
+                    raise ValueError(f"Invalid time format in field '{field_name}' on day '{day}': {e}")
                 total_start_minutes = start_hour * 60 + start_minute
                 total_end_minutes = end_hour * 60 + end_minute
                 for t, slot_time in enumerate(time_slots[day]):

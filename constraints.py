@@ -1,118 +1,119 @@
-# filename: constraints.py
+"""
+Filename: constraints.py
+Constraint functions for the scheduling model.
 
-def add_team_session_constraints(model, teams, constraints, time_slots, size_to_combos,
-                                 y_vars, session_combo_vars):
-    """
-    Adds constraints related to the number of sessions each team must have
-    and limits sessions per day.
-    """
-    for team in teams:
-        team_name = team['name']
-        year = team['year']
-        team_constraints = constraints[year]
+Provides functions to add various constraints to the CP-SAT model to prevent overlapping sessions,
+double booking, enforce field availability, and ensure sessions are on different days.
+"""
 
-        daily_sessions = {day: [] for day in time_slots}
-
-        for idx, team_constraint in enumerate(team_constraints):
-            required_size = team_constraint['required_size']
-            subfield_type = team_constraint['subfield_type']
-            sessions = team_constraint['sessions']
-
-            key = (required_size, subfield_type)
-            possible_combos = size_to_combos.get(key, [])
-
-            total_sessions = []
-            for day in time_slots:
-                for s in y_vars[team_name][idx][day]:
-                    for combo in possible_combos:
-                        total_sessions.append(session_combo_vars[team_name][idx][day][s][combo])
-                        daily_sessions[day].append(session_combo_vars[team_name][idx][day][s][combo])
-
-            model.Add(sum(total_sessions) == sessions)
-
-        for day in time_slots:
-            model.Add(sum(daily_sessions[day]) <= 1)
-
-def add_variable_linking_constraints(model, teams, constraints, time_slots, size_to_combos,
-                                     y_vars, session_combo_vars, x_vars):
-    """
-    Adds constraints to link y_vars, session_combo_vars, and x_vars.
-    """
-    for team in teams:
-        team_name = team['name']
-        year = team['year']
-        team_constraints = constraints[year]
-
-        for idx, team_constraint in enumerate(team_constraints):
-            required_size = team_constraint['required_size']
-            subfield_type = team_constraint['subfield_type']
-            length = team_constraint['length']
-
-            key = (required_size, subfield_type)
-            possible_combos = size_to_combos.get(key, [])
-
-            for day in time_slots:
-                for s in y_vars[team_name][idx][day]:
-                    session_vars = [session_combo_vars[team_name][idx][day][s][combo] for combo in possible_combos]
-                    model.Add(y_vars[team_name][idx][day][s] == sum(session_vars))
-
-                num_slots_day = len(time_slots[day])
-                for t in range(num_slots_day):
-                    relevant_starts = [s for s in y_vars[team_name][idx][day] if s <= t < s + length]
-                    for combo in possible_combos:
-                        vars_in_sum = [session_combo_vars[team_name][idx][day][s][combo] for s in relevant_starts]
-                        if vars_in_sum:
-                            model.Add(x_vars[team_name][idx][day][t][combo] == sum(vars_in_sum))
-                        else:
-                            model.Add(x_vars[team_name][idx][day][t][combo] == 0)
-
-def add_no_double_booking_constraints(model, teams, constraints, time_slots, size_to_combos,
-                                      x_vars, subfield_areas):
-    """
-    Adds constraints to prevent double-booking of subfields.
-    """
-    for day in time_slots:
-        num_slots_day = len(time_slots[day])
-        for t in range(num_slots_day):
-            area_vars = {}
-            for team in teams:
-                team_name = team['name']
-                year = team['year']
-                team_constraints = constraints[year]
-                for idx, team_constraint in enumerate(team_constraints):
-                    for combo, var in x_vars[team_name][idx][day][t].items():
-                        areas = set()
-                        for sf in combo:
-                            areas.update(subfield_areas[sf])
-                        for area in areas:
-                            area_vars.setdefault(area, []).append(var)
-            for area, vars_in_area in area_vars.items():
-                model.Add(sum(vars_in_area) <= 1)
-
-def add_no_overlapping_sessions_constraints(model, teams, time_slots, x_vars):
+def add_no_overlapping_sessions_constraints(model, teams, interval_vars):
     """
     Adds constraints to prevent overlapping sessions for the same team.
     """
     for team in teams:
         team_name = team['name']
-        for day in time_slots:
-            num_slots_day = len(time_slots[day])
-            for t in range(num_slots_day):
-                vars_at_t = []
-                for idx in x_vars[team_name]:
-                    vars_at_t.extend(x_vars[team_name][idx][day][t].values())
-                model.Add(sum(vars_at_t) <= 1)
+        team_intervals = []
+        for idx in interval_vars[team_name]:
+            for session in interval_vars[team_name][idx]:
+                team_intervals.append(session['interval'])
+        model.AddNoOverlap(team_intervals)
 
-def add_field_availability_constraints(model, x_vars, time_slots, subfield_availability):
+def add_no_double_booking_constraints(model, teams, interval_vars, assigned_fields, subfield_areas, global_time_slots):
+    """
+    Adds constraints to prevent double-booking of subfields.
+    """
+    subfield_intervals = {}
+
+    for team in teams:
+        team_name = team['name']
+        for idx_constraint in interval_vars[team_name]:
+            sessions = interval_vars[team_name][idx_constraint]
+            for session_idx, session in enumerate(sessions):
+                assigned_combo_var = session['assigned_combo']
+                combo_indices = session['combo_indices']
+
+                for combo, combo_index in combo_indices.items():
+                    subfields = set()
+                    for field in combo:
+                        subfields.update(subfield_areas[field])
+
+                    uses_combo = model.NewBoolVar(f'uses_{team_name}_{idx_constraint}_{session_idx}_{combo_index}')
+                    model.Add(assigned_combo_var == combo_index).OnlyEnforceIf(uses_combo)
+                    model.Add(assigned_combo_var != combo_index).OnlyEnforceIf(uses_combo.Not())
+
+                    for sf in subfields:
+                        if sf not in subfield_intervals:
+                            subfield_intervals[sf] = []
+                        sf_interval = model.NewOptionalIntervalVar(
+                            session['start'], session['length'], session['end'], uses_combo,
+                            f'sf_interval_{team_name}_{idx_constraint}_{session_idx}_{sf}'
+                        )
+                        subfield_intervals[sf].append(sf_interval)
+
+    for sf in subfield_intervals:
+        model.AddNoOverlap(subfield_intervals[sf])
+
+def add_field_availability_constraints(model, interval_vars, assigned_fields, subfield_availability, global_time_slots):
     """
     Adds constraints to ensure that fields are only used when they are available.
     """
-    for team_name in x_vars:
-        for idx in x_vars[team_name]:
-            for day in time_slots:
-                num_slots_day = len(time_slots[day])
-                for t in range(num_slots_day):
-                    for combo in x_vars[team_name][idx][day][t]:
-                        available = all(subfield_availability[sf][day][t] for sf in combo)
-                        if not available:
-                            model.Add(x_vars[team_name][idx][day][t][combo] == 0)
+    idx_to_time = {idx: (day, t) for idx, (day, t) in enumerate(global_time_slots)}
+    num_global_slots = len(global_time_slots)
+
+    for team_name in interval_vars:
+        for idx_constraint in interval_vars[team_name]:
+            sessions = interval_vars[team_name][idx_constraint]
+            for session_idx, session in enumerate(sessions):
+                assigned_combo_var = session['assigned_combo']
+                combo_indices = session['combo_indices']
+
+                length = session['length']
+                start_var = session['start']
+
+                allowed_assignments = []
+
+                for combo, combo_index in combo_indices.items():
+                    for s in range(num_global_slots - length + 1):
+                        is_available = True
+                        for t in range(length):
+                            global_t = s + t
+                            if global_t >= num_global_slots:
+                                is_available = False
+                                break
+                            day, time_idx = idx_to_time[global_t]
+                            for field in combo:
+                                if not subfield_availability[field][day][time_idx]:
+                                    is_available = False
+                                    break
+                            if not is_available:
+                                break
+                        if is_available:
+                            allowed_assignments.append([combo_index, s])
+
+                model.AddAllowedAssignments([assigned_combo_var, start_var], allowed_assignments)
+
+def add_team_day_constraints(model, interval_vars):
+    """
+    Adds AllDifferent constraints for day variables to ensure that each team does not have sessions on the same day.
+    """
+    for team_name in interval_vars:
+        team_day_vars = []
+        for idx_constraint in interval_vars[team_name]:
+            sessions = interval_vars[team_name][idx_constraint]
+            for session in sessions:
+                team_day_vars.append(session['day_var'])
+        model.AddAllDifferent(team_day_vars)
+
+def add_allowed_assignments_constraints(model, interval_vars):
+    """
+    Adds allowed assignments constraints for start times and days.
+    """
+    for team_name in interval_vars:
+        for idx_constraint in interval_vars[team_name]:
+            sessions = interval_vars[team_name][idx_constraint]
+            for session in sessions:
+                day_var = session['day_var']
+                start_var = session['start']
+                allowed_assignments = session.get('allowed_assignments', [])
+                if allowed_assignments:
+                    model.AddAllowedAssignments([day_var, start_var], allowed_assignments)
