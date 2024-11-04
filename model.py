@@ -14,6 +14,8 @@ from constraints import (
     add_team_day_constraints,
     add_allowed_assignments_constraints
 )
+from objectives import add_objective_function
+from objectives import add_objective_function
 
 def create_variables(model, teams, constraints, time_slots, size_to_combos):
     """
@@ -22,6 +24,7 @@ def create_variables(model, teams, constraints, time_slots, size_to_combos):
     # Build time slot mappings
     mappings = _build_time_slot_mappings(time_slots)
     global_time_slots = mappings['global_time_slots']
+    day_name_to_index = mappings['day_name_to_index']
 
     interval_vars = {}
     assigned_fields = {}
@@ -34,7 +37,7 @@ def create_variables(model, teams, constraints, time_slots, size_to_combos):
         interval_vars[team_name] = team_interval_vars
         assigned_fields[team_name] = team_assigned_fields
 
-    return interval_vars, assigned_fields, global_time_slots
+    return interval_vars, assigned_fields, global_time_slots, day_name_to_index
 
 def _build_time_slot_mappings(time_slots):
     """Builds mappings from time slots to global indices and other related mappings."""
@@ -177,6 +180,13 @@ def add_constraints(model, teams, constraints, time_slots, size_to_combos,
     add_field_availability_constraints(model, interval_vars, assigned_fields, subfield_availability, global_time_slots)
     add_team_day_constraints(model, interval_vars)
     add_allowed_assignments_constraints(model, interval_vars)
+
+def add_objectives(model, teams, interval_vars, time_slots, day_name_to_index):
+    """
+    Adds an objective function to the model to minimize penalties for undesirable scheduling patterns
+    and reward desirable ones.
+    """
+    add_objective_function(model, teams, interval_vars, time_slots, day_name_to_index)
 
 def solve_model(model):
     """
