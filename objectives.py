@@ -7,21 +7,23 @@ def add_objective_function(model, teams, interval_vars, time_slots, day_name_to_
     and reward desirable ones.
     """
     CONSECUTIVE_DAY_PENALTY = 100
-    PENALTY_PER_DAY_DEVIATION = 200
-    DAY_WEIGHT_PENALTY = 10
-    less_favored_day = 'Friday'
+    PENALTY_PER_DAY_DEVIATION = 400
 
     num_days = len(day_name_to_index)
-    day_weights = [1.0] * num_days
-    if less_favored_day in day_name_to_index:
-        day_weights[day_name_to_index[less_favored_day]] = 1.5
-
     penalties = []
 
-    preferred_patterns = {
-        2: [[2]],
-        3: [[2, 2]],
-        4: [[1, 2, 1]]
+    preferred_days = {
+        2: [
+            [day_name_to_index['Mon'], day_name_to_index['Wed']],
+            [day_name_to_index['Tue'], day_name_to_index['Thu']],
+            [day_name_to_index['Wed'], day_name_to_index['Fri']]
+        ],
+        3: [
+            [day_name_to_index['Mon'], day_name_to_index['Wed'], day_name_to_index['Fri']]
+        ],
+        4: [
+            [day_name_to_index['Mon'], day_name_to_index['Tue'], day_name_to_index['Thu'], day_name_to_index['Fri']]
+        ]
     }
 
     for team in teams:
@@ -30,55 +32,33 @@ def add_objective_function(model, teams, interval_vars, time_slots, day_name_to_
         day_vars = [session['day_var'] for session in team_sessions]
         num_sessions = len(day_vars)
 
-        # Penalty for consecutive training days
+        # Simplify penalties for consecutive training days using boolean variables
         for i in range(num_sessions - 1):
-            day_diff = model.NewIntVar(0, num_days, f'day_diff_{team_name}_{i}')
-            model.Add(day_diff == day_vars[i+1] - day_vars[i])
-
             is_consecutive = model.NewBoolVar(f'is_consecutive_{team_name}_{i}')
-            model.Add(day_diff == 1).OnlyEnforceIf(is_consecutive)
-            model.Add(day_diff != 1).OnlyEnforceIf(is_consecutive.Not())
-
+            model.Add(day_vars[i + 1] == day_vars[i] + 1).OnlyEnforceIf(is_consecutive)
+            model.Add(day_vars[i + 1] != day_vars[i] + 1).OnlyEnforceIf(is_consecutive.Not())
             penalty = model.NewIntVar(0, CONSECUTIVE_DAY_PENALTY, f'penalty_consecutive_{team_name}_{i}')
             model.Add(penalty == CONSECUTIVE_DAY_PENALTY * is_consecutive)
             penalties.append(penalty)
 
-        # Penalty for deviation from preferred patterns
-        if num_sessions in preferred_patterns:
-            pattern_penalties = []
-            for pattern_num, pattern in enumerate(preferred_patterns[num_sessions]):
-                diffs = [
-                    model.NewIntVar(-num_days, num_days, f'pattern_{pattern_num}_day_diff_{team_name}_{i}')
-                    for i in range(len(pattern))
-                ]
-                for i, expected_diff in enumerate(pattern):
-                    model.Add(diffs[i] == day_vars[i+1] - day_vars[i])
-                    deviation = model.NewIntVar(0, num_days, f'pattern_{pattern_num}_deviation_{team_name}_{i}')
-                    model.AddAbsEquality(deviation, diffs[i] - expected_diff)
-                    diffs[i] = deviation
+        # Optimize penalty calculations for preferred patterns using AllowedAssignments
+        if num_sessions in preferred_days:
+            pattern_matches = []
+            for pattern in preferred_days[num_sessions]:
+                match = model.NewBoolVar(f'pattern_match_{team_name}_{"_".join(map(str, pattern))}')
+                model.AddAllowedAssignments(day_vars, [pattern]).OnlyEnforceIf(match)
+                model.AddForbiddenAssignments(day_vars, [pattern]).OnlyEnforceIf(match.Not())
+                pattern_matches.append(match)
 
-                total_deviation = model.NewIntVar(0, num_days * len(pattern), f'pattern_{pattern_num}_total_deviation_{team_name}')
-                model.Add(total_deviation == sum(diffs))
+            is_matching_any_pattern = model.NewBoolVar(f'is_matching_any_pattern_{team_name}')
+            model.AddBoolOr(pattern_matches).OnlyEnforceIf(is_matching_any_pattern)
+            model.AddBoolAnd([m.Not() for m in pattern_matches]).OnlyEnforceIf(is_matching_any_pattern.Not())
 
-                pattern_penalty = model.NewIntVar(0, num_days * PENALTY_PER_DAY_DEVIATION, f'pattern_{pattern_num}_penalty_{team_name}')
-                model.Add(pattern_penalty == total_deviation * PENALTY_PER_DAY_DEVIATION)
-                pattern_penalties.append(pattern_penalty)
+            pattern_penalty = model.NewIntVar(0, PENALTY_PER_DAY_DEVIATION, f'pattern_penalty_{team_name}')
+            model.Add(pattern_penalty == 0).OnlyEnforceIf(is_matching_any_pattern)
+            model.Add(pattern_penalty == PENALTY_PER_DAY_DEVIATION).OnlyEnforceIf(is_matching_any_pattern.Not())
+            penalties.append(pattern_penalty)
 
-            min_pattern_penalty = model.NewIntVar(0, num_days * PENALTY_PER_DAY_DEVIATION, f'min_pattern_penalty_{team_name}')
-            model.AddMinEquality(min_pattern_penalty, pattern_penalties)
-            penalties.append(min_pattern_penalty)
-
-        # Penalty for less favored days
-        for i, day_var in enumerate(day_vars):
-            day_penalty = model.NewIntVar(0, DAY_WEIGHT_PENALTY * num_days, f'day_penalty_{team_name}_{i}')
-            weighted_penalty = sum(
-                int(day_weights[day_index] * DAY_WEIGHT_PENALTY) *
-                model.NewBoolVar(f'is_day_{team_name}_{i}_{day_index}')
-                for day_index in day_name_to_index.values()
-            )
-            model.Add(day_penalty == weighted_penalty)
-            penalties.append(day_penalty)
-
-    total_penalty = model.NewIntVar(0, 1000000, 'total_penalty')
-    model.Add(total_penalty == sum(penalties))
+    # Aggregate penalties efficiently by summing them directly
+    total_penalty = sum(penalties)
     model.Minimize(total_penalty)
