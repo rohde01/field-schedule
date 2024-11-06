@@ -67,16 +67,14 @@ def add_objective_function(model, teams, interval_vars, time_slots, day_name_to_
             is_matching_any_pattern = model.NewBoolVar(f'is_matching_any_pattern_{team_name}')
             model.Add(is_matching_any_pattern == 0)
 
-        # Friday penalty for sessions not in preferred patterns
+        # Friday penalty for all sessions scheduled on Friday
         for idx, day_var in enumerate(day_vars):
             is_friday = model.NewBoolVar(f'is_friday_{team_name}_{idx}')
             model.Add(day_var == day_name_to_index['Fri']).OnlyEnforceIf(is_friday)
             model.Add(day_var != day_name_to_index['Fri']).OnlyEnforceIf(is_friday.Not())
 
             friday_penalty = model.NewIntVar(0, FRIDAY_PENALTY, f'friday_penalty_{team_name}_{idx}')
-            # Apply Friday penalty only if not matching a preferred pattern
-            model.Add(friday_penalty == FRIDAY_PENALTY * is_friday).OnlyEnforceIf(is_matching_any_pattern.Not())
-            model.Add(friday_penalty == 0).OnlyEnforceIf(is_matching_any_pattern)
+            model.Add(friday_penalty == FRIDAY_PENALTY * is_friday)
             penalties.append(friday_penalty)
 
     # Minimize total penalties
