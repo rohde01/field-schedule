@@ -10,7 +10,11 @@ def build_time_slots(fields):
     Builds and returns a dictionary of time slots per day.
     """
     time_slots = {}
-    all_days = sorted({day for field in fields for day in field['availability']})
+    # Define the correct order of days
+    day_order = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    available_days = {day for field in fields for day in field['availability']}
+    # Sort all_days based on day_order
+    all_days = [day for day in day_order if day in available_days]
     for day in all_days:
         time_slots[day] = []
         for field in fields:
