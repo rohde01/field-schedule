@@ -8,19 +8,23 @@ Fetches data, builds the model, adds constraints, solves the model, and outputs 
 import cProfile
 import pstats
 from ortools.sat.python import cp_model
-from collections import defaultdict
 from test_data import get_teams, get_fields, get_5_star_constraints, get_3_star_constraints_girls
 from utils import build_time_slots, get_subfields, get_size_to_combos, get_subfield_availability, get_subfield_areas
-from model import create_variables, solve_model
-from output import get_field_to_smallest_subfields, print_solution
-from model import add_constraints, add_objectives
+from model import create_variables, solve_model, add_constraints, add_objectives
+from output import get_field_to_smallest_subfields, print_solution, print_raw_output
 from collections import defaultdict
+import argparse
 
 
 def main():
     """
     Main function to solve the soccer scheduling problem.
     """
+
+    parser = argparse.ArgumentParser(description="Soccer Scheduling Solver")
+    parser.add_argument('--raw', action='store_true', help='Print raw model output')
+    args = parser.parse_args()
+
     profiler = cProfile.Profile()
     profiler.enable()
 
@@ -62,7 +66,10 @@ def main():
     solver, status = solve_model(model)
 
     if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
-        print_solution(solver, teams, time_slots, interval_vars, field_to_smallest_subfields, smallest_subfields_list, global_time_slots)
+        if args.raw:
+            print_raw_output(solver, teams, interval_vars)
+        else:
+            print_solution(solver, teams, time_slots, interval_vars, field_to_smallest_subfields, smallest_subfields_list, global_time_slots)
     else:
         print('No feasible solution found.')
 

@@ -107,3 +107,17 @@ def print_solution(solver, teams, time_slots, interval_vars, field_to_smallest_s
         headers = ["Time"] + subfields_labels
         table = tabulate(data, headers=headers, tablefmt="fancy_grid")
         print(table)
+
+def print_raw_output(solver, teams, interval_vars):
+    """
+    Prints the raw output of the model.
+    """
+    for team in teams:
+        team_name = team['name']
+        print(f"\nTeam: {team_name}")
+        for idx_constraint, sessions in interval_vars[team_name].items():
+            for session in sessions:
+                start = solver.Value(session['start'])
+                end = solver.Value(session['end'])
+                assigned_combo = solver.Value(session['assigned_combo'])
+                print(f"  Session: {start} - {end}, Combo: {assigned_combo}")
