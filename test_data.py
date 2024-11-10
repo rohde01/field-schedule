@@ -10,7 +10,7 @@ def get_teams():
     return [
         # Boys Teams
         {'name': 'U19A', 'year': 'U19'},
-        {'name': 'U19A-2', 'year': 'U14'},
+        {'name': 'U14A', 'year': 'U14'},
         {'name': 'Y15A', 'year': 'U15'},
         {'name': 'U10A', 'year': 'U10'},
         {'name': 'U11A', 'year': 'U11'},
