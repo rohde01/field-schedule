@@ -30,7 +30,10 @@ def get_fields():
             'half_subfields': [{'name': 'K1-A', 'fields': ['K1-1', 'K1-2']}, {'name': 'K1-B', 'fields': ['K1-3', 'K1-4']}],
             'availability': {
                 'Mon': {'start': '16:00', 'end': '18:00'},
-                'Tue': {'start': '16:00', 'end': '18:00'}
+                'Tue': {'start': '16:00', 'end': '18:00'},
+                'Wed': {'start': '16:00', 'end': '18:00'},
+                'Thu': {'start': '16:00', 'end': '18:00'},
+                'Fri': {'start': '16:00', 'end': '18:00'}
             }
         },
         {
@@ -42,7 +45,10 @@ def get_fields():
             ],
             'availability': {
                 'Mon': {'start': '16:00', 'end': '18:00'},
-                'Tue': {'start': '16:00', 'end': '18:00'}
+                'Tue': {'start': '16:00', 'end': '18:00'},
+                'Wed': {'start': '16:00', 'end': '18:00'},
+                'Thu': {'start': '16:00', 'end': '18:00'},
+                'Fri': {'start': '16:00', 'end': '18:00'}
             }
         },
         {
@@ -50,7 +56,10 @@ def get_fields():
             'size': '5v5',
             'availability': {
                 'Mon': {'start': '16:00', 'end': '18:00'},
-                'Tue': {'start': '16:00', 'end': '18:00'}
+                'Tue': {'start': '16:00', 'end': '18:00'},
+                'Wed': {'start': '16:00', 'end': '18:00'},
+                'Thu': {'start': '16:00', 'end': '18:00'},
+                'Fri': {'start': '16:00', 'end': '18:00'}
             }
         },
     ]
