@@ -144,33 +144,3 @@ def get_subfield_areas(fields):
 
     return subfield_areas
 
-def generate_possible_sessions():
-    """
-    Generates a list of all possible session combinations based on the fields and their subfields.
-    """
-    from test_data import get_fields
-    fields = get_fields()
-    size_to_subfield_types = set()
-    for field in fields:
-        field_size = field['size']
-        size_to_subfield_types.add((field_size, 'full'))
-        if 'half_subfields' in field:
-            size_to_subfield_types.add((field_size, 'half'))
-        if 'quarter_subfields' in field:
-            size_to_subfield_types.add((field_size, 'quarter'))
-
-    sessions = []
-    for required_size, subfield_type in sorted(size_to_subfield_types):
-        for length in range(2, 9):  # Lengths from 2 to 8
-            session = {
-                'required_size': required_size,
-                'subfield_type': subfield_type,
-                'length': length,
-            }
-            sessions.append(session)
-
-    # Print the generated sessions
-    for session in sessions:
-        print(session)
-
-    return sessions
