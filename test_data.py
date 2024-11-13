@@ -39,10 +39,8 @@ def get_fields():
         {
             'name': 'G1',
             'size': '8v8',
-            'half_subfields': [
-                {'name': 'G1-A'},
-                {'name': 'G1-B'}
-            ],
+            'quarter_subfields': [{'name': 'G1-1'}, {'name': 'G1-2'}, {'name': 'G1-3'}, {'name': 'G1-4'}],
+            'half_subfields': [{'name': 'G1-A', 'fields': ['G1-1', 'G1-2']}, {'name': 'G1-B', 'fields': ['G1-3', 'G1-4']}],
             'availability': {
                 'Mon': {'start': '16:00', 'end': '18:00'},
                 'Tue': {'start': '16:00', 'end': '18:00'},
@@ -54,6 +52,7 @@ def get_fields():
         {
             'name': 'Kunst 4',
             'size': '5v5',
+            'half_subfields': [{'name': 'K4-A'}, {'name': 'K4-B'}],
             'availability': {
                 'Mon': {'start': '16:00', 'end': '18:00'},
                 'Tue': {'start': '16:00', 'end': '18:00'},
@@ -64,33 +63,29 @@ def get_fields():
         },
     ]
 
+
 def get_5_star_constraints():
     """Returns a list of constraints for 5-star teams (boys)."""
     return [
         # U19 - Boys
         {'year': 'U19', 'required_size': '11v11', 'subfield_type': 'half', 'sessions': 2, 'length': 4},
-
         # U14 - Boys
-        {'year': 'U14', 'required_size': '11v11', 'subfield_type': 'half', 'sessions': 2, 'length': 6},
-
+        {'year': 'U14', 'required_cost': 125, 'sessions': 2, 'length': 6},
         # U15 - Boys
-        {'year': 'U15', 'required_size': '11v11', 'subfield_type': 'half', 'sessions': 1, 'length': 4},
-
+        {'year': 'U15', 'required_cost': 500, 'sessions': 1, 'length': 4},
         # U13 - Boys
         {'year': 'U13', 'required_size': '11v11', 'subfield_type': 'quarter', 'sessions': 1, 'length': 2},
-
         # U10 - Boys
         {'year': 'U10', 'required_size': '5v5', 'subfield_type': 'full', 'sessions': 1, 'length': 4},
-
         # U11 - Boys
-        {'year': 'U11', 'required_size': '8v8', 'subfield_type': 'full', 'sessions': 1, 'length': 4},
+        {'year': 'U11', 'required_cost': 1000, 'sessions': 1, 'length': 4},
     ]
 
 def get_3_star_constraints_girls():
     """Returns a list of constraints for 3-star teams (girls)."""
     return [
-        # U19-girl
-        {'year': 'U19-girl', 'required_size': '8v8', 'subfield_type': 'half', 'sessions': 1, 'length': 4},
-        # U17-girl
-        {'year': 'U17-girl', 'required_size': '8v8', 'subfield_type': 'half', 'sessions': 1, 'length': 4},
+        #U19-girl
+        {'year': 'U19-girl', 'required_cost': 500, 'sessions': 3, 'length': 4},
+        #U17-girl
+        {'year': 'U17-girl', 'required_cost': 500, 'sessions': 4, 'length': 4},
     ]

@@ -15,9 +15,8 @@ from constraints import (
     add_allowed_assignments_constraints
 )
 from objectives import add_objective_function
-from objectives import add_objective_function
 
-def create_variables(model, teams, constraints, time_slots, size_to_combos):
+def create_variables(model, teams, constraints, time_slots, size_to_combos, cost_to_combos):
     """
     Creates interval variables for the model.
     """
@@ -32,7 +31,7 @@ def create_variables(model, teams, constraints, time_slots, size_to_combos):
     for team in teams:
         team_name = team['name']
         team_interval_vars, team_assigned_fields = _create_team_variables(
-            model, team, constraints, time_slots, size_to_combos, mappings
+            model, team, constraints, time_slots, size_to_combos, cost_to_combos, mappings
         )
         interval_vars[team_name] = team_interval_vars
         assigned_fields[team_name] = team_assigned_fields
@@ -70,7 +69,7 @@ def _build_time_slot_mappings(time_slots):
         'num_global_slots': num_global_slots
     }
 
-def _create_team_variables(model, team, constraints, time_slots, size_to_combos, mappings):
+def _create_team_variables(model, team, constraints, time_slots, size_to_combos, cost_to_combos, mappings):
     """Creates variables for a single team."""
     team_name = team['name']
     year = team['year']
@@ -80,31 +79,34 @@ def _create_team_variables(model, team, constraints, time_slots, size_to_combos,
     assigned_fields = {}
 
     for idx_constraint, constraint in enumerate(team_constraints):
-        # Create variables for this constraint
         constraint_interval_vars, constraint_assigned_fields = _create_constraint_variables(
-            model, team_name, idx_constraint, constraint, time_slots, size_to_combos, mappings
+            model, team_name, idx_constraint, constraint, time_slots, size_to_combos, cost_to_combos, mappings
         )
         interval_vars[idx_constraint] = constraint_interval_vars
         assigned_fields[idx_constraint] = constraint_assigned_fields
 
     return interval_vars, assigned_fields
 
-def _create_constraint_variables(model, team_name, idx_constraint, constraint, time_slots, size_to_combos, mappings):
+def _create_constraint_variables(model, team_name, idx_constraint, constraint, time_slots,
+                                 size_to_combos, cost_to_combos, mappings):
     """Creates variables for a single constraint of a team."""
     sessions = constraint['sessions']
     length = constraint['length']
-    required_size = constraint['required_size']
-    subfield_type = constraint['subfield_type']
 
-    key = (required_size, subfield_type)
-    possible_combos = size_to_combos.get(key, [])
+    # Determine possible field combinations based on constraint type
+    if 'required_cost' in constraint:
+        required_cost = constraint['required_cost']
+        possible_combos = cost_to_combos.get(required_cost, [])
+    else:
+        key = (constraint['required_size'], constraint['subfield_type'])
+        possible_combos = size_to_combos.get(key, [])
+
     combo_indices = {combo: idx for idx, combo in enumerate(possible_combos)}
 
     interval_vars = []
     assigned_fields = []
 
     for session_idx in range(sessions):
-        # Create variables for this session
         session_vars = _create_session_variables(
             model, team_name, idx_constraint, session_idx, constraint, possible_combos, combo_indices, time_slots, mappings
         )
@@ -165,7 +167,7 @@ def _create_session_variables(model, team_name, idx_constraint, session_idx, con
         'possible_combos': possible_combos,
         'combo_indices': combo_indices,
         'day_var': day_var,
-        'allowed_assignments': allowed_assignments  # Pass this for constraint addition
+        'allowed_assignments': allowed_assignments
     }
 
     return session_vars
