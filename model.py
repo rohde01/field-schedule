@@ -30,8 +30,10 @@ def create_variables(model, teams, constraints, time_slots, size_to_combos, cost
 
     for team in teams:
         team_name = team['name']
+        team_id = team['team_id']
+        team_constraints = constraints[team_id]
         team_interval_vars, team_assigned_fields = _create_team_variables(
-            model, team, constraints, time_slots, size_to_combos, cost_to_combos, mappings
+            model, team, team_constraints, time_slots, size_to_combos, cost_to_combos, mappings
         )
         interval_vars[team_name] = team_interval_vars
         assigned_fields[team_name] = team_assigned_fields
@@ -69,11 +71,9 @@ def _build_time_slot_mappings(time_slots):
         'num_global_slots': num_global_slots
     }
 
-def _create_team_variables(model, team, constraints, time_slots, size_to_combos, cost_to_combos, mappings):
+def _create_team_variables(model, team, team_constraints, time_slots, size_to_combos, cost_to_combos, mappings):
     """Creates variables for a single team."""
     team_name = team['name']
-    year = team['year']
-    team_constraints = constraints[year]
 
     interval_vars = {}
     assigned_fields = {}
