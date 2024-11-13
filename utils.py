@@ -5,6 +5,8 @@ Utility functions for the scheduling problem.
 Contains helper functions for building time slots, subfield data, and availability mappings.
 """
 
+from test_data import get_fields
+
 def build_time_slots(fields):
     """
     Builds and returns a dictionary of time slots per day.
@@ -144,3 +146,56 @@ def get_subfield_areas(fields):
 
     return subfield_areas
 
+def get_cost_to_combos(fields, field_costs):
+    """
+    Returns a dictionary mapping required_cost to possible field combinations.
+    """
+    from collections import defaultdict
+    cost_to_combos = defaultdict(list)
+    for field in fields:
+        field_name = field['name']
+        field_size = field['size']
+        # Full field
+        cost_key = field_costs.get((field_size, 'full'))
+        if cost_key is not None:
+            cost_to_combos[cost_key].append((field_name,))
+        # Half subfields
+        if 'half_subfields' in field:
+            for half in field['half_subfields']:
+                half_name = half['name']
+                cost_key = field_costs.get((field_size, 'half'))
+                if cost_key is not None:
+                    cost_to_combos[cost_key].append((half_name,))
+        # Quarter subfields
+        if 'quarter_subfields' in field:
+            for quarter in field['quarter_subfields']:
+                quarter_name = quarter['name']
+                cost_key = field_costs.get((field_size, 'quarter'))
+                if cost_key is not None:
+                    cost_to_combos[cost_key].append((quarter_name,))
+    return cost_to_combos
+
+def get_field_costs():
+    """Returns a dictionary mapping (field_size, subfield_type) to cost."""
+    # Base costs for full-size fields
+    base_costs = {
+        '11v11': 1000,
+        '8v8': 500,
+        '5v5': 250,
+        '3v3': 125     
+    }
+    costs = {}
+    # Get unique field sizes from get_fields()
+    field_sizes = {field['size'] for field in get_fields()}
+    
+    # Calculate costs for each field size and its subdivisions
+    for size in field_sizes:
+        base_cost = base_costs[size]
+        costs[(size, 'full')] = base_cost
+        
+        if size == '11v11' or size == '8v8':
+            costs[(size, 'half')] = base_cost // 2
+            costs[(size, 'quarter')] = base_cost // 4
+        elif size == '5v5':
+            costs[(size, 'half')] = base_cost // 2
+    return costs
