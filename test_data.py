@@ -66,11 +66,11 @@ def get_constraints():
     """Returns a list of constraints dictionaries with 'team_id' instead of 'year'."""
     return [
 
-        {'team_id': 1, 'required_size': '8v8', 'subfield_type': 'quarter', 'sessions': 2, 'length': 4},
-        {'team_id': 1, 'required_size': '11v11', 'subfield_type': 'full', 'sessions': 3, 'length': 4},
+        {'team_id': 1, 'required_size': '8v8', 'subfield_type': 'quarter', 'sessions': 1, 'length': 4, 'start_time': '16:30'},
+        {'team_id': 1, 'required_size': '11v11', 'subfield_type': 'full', 'sessions': 1, 'length': 4},
 
-        {'team_id': 2, 'required_cost': 500, 'sessions': 2, 'length': 8},
-        {'team_id': 2, 'required_cost': 250, 'sessions': 2, 'length': 6},
+        {'team_id': 2, 'required_cost': 500, 'sessions': 1, 'length': 4, 'start_time': '17:00'},
+        {'team_id': 2, 'required_cost': 250, 'sessions': 2, 'length': 7},
 
         {'team_id': 3, 'required_cost': 500, 'sessions': 1, 'length': 4},
         {'team_id': 6, 'required_size': '11v11', 'subfield_type': 'quarter', 'sessions': 1, 'length': 2},

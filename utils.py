@@ -199,3 +199,38 @@ def get_field_costs():
         elif size == '5v5':
             costs[(size, 'half')] = base_cost // 2
     return costs
+
+def _handle_start_time_constraint(constraint, time_slots, mappings):
+    """
+    Helper function to handle start time constraints.
+    Ensures that the entire session length fits within the day and field availability.
+    """
+    allowed_assignments = []
+    allowed_start_times = set()
+    
+    specified_time = constraint['start_time']
+    length = constraint['length']
+    time_matched = False
+    
+    for day_name in time_slots:
+        day_slots = time_slots[day_name]
+        day_global_indices = mappings['day_to_global_indices'][day_name]
+        try:
+            start_slot_idx = day_slots.index(specified_time)
+        except ValueError:
+            continue
+
+        # Check if there are enough slots left in the day for the entire session
+        if start_slot_idx + length <= len(day_slots):
+            s_global = day_global_indices[start_slot_idx]
+            allowed_assignments.append([mappings['day_name_to_index'][day_name], s_global])
+            allowed_start_times.add(s_global)
+            time_matched = True
+    
+    if not time_matched:
+        raise ValueError(
+            f"Specified start_time '{specified_time}' with length {length} " 
+            "does not fit within available day slots"
+        )
+    
+    return allowed_assignments, allowed_start_times

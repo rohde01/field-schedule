@@ -116,4 +116,9 @@ def add_allowed_assignments_constraints(model, interval_vars):
                 start_var = session['start']
                 allowed_assignments = session.get('allowed_assignments', [])
                 if allowed_assignments:
-                    model.AddAllowedAssignments([day_var, start_var], allowed_assignments)
+                    if len(allowed_assignments) == 1:
+                        # If there's only one allowed assignment, fix the variables
+                        model.Add(day_var == allowed_assignments[0][0])
+                        model.Add(start_var == allowed_assignments[0][1])
+                    else:
+                        model.AddAllowedAssignments([day_var, start_var], allowed_assignments)

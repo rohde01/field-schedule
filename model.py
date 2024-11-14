@@ -15,6 +15,7 @@ from constraints import (
     add_allowed_assignments_constraints
 )
 from objectives import add_objective_function
+from utils import _handle_start_time_constraint
 
 def create_variables(model, teams, constraints, time_slots, size_to_combos, cost_to_combos):
     """
@@ -115,27 +116,30 @@ def _create_constraint_variables(model, team_name, idx_constraint, constraint, t
 
     return interval_vars, assigned_fields
 
+
 def _create_session_variables(model, team_name, idx_constraint, session_idx, constraint, possible_combos, combo_indices, time_slots, mappings):
     """Creates variables for a single session."""
     day_to_global_indices = mappings['day_to_global_indices']
     day_name_to_index = mappings['day_name_to_index']
     num_global_slots = mappings['num_global_slots']
-
     length = constraint['length']
 
-    allowed_assignments = []
-    allowed_start_times = set()
+    # Get allowed assignments and start times
+    if 'start_time' in constraint:
+        allowed_assignments, allowed_start_times = _handle_start_time_constraint(constraint, time_slots, mappings)
+    else:
+        allowed_assignments = []
+        allowed_start_times = set()
+        for day_name in time_slots:
+            day_idx = day_name_to_index[day_name]
+            day_global_indices = day_to_global_indices[day_name]
+            num_slots_day = len(day_global_indices)
+            for s_local in range(num_slots_day - length + 1):
+                s_global = day_global_indices[s_local]
+                allowed_assignments.append([day_idx, s_global])
+                allowed_start_times.add(s_global)
 
-    for day_name in time_slots:
-        day_idx = day_name_to_index[day_name]
-        day_global_indices = day_to_global_indices[day_name]
-        num_slots_day = len(day_global_indices)
-
-        for s_local in range(num_slots_day - length + 1):
-            s_global = day_global_indices[s_local]
-            allowed_assignments.append([day_idx, s_global])
-            allowed_start_times.add(s_global)
-
+    # Create model variables
     allowed_start_times = sorted(allowed_start_times)
     start_var = model.NewIntVarFromDomain(
         cp_model.Domain.FromValues(allowed_start_times),
@@ -169,6 +173,10 @@ def _create_session_variables(model, team_name, idx_constraint, session_idx, con
         'day_var': day_var,
         'allowed_assignments': allowed_assignments
     }
+
+    # If start_time is specified, add constraint to fix start_var
+    if 'start_time' in constraint:
+        model.Add(start_var == allowed_start_times[0])
 
     return session_vars
 
