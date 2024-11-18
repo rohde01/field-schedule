@@ -42,10 +42,17 @@ def main():
     field_costs = get_field_costs()
     cost_to_combos = get_cost_to_combos(fields, field_costs)
 
+    # Prepare parent field mappings
+    parent_field_names = set()
+    for field in fields:
+        parent_field_names.add(field['name'])
+    parent_field_name_to_id = {name: idx for idx, name in enumerate(parent_field_names)}
+    parent_field_id_to_name = {idx: name for name, idx in parent_field_name_to_id.items()}
+
     model = cp_model.CpModel()
     
     interval_vars, assigned_fields, global_time_slots, day_name_to_index = create_variables(
-        model, teams, constraints, time_slots, size_to_combos, cost_to_combos 
+        model, teams, constraints, time_slots, size_to_combos, cost_to_combos, parent_field_name_to_id
     )
 
     add_constraints(model, teams, constraints, time_slots, size_to_combos,
