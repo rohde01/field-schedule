@@ -11,12 +11,43 @@ from ortools.sat.python import cp_model
 from collections import defaultdict
 from test_data import get_teams, get_fields, get_constraints
 from utils import build_time_slots, get_subfields, get_size_to_combos, get_subfield_availability, get_subfield_areas, get_cost_to_combos, get_field_costs
-from model import create_variables, solve_model
+from model import create_variables
 from output import get_field_to_smallest_subfields, print_solution
-from model import add_constraints
 from collections import defaultdict
-from model import add_objectives
+from constraints import (
+    add_no_overlapping_sessions_constraints,
+    add_no_double_booking_constraints,
+    add_field_availability_constraints,
+    add_team_day_constraints,
+    add_allowed_assignments_constraints
+)
+from objectives import add_objective_function
 
+def add_constraints(model, teams, constraints, time_slots, size_to_combos,
+                    interval_vars, assigned_fields, subfield_areas, subfield_availability, global_time_slots):
+    """
+    Adds various constraints to the model.
+    """
+    add_no_overlapping_sessions_constraints(model, teams, interval_vars)
+    add_no_double_booking_constraints(model, teams, interval_vars, assigned_fields, subfield_areas, global_time_slots)
+    add_field_availability_constraints(model, interval_vars, assigned_fields, subfield_availability, global_time_slots)
+    add_team_day_constraints(model, interval_vars)
+    add_allowed_assignments_constraints(model, interval_vars)
+
+def add_objectives(model, teams, interval_vars, time_slots, day_name_to_index):
+    """
+    Adds an objective function to the model to minimize penalties for undesirable scheduling patterns
+    and reward desirable ones.
+    """
+    add_objective_function(model, teams, interval_vars, time_slots, day_name_to_index)
+
+def solve_model(model):
+    """
+    Solves the CP-SAT model.
+    """
+    solver = cp_model.CpSolver()
+    status = solver.Solve(model)
+    return solver, status
 
 def main():
     """
@@ -42,7 +73,6 @@ def main():
     field_costs = get_field_costs()
     cost_to_combos = get_cost_to_combos(fields, field_costs)
 
-    # Prepare parent field mappings
     parent_field_names = set()
     for field in fields:
         parent_field_names.add(field['name'])

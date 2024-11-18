@@ -7,15 +7,14 @@ Contains helper functions for building time slots, subfield data, and availabili
 
 from test_data import get_fields
 
+
 def build_time_slots(fields):
     """
     Builds and returns a dictionary of time slots per day.
     """
     time_slots = {}
-    # Define the correct order of days
     day_order = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
     available_days = {day for field in fields for day in field['availability']}
-    # Sort all_days based on day_order
     all_days = [day for day in day_order if day in available_days]
     for day in all_days:
         time_slots[day] = []
@@ -23,21 +22,13 @@ def build_time_slots(fields):
             if day in field['availability']:
                 start = field['availability'][day]['start']
                 end = field['availability'][day]['end']
-                try:
-                    start_hour, start_minute = map(int, start.split(':'))
-                    end_hour, end_minute = map(int, end.split(':'))
-                except ValueError as e:
-                    raise ValueError(f"Invalid time format in field '{field['name']}' on day '{day}': {e}")
-                total_start_minutes = start_hour * 60 + start_minute
-                total_end_minutes = end_hour * 60 + end_minute
-                num_intervals = (total_end_minutes - total_start_minutes) // 15
-                field_time_slots = [
-                    f'{(total_start_minutes + i * 15) // 60}:{(total_start_minutes + i * 15) % 60:02d}'
-                    for i in range(num_intervals)
-                ]
+                total_start_minutes = parse_time_string(start, field['name'], day)
+                total_end_minutes = parse_time_string(end, field['name'], day)
+                field_time_slots = generate_time_slots_between(total_start_minutes, total_end_minutes, interval=15)
                 time_slots[day].extend(field_time_slots)
         time_slots[day] = sorted(set(time_slots[day]))
     return time_slots, all_days
+
 
 def get_subfields(fields):
     """
@@ -54,6 +45,7 @@ def get_subfields(fields):
             for quarter in field['quarter_subfields']:
                 subfields.add(quarter['name'])
     return list(subfields)
+
 
 def get_size_to_combos(fields):
     """
@@ -77,6 +69,7 @@ def get_size_to_combos(fields):
                 size_to_combos.setdefault(combo_key, []).append((quarter_name,))
     return size_to_combos
 
+
 def get_subfield_availability(fields, time_slots, all_subfields):
     """
     Returns a dictionary indicating availability of each subfield per day per time slot.
@@ -99,20 +92,15 @@ def get_subfield_availability(fields, time_slots, all_subfields):
             if day in field_availability:
                 start_time = field_availability[day]['start']
                 end_time = field_availability[day]['end']
-                try:
-                    start_hour, start_minute = map(int, start_time.split(':'))
-                    end_hour, end_minute = map(int, end_time.split(':'))
-                except ValueError as e:
-                    raise ValueError(f"Invalid time format in field '{field_name}' on day '{day}': {e}")
-                total_start_minutes = start_hour * 60 + start_minute
-                total_end_minutes = end_hour * 60 + end_minute
-                for t, slot_time in enumerate(time_slots[day]):
-                    slot_hour, slot_minute = map(int, slot_time.split(':'))
-                    slot_minutes = slot_hour * 60 + slot_minute
+                total_start_minutes = parse_time_string(start_time, field_name, day)
+                total_end_minutes = parse_time_string(end_time, field_name, day)
+                slot_times_minutes = [parse_time_string(slot_time) for slot_time in time_slots[day]]
+                for t, slot_minutes in enumerate(slot_times_minutes):
                     if total_start_minutes <= slot_minutes < total_end_minutes:
                         for sf in field_subfields:
                             subfield_availability[sf][day][t] = True
     return subfield_availability
+
 
 def get_subfield_areas(fields):
     """
@@ -146,6 +134,7 @@ def get_subfield_areas(fields):
 
     return subfield_areas
 
+
 def get_cost_to_combos(fields, field_costs):
     """
     Returns a dictionary mapping required_cost to possible field combinations.
@@ -155,18 +144,15 @@ def get_cost_to_combos(fields, field_costs):
     for field in fields:
         field_name = field['name']
         field_size = field['size']
-        # Full field
         cost_key = field_costs.get((field_size, 'full'))
         if cost_key is not None:
             cost_to_combos[cost_key].append((field_name,))
-        # Half subfields
         if 'half_subfields' in field:
             for half in field['half_subfields']:
                 half_name = half['name']
                 cost_key = field_costs.get((field_size, 'half'))
                 if cost_key is not None:
                     cost_to_combos[cost_key].append((half_name,))
-        # Quarter subfields
         if 'quarter_subfields' in field:
             for quarter in field['quarter_subfields']:
                 quarter_name = quarter['name']
@@ -174,6 +160,7 @@ def get_cost_to_combos(fields, field_costs):
                 if cost_key is not None:
                     cost_to_combos[cost_key].append((quarter_name,))
     return cost_to_combos
+
 
 def get_field_costs():
     """Returns a dictionary mapping (field_size, subfield_type) to cost."""
@@ -199,6 +186,7 @@ def get_field_costs():
         elif size == '5v5':
             costs[(size, 'half')] = base_cost // 2
     return costs
+
 
 def _handle_start_time_constraint(constraint, time_slots, mappings):
     """
@@ -235,6 +223,7 @@ def _handle_start_time_constraint(constraint, time_slots, mappings):
     
     return allowed_assignments, allowed_start_times
 
+
 def get_parent_field(subfield_name):
     """
     Returns the parent field name for a given subfield name.
@@ -252,3 +241,87 @@ def get_parent_field(subfield_name):
                 if subfield_name == quarter['name']:
                     return field['name']
     raise ValueError(f"Parent field not found for subfield '{subfield_name}'")
+
+
+def get_parent_field_ids(possible_combos, parent_field_name_to_id):
+    """Returns a list of parent field IDs for the given possible combos."""
+    parent_field_ids = []
+    for combo in possible_combos:
+        parent_field = get_parent_field(combo[0])
+        parent_field_id = parent_field_name_to_id[parent_field]
+        parent_field_ids.append(parent_field_id)
+    return parent_field_ids
+
+
+def parse_time_string(time_str, field_name=None, day=None):
+    """Parses a time string 'HH:MM' and returns total minutes."""
+    try:
+        hour, minute = map(int, time_str.split(':'))
+        return hour * 60 + minute
+    except ValueError as e:
+        if field_name and day:
+            raise ValueError(f"Invalid time format in field '{field_name}' on day '{day}': {e}")
+        else:
+            raise ValueError(f"Invalid time format in time string '{time_str}': {e}")
+
+
+def generate_time_slots_between(start_minutes, end_minutes, interval=15):
+    """Generates time slots between start and end times at given interval in minutes."""
+    num_intervals = (end_minutes - start_minutes) // interval
+    return [
+        f'{(start_minutes + i * interval) // 60}:{(start_minutes + i * interval) % 60:02d}'
+        for i in range(num_intervals)
+    ]
+
+
+def time_slots_to_minutes(time_slots):
+    """Converts a list of time slot strings to total minutes."""
+    return [parse_time_string(slot_time) for slot_time in time_slots]
+
+
+def _get_allowed_assignments(constraint, time_slots, mappings):
+    """
+    Helper function to get allowed assignments and start times based on constraint and time slots.
+    """
+    day_to_global_indices = mappings['day_to_global_indices']
+    day_name_to_index = mappings['day_name_to_index']
+    if 'start_time' in constraint:
+        allowed_assignments, allowed_start_times = _handle_start_time_constraint(constraint, time_slots, mappings)
+    else:
+        allowed_assignments = []
+        allowed_start_times = set()
+        total_length = constraint['length']
+        for day_name in time_slots:
+            day_idx = day_name_to_index[day_name]
+            day_global_indices = day_to_global_indices[day_name]
+            num_slots_day = len(day_global_indices)
+            for s_local in range(num_slots_day - total_length + 1):
+                s_global = day_global_indices[s_local]
+                allowed_assignments.append([day_idx, s_global])
+                allowed_start_times.add(s_global)
+    allowed_start_times = sorted(allowed_start_times)
+    return allowed_assignments, allowed_start_times
+
+def _get_possible_combos(constraint, size_to_combos, cost_to_combos):
+    """Determines possible field combinations based on constraint type."""
+    if 'required_cost' in constraint:
+        required_cost = constraint['required_cost']
+        possible_combos_part1 = cost_to_combos.get(required_cost, [])
+    else:
+        key_part1 = (constraint['required_size'], constraint['subfield_type'])
+        possible_combos_part1 = size_to_combos.get(key_part1, [])
+
+    if 'partial_ses_time' in constraint:
+        if 'partial_ses_space' in constraint:
+            if 'required_cost' in constraint:
+                required_cost_part2 = constraint['partial_ses_space']
+                possible_combos_part2 = cost_to_combos.get(required_cost_part2, [])
+            else:
+                key_part2 = (constraint['required_size'], constraint['partial_ses_space'])
+                possible_combos_part2 = size_to_combos.get(key_part2, [])
+        else:
+            possible_combos_part2 = possible_combos_part1
+    else:
+        possible_combos_part2 = possible_combos_part1
+
+    return possible_combos_part1, possible_combos_part2
