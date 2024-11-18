@@ -234,3 +234,21 @@ def _handle_start_time_constraint(constraint, time_slots, mappings):
         )
     
     return allowed_assignments, allowed_start_times
+
+def get_parent_field(subfield_name):
+    """
+    Returns the parent field name for a given subfield name.
+    """
+    fields = get_fields()
+    for field in fields:
+        if subfield_name == field['name']:
+            return field['name']
+        if 'half_subfields' in field:
+            for half in field['half_subfields']:
+                if subfield_name == half['name']:
+                    return field['name']
+        if 'quarter_subfields' in field:
+            for quarter in field['quarter_subfields']:
+                if subfield_name == quarter['name']:
+                    return field['name']
+    raise ValueError(f"Parent field not found for subfield '{subfield_name}'")
