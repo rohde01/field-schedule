@@ -6,54 +6,21 @@ Contains functions to process and display the solution in a readable format.
 """
 
 from tabulate import tabulate
+from utils import get_subfield_areas
 
 def get_field_to_smallest_subfields(fields):
     """
     Creates a mapping from each field to its smallest subfields.
     """
+    subfield_areas = get_subfield_areas(fields)
     field_to_smallest_subfields = {}
     smallest_subfields_set = set()
 
-    field_defs = {}
-
-    for field in fields:
-        field_defs[field['name']] = field
-
-        if 'quarter_subfields' in field:
-            for quarter in field['quarter_subfields']:
-                field_defs[quarter['name']] = quarter
-
-        if 'half_subfields' in field:
-            for half in field['half_subfields']:
-                field_defs[half['name']] = half
-
-    def get_smallest_subfields(field_name):
-        field = field_defs[field_name]
-
-        if 'quarter_subfields' in field:
-            smallest = [quarter['name'] for quarter in field['quarter_subfields']]
-            for name in smallest:
-                smallest_subfields_set.add(name)
-            return smallest
-
-        elif 'fields' in field:
-            smallest = []
-            for subfield_name in field['fields']:
-                smallest.extend(get_smallest_subfields(subfield_name))
-            return smallest
-
-        elif 'half_subfields' in field:
-            smallest = []
-            for half in field['half_subfields']:
-                smallest.extend(get_smallest_subfields(half['name']))
-            return smallest
-
-        else:
-            smallest_subfields_set.add(field_name)
-            return [field_name]
-
-    for field_name in field_defs:
-        field_to_smallest_subfields[field_name] = get_smallest_subfields(field_name)
+    for field_name, areas in subfield_areas.items():
+        # Get the smallest subfields by finding areas that aren't subdivided further
+        smallest = [area for area in areas if len(subfield_areas[area]) == 1]
+        field_to_smallest_subfields[field_name] = smallest
+        smallest_subfields_set.update(smallest)
 
     smallest_subfields_list = sorted(smallest_subfields_set)
     return field_to_smallest_subfields, smallest_subfields_list
@@ -63,7 +30,6 @@ def print_solution(solver, teams, time_slots, interval_vars, field_to_smallest_s
     Prints the solution in a tabulated format.
     """
     sf_indices = {sf: idx for idx, sf in enumerate(smallest_subfields_list)}
-
     idx_to_time = {idx: (day, t) for idx, (day, t) in enumerate(global_time_slots)}
 
     for day in time_slots:
@@ -90,17 +56,19 @@ def print_solution(solver, teams, time_slots, interval_vars, field_to_smallest_s
                 for idx_constraint in interval_vars[team_name]:
                     sessions = interval_vars[team_name][idx_constraint]
                     for session_idx, session in enumerate(sessions):
-                        start = solver.Value(session['start'])
-                        end = solver.Value(session['end'])
-                        assigned_combo_idx = solver.Value(session['assigned_combo'])
-                        assigned_combo = session['possible_combos'][assigned_combo_idx]
+                        # Handle each part of the session
+                        for part_idx, (interval, assigned_combo_var) in enumerate(zip(session['intervals'], session['assigned_combos'])):
+                            start = solver.Value(session['start_vars'][part_idx])
+                            end = solver.Value(session['end_vars'][part_idx])
+                            assigned_combo_idx = solver.Value(assigned_combo_var)
+                            assigned_combo = session['possible_combos'][part_idx][assigned_combo_idx]
 
-                        if start <= global_t < end:
-                            for field in assigned_combo:
-                                smallest_subfields = field_to_smallest_subfields[field]
-                                for sf in smallest_subfields:
-                                    idx_sf = sf_indices[sf]
-                                    assignments[idx_sf] = team_name
+                            if start <= global_t < end:
+                                for field in assigned_combo:
+                                    smallest_subfields = field_to_smallest_subfields[field]
+                                    for sf in smallest_subfields:
+                                        idx_sf = sf_indices[sf]
+                                        assignments[idx_sf] = team_name
             row = [slot_time] + assignments
             data.append(row)
 
