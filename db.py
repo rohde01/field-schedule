@@ -5,14 +5,15 @@ Test data module for the scheduling problem.
 Provides functions to get sample data for teams, fields, and constraints.
 """
 
-import pyodbc
+import psycopg2
 from collections import defaultdict
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 connection_string = (
-    "DRIVER=SQL Server;"
-    "SERVER=SRV9DNBDBM078;"
-    "DATABASE=workspace01;"
-    "Trusted_Connection=Yes;"
+    f"dbname='{os.getenv('DB_NAME')}' user='{os.getenv('DB_USER')}' host='{os.getenv('DB_HOST')}' password='{os.getenv('DB_PASSWORD')}'"
 )
 
 def get_teams():
@@ -21,17 +22,17 @@ def get_teams():
     club_id = 1
 
     try:
-        conn = pyodbc.connect(connection_string)
+        conn = psycopg2.connect(connection_string)
         cursor = conn.cursor()
 
         query = """
         SELECT team_id, name, year
-        FROM area116.teams
-        WHERE club_id = ?
+        FROM teams
+        WHERE club_id = %s
         """
 
-        cursor.execute(query, club_id)
-        columns = [column[0] for column in cursor.description]
+        cursor.execute(query, (club_id,))
+        columns = [desc[0] for desc in cursor.description]
         teams = [dict(zip(columns, row)) for row in cursor.fetchall()]
 
         return teams
@@ -49,39 +50,39 @@ def get_fields():
     facility_id = 1
 
     try:
-        conn = pyodbc.connect(connection_string)
+        conn = psycopg2.connect(connection_string)
         cursor = conn.cursor()
 
         fields_query = """
         SELECT f.field_id, f.name, f.size, f.field_type, f.parent_field_id,
                fa.day_of_week, fa.start_time, fa.end_time
-        FROM area116.fields f
-        LEFT JOIN area116.field_availability fa ON f.field_id = fa.field_id
-        WHERE f.facility_id = ?
+        FROM fields f
+        LEFT JOIN field_availability fa ON f.field_id = fa.field_id
+        WHERE f.facility_id = %s
         """
-        cursor.execute(fields_query, facility_id)
+        cursor.execute(fields_query, (facility_id,))
         rows = cursor.fetchall()
         fields_by_id = {}
         parent_to_children = {}
 
         for row in rows:
-            field_id = row.field_id
+            field_id = row[0]
             if field_id not in fields_by_id:
                 fields_by_id[field_id] = {
                     'field_id': field_id,
-                    'name': row.name,
-                    'size': row.size,
-                    'field_type': row.field_type,
-                    'parent_field_id': row.parent_field_id,
+                    'name': row[1],
+                    'size': row[2],
+                    'field_type': row[3],
+                    'parent_field_id': row[4],
                     'availability': {}
                 }
-                parent_id = row.parent_field_id
+                parent_id = row[4]
                 if parent_id:
                     parent_to_children.setdefault(parent_id, []).append(fields_by_id[field_id])
-            if row.day_of_week is not None:
-                day_of_week = row.day_of_week
-                start_time = str(row.start_time)[:5]
-                end_time = str(row.end_time)[:5]
+            if row[5] is not None:
+                day_of_week = row[5]
+                start_time = str(row[6])[:5]
+                end_time = str(row[7])[:5]
                 fields_by_id[field_id]['availability'].setdefault(day_of_week, {'start': start_time, 'end': end_time})
         full_fields = [field for field in fields_by_id.values() if field['field_type'] == 'full']
         field_list = []
@@ -138,4 +139,5 @@ def get_constraints():
 
         {'team_id': 7, 'required_cost': 500, 'sessions': 3, 'length': 4},
         {'team_id': 8, 'required_cost': 500, 'sessions': 4, 'length': 4},
+        {'team_id': 9, 'required_cost': 500, 'sessions': 4, 'length': 4},
     ]
