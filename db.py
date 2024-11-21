@@ -4,11 +4,13 @@ Test data module for the scheduling problem.
 
 Provides functions to get sample data for teams, fields, and constraints.
 """
-
+from dataclasses import dataclass, field
+from typing import List, Dict, Optional, Any
 import psycopg2
 from collections import defaultdict
 from dotenv import load_dotenv
 import os
+from ortools.sat.python import cp_model
 
 load_dotenv()
 
@@ -16,25 +18,25 @@ connection_string = (
     f"dbname='{os.getenv('DB_NAME')}' user='{os.getenv('DB_USER')}' host='{os.getenv('DB_HOST')}' password='{os.getenv('DB_PASSWORD')}'"
 )
 
-def get_teams():
-    """Fetches a list of team dictionaries from the database for a specific club."""
+@dataclass
+class Team:
+    team_id: int
+    name: str
+    year: int
 
+def get_teams() -> List[Team]:
+    """Fetches a list of Team instances from the database for a specific club."""
     club_id = 1
-
     try:
         conn = psycopg2.connect(connection_string)
         cursor = conn.cursor()
-
         query = """
         SELECT team_id, name, year
         FROM teams
         WHERE club_id = %s
         """
-
         cursor.execute(query, (club_id,))
-        columns = [desc[0] for desc in cursor.description]
-        teams = [dict(zip(columns, row)) for row in cursor.fetchall()]
-
+        teams = [Team(*row) for row in cursor.fetchall()]
         return teams
     except Exception as e:
         print(f"Error fetching teams: {e}")
@@ -43,18 +45,29 @@ def get_teams():
         if 'conn' in locals() and conn:
             conn.close()
 
-teams = get_teams()
-print(teams)
+@dataclass
+class FieldAvailability:
+    day_of_week: str
+    start_time: str
+    end_time: str
 
-def get_fields():
-    """Fetches a list of field dictionaries from the database for a specific facility."""
+@dataclass
+class Field:
+    field_id: int
+    name: str
+    size: str
+    field_type: str
+    parent_field_id: Optional[int]
+    availability: Dict[str, FieldAvailability] = field(default_factory=dict)
+    quarter_subfields: List['Field'] = field(default_factory=list)
+    half_subfields: List['Field'] = field(default_factory=list)
 
+def get_fields() -> List[Field]:
+    """Fetches a list of Field instances from the database for a specific facility."""
     facility_id = 1
-
     try:
         conn = psycopg2.connect(connection_string)
         cursor = conn.cursor()
-
         fields_query = """
         SELECT f.field_id, f.name, f.size, f.field_type, f.parent_field_id,
                fa.day_of_week, fa.start_time, fa.end_time
@@ -64,67 +77,54 @@ def get_fields():
         """
         cursor.execute(fields_query, (facility_id,))
         rows = cursor.fetchall()
-        fields_by_id = {}
-        parent_to_children = {}
+        fields_by_id: Dict[int, Field] = {}
+        parent_to_children: Dict[int, List[Field]] = {}
 
         for row in rows:
             field_id = row[0]
             if field_id not in fields_by_id:
-                fields_by_id[field_id] = {
-                    'field_id': field_id,
-                    'name': row[1],
-                    'size': row[2],
-                    'field_type': row[3],
-                    'parent_field_id': row[4],
-                    'availability': {}
-                }
+                fields_by_id[field_id] = Field(
+                    field_id=field_id,
+                    name=row[1],
+                    size=row[2],
+                    field_type=row[3],
+                    parent_field_id=row[4],
+                    availability={}
+                )
                 parent_id = row[4]
                 if parent_id:
                     parent_to_children.setdefault(parent_id, []).append(fields_by_id[field_id])
+
             if row[5] is not None:
                 day_of_week = row[5]
                 start_time = str(row[6])[:5]
                 end_time = str(row[7])[:5]
-                fields_by_id[field_id]['availability'].setdefault(day_of_week, {'start': start_time, 'end': end_time})
-        full_fields = [field for field in fields_by_id.values() if field['field_type'] == 'full']
-        field_list = []
-        for full_field in full_fields:
-            field_dict = {
-                'field_id': full_field['field_id'],
-                'name': full_field['name'],
-                'size': full_field['size'],
-                'quarter_subfields': [],
-                'half_subfields': [],
-                'availability': full_field['availability']
-            }
-            children = parent_to_children.get(full_field['field_id'], [])
-            half_fields = [child for child in children if child['field_type'] == 'half']
-            quarter_fields_direct = [child for child in children if child['field_type'] == 'quarter']
+                fields_by_id[field_id].availability[day_of_week] = FieldAvailability(
+                    day_of_week=day_of_week,
+                    start_time=start_time,
+                    end_time=end_time
+                )
 
-            for qf in quarter_fields_direct:
-                field_dict['quarter_subfields'].append({
-                    'name': qf['name'],
-                    'field_id': qf['field_id']
-                })
+        full_fields = [field for field in fields_by_id.values() if field.field_type == 'full']
+        field_list: List[Field] = []
+        for full_field in full_fields:
+            children = parent_to_children.get(full_field.field_id, [])
+            half_fields = [child for child in children if child.field_type == 'half']
+            quarter_fields_direct = [child for child in children if child.field_type == 'quarter']
+
+            full_field.quarter_subfields.extend(quarter_fields_direct)
 
             for half_field in half_fields:
-                quarter_children = parent_to_children.get(half_field['field_id'], [])
-                quarter_fields = [child for child in quarter_children if child['field_type'] == 'quarter']
-                field_dict['half_subfields'].append({
-                    'name': half_field['name'],
-                    'field_id': half_field['field_id'],
-                    'fields': [qf['name'] for qf in quarter_fields]
-                })
-                for qf in quarter_fields:
-                    field_dict['quarter_subfields'].append({
-                        'name': qf['name'],
-                        'field_id': qf['field_id']
-                    })
+                quarter_children = parent_to_children.get(half_field.field_id, [])
+                half_field.quarter_subfields.extend(quarter_children)
+                full_field.half_subfields.append(half_field)
+                full_field.quarter_subfields.extend(quarter_children)
 
-            unique_quarters = {tuple(subfield.items()) for subfield in field_dict['quarter_subfields']}
-            field_dict['quarter_subfields'] = [dict(t) for t in unique_quarters]
+            # Remove duplicate quarter subfields
+            unique_quarters = {field.field_id: field for field in full_field.quarter_subfields}
+            full_field.quarter_subfields = list(unique_quarters.values())
 
-            field_list.append(field_dict)
+            field_list.append(full_field)
 
         return field_list
 
@@ -135,29 +135,42 @@ def get_fields():
         if 'conn' in locals() and conn:
             conn.close()
 
-fields = get_fields()
-print(fields)
+@dataclass
+class Constraint:
+    team_id: int
+    required_size: Optional[str] = None
+    subfield_type: Optional[str] = None
+    required_cost: Optional[int] = None
+    sessions: int = 0
+    length: int = 0
+    partial_ses_space: Optional[str] = None
+    partial_ses_time: Optional[int] = None
+    start_time: Optional[str] = None  # Assuming this field exists
 
-def get_constraints():
-    """Returns a list of constraints dictionaries with 'team_id' instead of 'year'."""
-    return [
+def get_constraints() -> List[Constraint]:
+    """Returns a list of Constraint instances with 'team_id' instead of 'year'."""
+    constraints_data = [
         {'team_id': 1, 'required_size': '11v11', 'subfield_type': 'half', 'sessions': 2, 'length': 4,
-        'partial_ses_space': 'full', 'partial_ses_time': 4},
-
+         'partial_ses_space': 'full', 'partial_ses_time': 4},
         {'team_id': 2, 'required_cost': 250, 'sessions': 3, 'length': 4,
          'partial_ses_space': 500, 'partial_ses_time': 2},
-
         {'team_id': 3, 'required_cost': 500, 'sessions': 1, 'length': 4},
         {'team_id': 6, 'required_size': '11v11', 'subfield_type': 'quarter', 'sessions': 1, 'length': 2},
         {'team_id': 4, 'required_size': '5v5', 'subfield_type': 'full', 'sessions': 1, 'length': 4},
         {'team_id': 5, 'required_cost': 1000, 'sessions': 1, 'length': 4},
-
         {'team_id': 7, 'required_cost': 500, 'sessions': 3, 'length': 4},
         {'team_id': 8, 'required_cost': 500, 'sessions': 4, 'length': 4},
         {'team_id': 9, 'required_cost': 500, 'sessions': 4, 'length': 4},
     ]
+    return [Constraint(**data) for data in constraints_data]
 
-def save_schedule(solver, teams, interval_vars, field_name_to_id, club_id=1):
+def save_schedule(
+    solver: cp_model.CpSolver,
+    teams: List[Team],
+    interval_vars: Dict[int, Any],
+    field_name_to_id: Dict[str, int],
+    club_id: int = 1
+) -> None:
     """
     Saves the generated schedule into the 'schedules' and 'schedule_entries' tables.
     """
@@ -177,10 +190,11 @@ def save_schedule(solver, teams, interval_vars, field_name_to_id, club_id=1):
 
         schedule_entries = []
         for team in teams:
-            team_id = team['team_id']
-            team_name = team['name']
-            for idx_constraint in interval_vars[team_name]:
-                sessions = interval_vars[team_name][idx_constraint]
+            team_id = team.team_id
+            if team_id not in interval_vars:
+                continue
+            for idx_constraint in interval_vars[team_id]:
+                sessions = interval_vars[team_id][idx_constraint]
                 for session in sessions:
                     for part_idx, (interval, assigned_combo_var) in enumerate(
                         zip(session['intervals'], session['assigned_combos'])
@@ -206,7 +220,7 @@ def save_schedule(solver, teams, interval_vars, field_name_to_id, club_id=1):
         if 'conn' in locals() and conn:
             conn.close()
 
-def get_schedule_entries(schedule_id):
+def get_schedule_entries(schedule_id: int) -> List[tuple]:
     """Fetches schedule entries from the database for the given schedule_id."""
     try:
         conn = psycopg2.connect(connection_string)

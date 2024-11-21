@@ -6,11 +6,11 @@ Contains functions to process and display the solution in a readable format.
 """
 
 from tabulate import tabulate
+from typing import List, Dict, Any, Tuple
 from utils import get_field_to_smallest_subfields, build_time_slots, _build_time_slot_mappings
-from db import get_teams, get_fields, get_schedule_entries
+from db import get_teams, get_fields, get_schedule_entries, Team, Field
 
-
-def print_solution(solver, teams, time_slots, interval_vars, field_to_smallest_subfields, smallest_subfields_list):
+def print_solution(solver: Any, teams: List[Team], time_slots: Dict[str, List[str]], interval_vars: Dict[int, Any], field_to_smallest_subfields: Dict[str, List[str]], smallest_subfields_list: List[str]) -> None:
     """
     Prints the solution in a tabulated format.
     """
@@ -19,6 +19,8 @@ def print_solution(solver, teams, time_slots, interval_vars, field_to_smallest_s
     idx_to_time = mappings['idx_to_time']
     day_to_global_indices = mappings['day_to_global_indices']
     sf_indices = {sf: idx for idx, sf in enumerate(smallest_subfields_list)}
+
+    team_id_to_name = {team.team_id: team.name for team in teams}
 
     for day in time_slots:
         print(f"\nDay: {day}\n")
@@ -32,9 +34,12 @@ def print_solution(solver, teams, time_slots, interval_vars, field_to_smallest_s
             slot_time = time_slots[day][t]
 
             for team in teams:
-                team_name = team['name']
-                for idx_constraint in interval_vars[team_name]:
-                    sessions = interval_vars[team_name][idx_constraint]
+                team_id = team.team_id
+                team_name = team.name
+                if team_id not in interval_vars:
+                    continue
+                for idx_constraint in interval_vars[team_id]:
+                    sessions = interval_vars[team_id][idx_constraint]
                     for session_idx, session in enumerate(sessions):
                         # Handle each part of the session
                         for part_idx, (interval, assigned_combo_var) in enumerate(zip(session['intervals'], session['assigned_combos'])):
@@ -56,16 +61,17 @@ def print_solution(solver, teams, time_slots, interval_vars, field_to_smallest_s
         table = tabulate(data, headers=headers, tablefmt="fancy_grid")
         print(table)
 
-
-def print_raw_solution(solver, teams, interval_vars, field_name_to_id):
+def print_raw_solution(solver: Any, teams: List[Team], interval_vars: Dict[int, Any], field_name_to_id: Dict[str, int]) -> None:
     """
     Prints raw solution values: team_id, team name, start index, end index, assigned field name, and field_id.
     """
     for team in teams:
-        team_name = team['name']
-        team_id = team['team_id']
-        for idx_constraint in interval_vars[team_name]:
-            sessions = interval_vars[team_name][idx_constraint]
+        team_id = team.team_id
+        team_name = team.name
+        if team_id not in interval_vars:
+            continue
+        for idx_constraint in interval_vars[team_id]:
+            sessions = interval_vars[team_id][idx_constraint]
             for session_idx, session in enumerate(sessions):
                 for part_idx, (interval, assigned_combo_var) in enumerate(
                     zip(session['intervals'], session['assigned_combos'])
@@ -78,28 +84,27 @@ def print_raw_solution(solver, teams, interval_vars, field_name_to_id):
                     field_id = field_name_to_id.get(field_name, None)
                     print(f"{team_id},{team_name},{start_idx},{end_idx},{field_name},{field_id}")
 
-
-def print_schedule_from_db(schedule_id):
+def print_schedule_from_db(schedule_id: int) -> None:
     """
     Prints the schedule from the database for the given schedule_id in a tabulated format.
     """
     entries = get_schedule_entries(schedule_id)
-    
+
     teams = get_teams()
-    team_id_to_name = {team['team_id']: team['name'] for team in teams}
-    
+    team_id_to_name = {team.team_id: team.name for team in teams}
+
     fields = get_fields()
-    field_id_to_name = {}
-    field_name_to_field = {}
+    field_id_to_name: Dict[int, str] = {}
+    field_name_to_field: Dict[str, Field] = {}
     for field in fields:
-        field_id_to_name[field['field_id']] = field['name']
-        field_name_to_field[field['name']] = field
-        for half_subfield in field.get('half_subfields', []):
-            field_id_to_name[half_subfield['field_id']] = half_subfield['name']
-            field_name_to_field[half_subfield['name']] = half_subfield
-        for quarter_subfield in field.get('quarter_subfields', []):
-            field_id_to_name[quarter_subfield['field_id']] = quarter_subfield['name']
-            field_name_to_field[quarter_subfield['name']] = quarter_subfield
+        field_id_to_name[field.field_id] = field.name
+        field_name_to_field[field.name] = field
+        for half_subfield in field.half_subfields:
+            field_id_to_name[half_subfield.field_id] = half_subfield.name
+            field_name_to_field[half_subfield.name] = half_subfield
+        for quarter_subfield in field.quarter_subfields:
+            field_id_to_name[quarter_subfield.field_id] = quarter_subfield.name
+            field_name_to_field[quarter_subfield.name] = quarter_subfield
 
     time_slots, all_days = build_time_slots(fields)
     mappings = _build_time_slot_mappings(time_slots)
@@ -108,14 +113,14 @@ def print_schedule_from_db(schedule_id):
 
     field_to_smallest_subfields, smallest_subfields_list = get_field_to_smallest_subfields(fields)
     sf_indices = {sf: idx for idx, sf in enumerate(smallest_subfields_list)}
-    
-    field_id_to_smallest_subfields = {}
+
+    field_id_to_smallest_subfields: Dict[int, List[str]] = {}
     for field_id, field_name in field_id_to_name.items():
         field = field_name_to_field[field_name]
         smallest_subfields = field_to_smallest_subfields.get(field_name, [field_name])
         field_id_to_smallest_subfields[field_id] = smallest_subfields
 
-    assignments = {}
+    assignments: Dict[Tuple[str, int, str], str] = {}
     for entry in entries:
         team_id, field_id, session_start, session_end = entry
         team_name = team_id_to_name.get(team_id, f"Team {team_id}")
@@ -127,7 +132,7 @@ def print_schedule_from_db(schedule_id):
                 key = (day, t, sf)
                 assignments[key] = team_name
 
-    data_by_day = {}
+    data_by_day: Dict[str, List[List[str]]] = {}
     for day in time_slots:
         data_by_day[day] = []
 
@@ -150,5 +155,5 @@ def print_schedule_from_db(schedule_id):
         print(table)
 
 # Example usage:
-#schedule_id = 4
-#print_schedule_from_db(schedule_id)
+schedule_id = 5
+print_schedule_from_db(schedule_id)
