@@ -43,6 +43,8 @@ def get_teams():
         if 'conn' in locals() and conn:
             conn.close()
 
+teams = get_teams()
+print(teams)
 
 def get_fields():
     """Fetches a list of field dictionaries from the database for a specific facility."""
@@ -88,6 +90,7 @@ def get_fields():
         field_list = []
         for full_field in full_fields:
             field_dict = {
+                'field_id': full_field['field_id'],
                 'name': full_field['name'],
                 'size': full_field['size'],
                 'quarter_subfields': [],
@@ -99,14 +102,24 @@ def get_fields():
             quarter_fields_direct = [child for child in children if child['field_type'] == 'quarter']
 
             for qf in quarter_fields_direct:
-                field_dict['quarter_subfields'].append({'name': qf['name']})
+                field_dict['quarter_subfields'].append({
+                    'name': qf['name'],
+                    'field_id': qf['field_id']
+                })
 
             for half_field in half_fields:
                 quarter_children = parent_to_children.get(half_field['field_id'], [])
-                quarter_names = [child['name'] for child in quarter_children if child['field_type'] == 'quarter']
-                field_dict['half_subfields'].append({'name': half_field['name'], 'fields': quarter_names})
-                for qf_name in quarter_names:
-                    field_dict['quarter_subfields'].append({'name': qf_name})
+                quarter_fields = [child for child in quarter_children if child['field_type'] == 'quarter']
+                field_dict['half_subfields'].append({
+                    'name': half_field['name'],
+                    'field_id': half_field['field_id'],
+                    'fields': [qf['name'] for qf in quarter_fields]
+                })
+                for qf in quarter_fields:
+                    field_dict['quarter_subfields'].append({
+                        'name': qf['name'],
+                        'field_id': qf['field_id']
+                    })
 
             unique_quarters = {tuple(subfield.items()) for subfield in field_dict['quarter_subfields']}
             field_dict['quarter_subfields'] = [dict(t) for t in unique_quarters]
@@ -122,6 +135,8 @@ def get_fields():
         if 'conn' in locals() and conn:
             conn.close()
 
+fields = get_fields()
+print(fields)
 
 def get_constraints():
     """Returns a list of constraints dictionaries with 'team_id' instead of 'year'."""
@@ -141,3 +156,52 @@ def get_constraints():
         {'team_id': 8, 'required_cost': 500, 'sessions': 4, 'length': 4},
         {'team_id': 9, 'required_cost': 500, 'sessions': 4, 'length': 4},
     ]
+
+def save_schedule(solver, teams, interval_vars, field_name_to_id, club_id=1):
+    """
+    Saves the generated schedule into the 'schedules' and 'schedule_entries' tables.
+    """
+    try:
+        conn = psycopg2.connect(connection_string)
+        cursor = conn.cursor()
+
+        # Insert a new schedule into the schedules table
+        schedule_name = "Generated Schedule"
+        insert_schedule_query = """
+        INSERT INTO schedules (club_id, name)
+        VALUES (%s, %s)
+        RETURNING schedule_id;
+        """
+        cursor.execute(insert_schedule_query, (club_id, schedule_name))
+        schedule_id = cursor.fetchone()[0]
+
+        schedule_entries = []
+        for team in teams:
+            team_id = team['team_id']
+            team_name = team['name']
+            for idx_constraint in interval_vars[team_name]:
+                sessions = interval_vars[team_name][idx_constraint]
+                for session in sessions:
+                    for part_idx, (interval, assigned_combo_var) in enumerate(
+                        zip(session['intervals'], session['assigned_combos'])
+                    ):
+                        start_idx = solver.Value(session['start_vars'][part_idx])
+                        end_idx = solver.Value(session['end_vars'][part_idx])
+                        assigned_combo_idx = solver.Value(assigned_combo_var)
+                        assigned_combo = session['possible_combos'][part_idx][assigned_combo_idx]
+                        field_name = assigned_combo[0]
+                        field_id = field_name_to_id.get(field_name)
+                        schedule_entries.append((schedule_id, team_id, field_id, start_idx, end_idx))
+
+        insert_entries_query = """
+        INSERT INTO schedule_entries (schedule_id, team_id, field_id, session_start, session_end)
+        VALUES (%s, %s, %s, %s, %s)
+        """
+        cursor.executemany(insert_entries_query, schedule_entries)
+        conn.commit()
+
+    except Exception as e:
+        print(f"Error saving schedule: {e}")
+    finally:
+        if 'conn' in locals() and conn:
+            conn.close()
