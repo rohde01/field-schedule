@@ -6,49 +6,29 @@ Contains functions to process and display the solution in a readable format.
 """
 
 from tabulate import tabulate
-from utils import get_subfield_areas
+from utils import get_field_to_smallest_subfields, build_time_slots, _build_time_slot_mappings
+from db import get_teams, get_fields, get_schedule_entries
 
-def get_field_to_smallest_subfields(fields):
-    """
-    Creates a mapping from each field to its smallest subfields.
-    """
-    subfield_areas = get_subfield_areas(fields)
-    field_to_smallest_subfields = {}
-    smallest_subfields_set = set()
 
-    for field_name, areas in subfield_areas.items():
-        # Get the smallest subfields by finding areas that aren't subdivided further
-        smallest = [area for area in areas if len(subfield_areas[area]) == 1]
-        field_to_smallest_subfields[field_name] = smallest
-        smallest_subfields_set.update(smallest)
-
-    smallest_subfields_list = sorted(smallest_subfields_set)
-    return field_to_smallest_subfields, smallest_subfields_list
-
-def print_solution(solver, teams, time_slots, interval_vars, field_to_smallest_subfields, smallest_subfields_list, global_time_slots):
+def print_solution(solver, teams, time_slots, interval_vars, field_to_smallest_subfields, smallest_subfields_list):
     """
     Prints the solution in a tabulated format.
     """
+    mappings = _build_time_slot_mappings(time_slots)
+    global_time_slots = mappings['global_time_slots']
+    idx_to_time = mappings['idx_to_time']
+    day_to_global_indices = mappings['day_to_global_indices']
     sf_indices = {sf: idx for idx, sf in enumerate(smallest_subfields_list)}
-    idx_to_time = {idx: (day, t) for idx, (day, t) in enumerate(global_time_slots)}
 
     for day in time_slots:
         print(f"\nDay: {day}\n")
-
         data = []
         subfields_labels = smallest_subfields_list
-
         num_slots_day = len(time_slots[day])
 
         for t in range(num_slots_day):
             assignments = [''] * len(smallest_subfields_list)
-            global_t = None
-            for idx, (d, time_idx) in idx_to_time.items():
-                if d == day and time_idx == t:
-                    global_t = idx
-                    break
-            if global_t is None:
-                continue
+            global_t = day_to_global_indices[day][t]
             slot_time = time_slots[day][t]
 
             for team in teams:
@@ -76,6 +56,7 @@ def print_solution(solver, teams, time_slots, interval_vars, field_to_smallest_s
         table = tabulate(data, headers=headers, tablefmt="fancy_grid")
         print(table)
 
+
 def print_raw_solution(solver, teams, interval_vars, field_name_to_id):
     """
     Prints raw solution values: team_id, team name, start index, end index, assigned field name, and field_id.
@@ -96,3 +77,78 @@ def print_raw_solution(solver, teams, interval_vars, field_name_to_id):
                     field_name = assigned_combo[0]
                     field_id = field_name_to_id.get(field_name, None)
                     print(f"{team_id},{team_name},{start_idx},{end_idx},{field_name},{field_id}")
+
+
+def print_schedule_from_db(schedule_id):
+    """
+    Prints the schedule from the database for the given schedule_id in a tabulated format.
+    """
+    entries = get_schedule_entries(schedule_id)
+    
+    teams = get_teams()
+    team_id_to_name = {team['team_id']: team['name'] for team in teams}
+    
+    fields = get_fields()
+    field_id_to_name = {}
+    field_name_to_field = {}
+    for field in fields:
+        field_id_to_name[field['field_id']] = field['name']
+        field_name_to_field[field['name']] = field
+        for half_subfield in field.get('half_subfields', []):
+            field_id_to_name[half_subfield['field_id']] = half_subfield['name']
+            field_name_to_field[half_subfield['name']] = half_subfield
+        for quarter_subfield in field.get('quarter_subfields', []):
+            field_id_to_name[quarter_subfield['field_id']] = quarter_subfield['name']
+            field_name_to_field[quarter_subfield['name']] = quarter_subfield
+
+    time_slots, all_days = build_time_slots(fields)
+    mappings = _build_time_slot_mappings(time_slots)
+    idx_to_time = mappings['idx_to_time']
+    day_to_global_indices = mappings['day_to_global_indices']
+
+    field_to_smallest_subfields, smallest_subfields_list = get_field_to_smallest_subfields(fields)
+    sf_indices = {sf: idx for idx, sf in enumerate(smallest_subfields_list)}
+    
+    field_id_to_smallest_subfields = {}
+    for field_id, field_name in field_id_to_name.items():
+        field = field_name_to_field[field_name]
+        smallest_subfields = field_to_smallest_subfields.get(field_name, [field_name])
+        field_id_to_smallest_subfields[field_id] = smallest_subfields
+
+    assignments = {}
+    for entry in entries:
+        team_id, field_id, session_start, session_end = entry
+        team_name = team_id_to_name.get(team_id, f"Team {team_id}")
+        field_name = field_id_to_name.get(field_id, f"Field {field_id}")
+        smallest_subfields = field_id_to_smallest_subfields.get(field_id, [field_name])
+        for global_t in range(session_start, session_end):
+            day, t = idx_to_time[global_t]
+            for sf in smallest_subfields:
+                key = (day, t, sf)
+                assignments[key] = team_name
+
+    data_by_day = {}
+    for day in time_slots:
+        data_by_day[day] = []
+
+    for day in time_slots:
+        num_slots_day = len(time_slots[day])
+        for t in range(num_slots_day):
+            slot_time = time_slots[day][t]
+            row = [slot_time] + [''] * len(smallest_subfields_list)
+            for idx_sf, sf in enumerate(smallest_subfields_list):
+                key = (day, t, sf)
+                team_name = assignments.get(key, '')
+                row[idx_sf + 1] = team_name
+            data_by_day[day].append(row)
+
+    headers = ["Time"] + smallest_subfields_list
+    for day in time_slots:
+        print(f"\nDay: {day}\n")
+        data = data_by_day[day]
+        table = tabulate(data, headers=headers, tablefmt="fancy_grid")
+        print(table)
+
+# Example usage:
+#schedule_id = 4
+#print_schedule_from_db(schedule_id)
