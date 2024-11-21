@@ -8,11 +8,10 @@ Contains functions to create variables, add constraints, and solve the CP-SAT mo
 from ortools.sat.python import cp_model
 from collections import defaultdict
 from utils import (
-    _handle_start_time_constraint,
-    get_parent_field,
     get_parent_field_ids,
     _get_allowed_assignments,
-    _get_possible_combos
+    _get_possible_combos,
+    _build_time_slot_mappings
 )
 
 
@@ -38,38 +37,6 @@ def create_variables(model, teams, constraints, time_slots, size_to_combos, cost
         assigned_fields[team_name] = team_assigned_fields
 
     return interval_vars, assigned_fields, global_time_slots, day_name_to_index
-
-
-def _build_time_slot_mappings(time_slots):
-    """Builds mappings from time slots to global indices and other related mappings."""
-    global_time_slots = []
-    idx = 0
-    idx_to_time = {}
-    idx_to_day = []
-    day_to_idx = {}
-    day_to_global_indices = defaultdict(list)
-    day_names = list(time_slots.keys())
-    day_name_to_index = {day_name: index for index, day_name in enumerate(day_names)}
-
-    for day in time_slots:
-        for t, slot_time in enumerate(time_slots[day]):
-            idx_to_time[idx] = (day, t)
-            global_time_slots.append((day, t))
-            idx_to_day.append(day_name_to_index[day])
-            day_to_global_indices[day].append(idx)
-            idx += 1
-
-    num_global_slots = idx
-
-    return {
-        'global_time_slots': global_time_slots,
-        'idx_to_time': idx_to_time,
-        'idx_to_day': idx_to_day,
-        'day_to_global_indices': day_to_global_indices,
-        'day_names': day_names,
-        'day_name_to_index': day_name_to_index,
-        'num_global_slots': num_global_slots
-    }
 
 
 def _create_team_variables(model, team, team_constraints, time_slots, size_to_combos, cost_to_combos, mappings, parent_field_name_to_id):

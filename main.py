@@ -9,11 +9,20 @@ import cProfile
 import pstats
 from ortools.sat.python import cp_model
 from collections import defaultdict
-from test_data import get_teams, get_fields, get_constraints
-from utils import build_time_slots, get_subfields, get_size_to_combos, get_subfield_availability, get_subfield_areas, get_cost_to_combos, get_field_costs
+from db import get_teams, get_fields, get_constraints, save_schedule
+from utils import (
+    build_time_slots,
+    get_subfields,
+    get_size_to_combos,
+    get_subfield_availability,
+    get_subfield_areas,
+    get_cost_to_combos,
+    get_field_costs,
+    get_field_to_smallest_subfields,
+)
+
 from model import create_variables
-from output import get_field_to_smallest_subfields, print_solution
-from collections import defaultdict
+from output import print_solution, print_raw_solution
 from constraints import (
     add_no_overlapping_sessions_constraints,
     add_no_double_booking_constraints,
@@ -22,6 +31,8 @@ from constraints import (
     add_allowed_assignments_constraints
 )
 from objectives import add_objective_function
+import argparse
+
 
 def add_constraints(model, teams, constraints, time_slots, size_to_combos,
                     interval_vars, assigned_fields, subfield_areas, subfield_availability, global_time_slots):
@@ -34,12 +45,14 @@ def add_constraints(model, teams, constraints, time_slots, size_to_combos,
     add_team_day_constraints(model, interval_vars)
     add_allowed_assignments_constraints(model, interval_vars)
 
+
 def add_objectives(model, teams, interval_vars, time_slots, day_name_to_index):
     """
     Adds an objective function to the model to minimize penalties for undesirable scheduling patterns
     and reward desirable ones.
     """
     add_objective_function(model, teams, interval_vars, time_slots, day_name_to_index)
+
 
 def solve_model(model):
     """
@@ -49,10 +62,17 @@ def solve_model(model):
     status = solver.Solve(model)
     return solver, status
 
+
 def main():
     """
     Main function to solve the soccer scheduling problem.
     """
+    parser = argparse.ArgumentParser(description='Solve the soccer scheduling problem.')
+    parser.add_argument('--raw', action='store_true', help='Print raw output instead of formatted output')
+    parser.add_argument('--both', action='store_true', help='Print both tabular and raw output')
+    parser.add_argument('--save', action='store_true', help='Save the generated schedule to the database')
+    args = parser.parse_args()
+
     profiler = cProfile.Profile()
     profiler.enable()
 
@@ -63,7 +83,13 @@ def main():
 
     teams = get_teams()
     fields = get_fields()
-    field_to_smallest_subfields, smallest_subfields_list = get_field_to_smallest_subfields(fields)
+    field_name_to_id = {}
+    for field in fields:
+        field_name_to_id[field['name']] = field['field_id']
+        for half_subfield in field.get('half_subfields', []):
+            field_name_to_id[half_subfield['name']] = half_subfield['field_id']
+        for quarter_subfield in field.get('quarter_subfields', []):
+            field_name_to_id[quarter_subfield['name']] = quarter_subfield['field_id']
 
     time_slots, all_days = build_time_slots(fields)
     all_subfields = get_subfields(fields)
@@ -72,6 +98,7 @@ def main():
     subfield_areas = get_subfield_areas(fields)
     field_costs = get_field_costs()
     cost_to_combos = get_cost_to_combos(fields, field_costs)
+    field_to_smallest_subfields, smallest_subfields_list = get_field_to_smallest_subfields(fields)
 
     parent_field_names = set()
     for field in fields:
@@ -80,26 +107,36 @@ def main():
     parent_field_id_to_name = {idx: name for name, idx in parent_field_name_to_id.items()}
 
     model = cp_model.CpModel()
-    
+
     interval_vars, assigned_fields, global_time_slots, day_name_to_index = create_variables(
         model, teams, constraints, time_slots, size_to_combos, cost_to_combos, parent_field_name_to_id
     )
 
     add_constraints(model, teams, constraints, time_slots, size_to_combos,
-                interval_vars, assigned_fields, subfield_areas, subfield_availability, global_time_slots)
-    
+                    interval_vars, assigned_fields, subfield_areas, subfield_availability, global_time_slots)
+
     add_objectives(model, teams, interval_vars, time_slots, day_name_to_index)
 
     solver, status = solve_model(model)
 
     if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
-        print_solution(solver, teams, time_slots, interval_vars, field_to_smallest_subfields, smallest_subfields_list, global_time_slots)
+        if args.raw:
+            print_raw_solution(solver, teams, interval_vars, field_name_to_id)
+        elif args.both:
+            print_solution(solver, teams, time_slots, interval_vars, field_to_smallest_subfields, smallest_subfields_list)
+            print_raw_solution(solver, teams, interval_vars, field_name_to_id)
+        else:
+            print_solution(solver, teams, time_slots, interval_vars, field_to_smallest_subfields, smallest_subfields_list)
+
+        if args.save:
+            save_schedule(solver, teams, interval_vars, field_name_to_id, club_id=1)
     else:
         print('No feasible solution found.')
 
     profiler.disable()
     stats = pstats.Stats(profiler).sort_stats('cumtime')
     stats.print_stats(10)
+
 
 if __name__ == "__main__":
     main()

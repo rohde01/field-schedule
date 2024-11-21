@@ -5,7 +5,8 @@ Utility functions for the scheduling problem.
 Contains helper functions for building time slots, subfield data, and availability mappings.
 """
 
-from test_data import get_fields
+from db import get_fields
+from collections import defaultdict
 
 
 def build_time_slots(fields):
@@ -30,6 +31,37 @@ def build_time_slots(fields):
     return time_slots, all_days
 
 
+def _build_time_slot_mappings(time_slots):
+    """Builds mappings from time slots to global indices and other related mappings."""
+    global_time_slots = []
+    idx = 0
+    idx_to_time = {}
+    idx_to_day = []
+    day_to_global_indices = defaultdict(list)
+    day_names = list(time_slots.keys())
+    day_name_to_index = {day_name: index for index, day_name in enumerate(day_names)}
+
+    for day in time_slots:
+        for t, slot_time in enumerate(time_slots[day]):
+            idx_to_time[idx] = (day, t)
+            global_time_slots.append((day, t))
+            idx_to_day.append(day_name_to_index[day])
+            day_to_global_indices[day].append(idx)
+            idx += 1
+
+    num_global_slots = idx
+
+    return {
+        'global_time_slots': global_time_slots,
+        'idx_to_time': idx_to_time,
+        'idx_to_day': idx_to_day,
+        'day_to_global_indices': day_to_global_indices,
+        'day_names': day_names,
+        'day_name_to_index': day_name_to_index,
+        'num_global_slots': num_global_slots
+    }
+
+
 def get_subfields(fields):
     """
     Returns a list of all subfields from all fields.
@@ -45,6 +77,78 @@ def get_subfields(fields):
             for quarter in field['quarter_subfields']:
                 subfields.add(quarter['name'])
     return list(subfields)
+
+
+def get_field_to_smallest_subfields(fields):
+    """
+    Creates a mapping from each field to its smallest subfields.
+    """
+    subfield_areas = get_subfield_areas(fields)
+    field_to_smallest_subfields = {}
+    smallest_subfields_set = set()
+
+    for field_name, areas in subfield_areas.items():
+        # Get the smallest subfields by finding areas that aren't subdivided further
+        smallest = [area for area in areas if len(subfield_areas[area]) == 1]
+        field_to_smallest_subfields[field_name] = smallest
+        smallest_subfields_set.update(smallest)
+
+    smallest_subfields_list = sorted(smallest_subfields_set)
+    return field_to_smallest_subfields, smallest_subfields_list
+
+
+def parse_time_string(time_str, field_name=None, day=None):
+    """Parses a time string 'HH:MM' and returns total minutes."""
+    try:
+        hour, minute = map(int, time_str.split(':'))
+        return hour * 60 + minute
+    except ValueError as e:
+        if field_name and day:
+            raise ValueError(f"Invalid time format in field '{field_name}' on day '{day}': {e}")
+        else:
+            raise ValueError(f"Invalid time format in time string '{time_str}': {e}")
+
+
+def generate_time_slots_between(start_minutes, end_minutes, interval=15):
+    """Generates time slots between start and end times at given interval in minutes."""
+    num_intervals = (end_minutes - start_minutes) // interval
+    return [
+        f'{(start_minutes + i * interval) // 60}:{(start_minutes + i * interval) % 60:02d}'
+        for i in range(num_intervals)
+    ]
+
+
+def get_subfield_areas(fields):
+    """
+    Returns a dictionary mapping each subfield to the areas it covers.
+    """
+    subfield_areas = {}
+    for field in fields:
+        field_name = field['name']
+        areas = []
+        if 'quarter_subfields' in field:
+            quarter_names = [quarter['name'] for quarter in field['quarter_subfields']]
+            areas.extend(quarter_names)
+            for quarter in field['quarter_subfields']:
+                subfield_areas[quarter['name']] = [quarter['name']]
+        elif 'half_subfields' in field:
+            half_names = [half['name'] for half in field['half_subfields']]
+            areas.extend(half_names)
+            for half in field['half_subfields']:
+                subfield_areas[half['name']] = [half['name']]
+        else:
+            areas.append(field_name)
+            subfield_areas[field_name] = [field_name]
+
+        subfield_areas[field_name] = areas
+
+        if 'half_subfields' in field and 'quarter_subfields' in field:
+            for half in field['half_subfields']:
+                half_name = half['name']
+                half_fields = half['fields']
+                subfield_areas[half_name] = half_fields
+
+    return subfield_areas
 
 
 def get_size_to_combos(fields):
@@ -102,39 +206,6 @@ def get_subfield_availability(fields, time_slots, all_subfields):
     return subfield_availability
 
 
-def get_subfield_areas(fields):
-    """
-    Returns a dictionary mapping each subfield to the areas it covers.
-    """
-    subfield_areas = {}
-    for field in fields:
-        field_name = field['name']
-        areas = []
-        if 'quarter_subfields' in field:
-            quarter_names = [quarter['name'] for quarter in field['quarter_subfields']]
-            areas.extend(quarter_names)
-            for quarter in field['quarter_subfields']:
-                subfield_areas[quarter['name']] = [quarter['name']]
-        elif 'half_subfields' in field:
-            half_names = [half['name'] for half in field['half_subfields']]
-            areas.extend(half_names)
-            for half in field['half_subfields']:
-                subfield_areas[half['name']] = [half['name']]
-        else:
-            areas.append(field_name)
-            subfield_areas[field_name] = [field_name]
-
-        subfield_areas[field_name] = areas
-
-        if 'half_subfields' in field and 'quarter_subfields' in field:
-            for half in field['half_subfields']:
-                half_name = half['name']
-                half_fields = half['fields']
-                subfield_areas[half_name] = half_fields
-
-    return subfield_areas
-
-
 def get_cost_to_combos(fields, field_costs):
     """
     Returns a dictionary mapping required_cost to possible field combinations.
@@ -169,17 +240,15 @@ def get_field_costs():
         '11v11': 1000,
         '8v8': 500,
         '5v5': 250,
-        '3v3': 125     
+        '3v3': 125
     }
     costs = {}
-    # Get unique field sizes from get_fields()
     field_sizes = {field['size'] for field in get_fields()}
-    
-    # Calculate costs for each field size and its subdivisions
+
     for size in field_sizes:
         base_cost = base_costs[size]
         costs[(size, 'full')] = base_cost
-        
+
         if size == '11v11' or size == '8v8':
             costs[(size, 'half')] = base_cost // 2
             costs[(size, 'quarter')] = base_cost // 4
@@ -195,11 +264,11 @@ def _handle_start_time_constraint(constraint, time_slots, mappings):
     """
     allowed_assignments = []
     allowed_start_times = set()
-    
+
     specified_time = constraint['start_time']
     length = constraint['length']
     time_matched = False
-    
+
     for day_name in time_slots:
         day_slots = time_slots[day_name]
         day_global_indices = mappings['day_to_global_indices'][day_name]
@@ -214,13 +283,13 @@ def _handle_start_time_constraint(constraint, time_slots, mappings):
             allowed_assignments.append([mappings['day_name_to_index'][day_name], s_global])
             allowed_start_times.add(s_global)
             time_matched = True
-    
+
     if not time_matched:
         raise ValueError(
-            f"Specified start_time '{specified_time}' with length {length} " 
+            f"Specified start_time '{specified_time}' with length {length} "
             "does not fit within available day slots"
         )
-    
+
     return allowed_assignments, allowed_start_times
 
 
@@ -253,27 +322,6 @@ def get_parent_field_ids(possible_combos, parent_field_name_to_id):
     return parent_field_ids
 
 
-def parse_time_string(time_str, field_name=None, day=None):
-    """Parses a time string 'HH:MM' and returns total minutes."""
-    try:
-        hour, minute = map(int, time_str.split(':'))
-        return hour * 60 + minute
-    except ValueError as e:
-        if field_name and day:
-            raise ValueError(f"Invalid time format in field '{field_name}' on day '{day}': {e}")
-        else:
-            raise ValueError(f"Invalid time format in time string '{time_str}': {e}")
-
-
-def generate_time_slots_between(start_minutes, end_minutes, interval=15):
-    """Generates time slots between start and end times at given interval in minutes."""
-    num_intervals = (end_minutes - start_minutes) // interval
-    return [
-        f'{(start_minutes + i * interval) // 60}:{(start_minutes + i * interval) % 60:02d}'
-        for i in range(num_intervals)
-    ]
-
-
 def time_slots_to_minutes(time_slots):
     """Converts a list of time slot strings to total minutes."""
     return [parse_time_string(slot_time) for slot_time in time_slots]
@@ -301,6 +349,7 @@ def _get_allowed_assignments(constraint, time_slots, mappings):
                 allowed_start_times.add(s_global)
     allowed_start_times = sorted(allowed_start_times)
     return allowed_assignments, allowed_start_times
+
 
 def _get_possible_combos(constraint, size_to_combos, cost_to_combos):
     """Determines possible field combinations based on constraint type."""
