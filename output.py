@@ -75,3 +75,24 @@ def print_solution(solver, teams, time_slots, interval_vars, field_to_smallest_s
         headers = ["Time"] + subfields_labels
         table = tabulate(data, headers=headers, tablefmt="fancy_grid")
         print(table)
+
+def print_raw_solution(solver, teams, interval_vars, field_name_to_id):
+    """
+    Prints raw solution values: team_id, team name, start index, end index, assigned field name, and field_id.
+    """
+    for team in teams:
+        team_name = team['name']
+        team_id = team['team_id']
+        for idx_constraint in interval_vars[team_name]:
+            sessions = interval_vars[team_name][idx_constraint]
+            for session_idx, session in enumerate(sessions):
+                for part_idx, (interval, assigned_combo_var) in enumerate(
+                    zip(session['intervals'], session['assigned_combos'])
+                ):
+                    start_idx = solver.Value(session['start_vars'][part_idx])
+                    end_idx = solver.Value(session['end_vars'][part_idx])
+                    assigned_combo_idx = solver.Value(assigned_combo_var)
+                    assigned_combo = session['possible_combos'][part_idx][assigned_combo_idx]
+                    field_name = assigned_combo[0]
+                    field_id = field_name_to_id.get(field_name, None)
+                    print(f"{team_id},{team_name},{start_idx},{end_idx},{field_name},{field_id}")
