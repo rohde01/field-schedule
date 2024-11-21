@@ -205,3 +205,23 @@ def save_schedule(solver, teams, interval_vars, field_name_to_id, club_id=1):
     finally:
         if 'conn' in locals() and conn:
             conn.close()
+
+def get_schedule_entries(schedule_id):
+    """Fetches schedule entries from the database for the given schedule_id."""
+    try:
+        conn = psycopg2.connect(connection_string)
+        cursor = conn.cursor()
+        query = """
+        SELECT se.team_id, se.field_id, se.session_start, se.session_end
+        FROM schedule_entries se
+        WHERE se.schedule_id = %s
+        """
+        cursor.execute(query, (schedule_id,))
+        entries = cursor.fetchall()
+        return entries
+    except Exception as e:
+        print(f"Error fetching schedule entries: {e}")
+        return []
+    finally:
+        if 'conn' in locals() and conn:
+            conn.close()
