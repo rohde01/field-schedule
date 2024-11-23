@@ -1,9 +1,6 @@
-"""
-Filename: utils.py
-Utility functions for the scheduling problem.
+# Filename: utils.py
+# Utility functions for the scheduling problem.
 
-Contains helper functions for building time slots, subfield data, and availability mappings.
-"""
 from typing import List, Dict, Set, Tuple, Any
 from collections import defaultdict
 from db import Field, get_fields, FieldAvailability, Constraint
@@ -240,8 +237,11 @@ def get_field_costs() -> Dict[Tuple[str, str], int]:
             costs[(size, 'half')] = base_cost // 2
     return costs
 
-def _handle_start_time_constraint(constraint: Constraint, time_slots: Dict[str, List[str]], mappings: Dict[str, Any]) -> Tuple[List[List[int]], List[int]]:
-    """Helper function to handle start time constraints."""
+def _handle_start_time_constraint(constraint: Constraint, time_slots: Dict[str, List[str]], mappings: Dict[str, Any]) -> Tuple[List[List[int]], Set[int]]:
+    """
+    Helper function to handle start time constraints.
+    Ensures that the entire session length fits within the day and field availability.
+    """
     allowed_assignments: List[List[int]] = []
     allowed_start_times: Set[int] = set()
 
@@ -250,20 +250,26 @@ def _handle_start_time_constraint(constraint: Constraint, time_slots: Dict[str, 
     time_matched = False
 
     for day_name in time_slots:
-        day_index = mappings['day_name_to_index'][day_name]
-        for idx, slot_time in enumerate(time_slots[day_name]):
-            if slot_time == specified_time:
-                time_matched = True
-                start_global_idx = mappings['day_to_global_indices'][day_name][idx]
-                if start_global_idx + length <= mappings['num_global_slots']:
-                    allowed_start_times.add(start_global_idx)
-                    allowed_assignments.append([day_index, start_global_idx])
-                break  
+        day_slots = time_slots[day_name]
+        day_global_indices = mappings['day_to_global_indices'][day_name]
+        try:
+            start_slot_idx = day_slots.index(specified_time)
+        except ValueError:
+            continue
+
+        # Check if there are enough slots left in the day for the entire session
+        if start_slot_idx + length <= len(day_slots):
+            s_global = day_global_indices[start_slot_idx]
+            allowed_assignments.append([mappings['day_name_to_index'][day_name], s_global])
+            allowed_start_times.add(s_global)
+            time_matched = True
 
     if not time_matched:
-        raise ValueError(f"Specified start time '{specified_time}' not found in time slots.")
+        raise ValueError(
+            f"Specified start_time '{specified_time}' with length {length} "
+            "does not fit within available day slots"
+        )
 
-    allowed_start_times = sorted(allowed_start_times)
     return allowed_assignments, allowed_start_times
 
 def get_parent_field(subfield_name: str, fields: List[Field]) -> str:
@@ -295,21 +301,27 @@ def time_slots_to_minutes(time_slots: List[str]) -> List[int]:
     return [parse_time_string(slot_time) for slot_time in time_slots]
 
 def _get_allowed_assignments(constraint: Constraint, time_slots: Dict[str, List[str]], mappings: Dict[str, Any]) -> Tuple[List[List[int]], List[int]]:
-    """Helper function to get allowed assignments and start times based on constraint and time slots."""
+    """
+    Helper function to get allowed assignments and start times based on constraint and time slots.
+    """
+    day_to_global_indices = mappings['day_to_global_indices']
+    day_name_to_index = mappings['day_name_to_index']
     if constraint.start_time:
-        allowed_assignments, allowed_start_times = _handle_start_time_constraint(constraint, time_slots, mappings)
+        allowed_assignments, allowed_start_times_set = _handle_start_time_constraint(constraint, time_slots, mappings)
+        allowed_start_times = sorted(allowed_start_times_set)  
     else:
-        allowed_assignments = []
-        allowed_start_times = []
-        # ...existing code to populate allowed_assignments and allowed_start_times...
-        # For example:
+        allowed_assignments: List[List[int]] = []
+        allowed_start_times_set: Set[int] = set()
+        total_length = constraint.length
         for day_name in time_slots:
-            day_index = mappings['day_name_to_index'][day_name]
-            for start_idx in mappings['day_to_global_indices'][day_name]:
-                allowed_start_times.append(start_idx)
-                allowed_assignments.append([day_index, start_idx])
-        allowed_start_times = sorted(set(allowed_start_times))
-
+            day_idx = day_name_to_index[day_name]
+            day_global_indices = day_to_global_indices[day_name]
+            num_slots_day = len(day_global_indices)
+            for s_local in range(num_slots_day - total_length + 1):
+                s_global = day_global_indices[s_local]
+                allowed_assignments.append([day_idx, s_global])
+                allowed_start_times_set.add(s_global)
+        allowed_start_times = sorted(allowed_start_times_set)
     return allowed_assignments, allowed_start_times
 
 def _get_possible_combos(constraint: Constraint, size_to_combos: Dict[Any, Any], cost_to_combos: Dict[int, List[Any]]) -> Tuple[List[Any], List[Any]]:
