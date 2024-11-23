@@ -1,6 +1,6 @@
 """
-Filename: test_data.py
-Test data module for the scheduling problem.
+Filename: db.py
+Database module for the scheduling problem.
 
 Provides functions to get sample data for teams, fields, and constraints.
 """
@@ -143,7 +143,8 @@ class Constraint:
     required_cost: Optional[int] = None
     sessions: int = 0
     length: int = 0
-    partial_ses_space: Optional[str] = None
+    partial_ses_space_size: Optional[str] = None
+    partial_ses_space_cost: Optional[int] = None
     partial_ses_time: Optional[int] = None
     start_time: Optional[str] = None 
 
@@ -151,15 +152,15 @@ def get_constraints() -> List[Constraint]:
     """Returns a list of Constraint instances with 'team_id' instead of 'year'."""
     constraints_data = [
         {'team_id': 2, 'required_cost': 250, 'sessions': 3, 'length': 4,
-         'partial_ses_space': 500, 'partial_ses_time': 2},
-        
-        {'team_id': 3, 'required_cost': 500, 'sessions': 1, 'length': 4, 'start_time': '16:15'},
+         'partial_ses_space_cost': 500, 'partial_ses_time': 2},
+
+        {'team_id': 3, 'required_size': '11v11', 'subfield_type': 'quarter', 'sessions': 1, 'length': 4, 'partial_ses_space_size': 'half', 'partial_ses_time': 2},
         {'team_id': 6, 'required_size': '11v11', 'subfield_type': 'quarter', 'sessions': 1, 'length': 2},
         {'team_id': 4, 'required_size': '5v5', 'subfield_type': 'full', 'sessions': 1, 'length': 4},
         {'team_id': 5, 'required_cost': 1000, 'sessions': 1, 'length': 4},
         {'team_id': 7, 'required_cost': 500, 'sessions': 3, 'length': 4},
         {'team_id': 8, 'required_cost': 500, 'sessions': 4, 'length': 4},
-        {'team_id': 9, 'required_cost': 500, 'sessions': 4, 'length': 4},
+        {'team_id': 9, 'required_cost': 500, 'sessions': 1, 'length': 5, 'start_time': '16:15'},
     ]
     return [Constraint(**data) for data in constraints_data]
 

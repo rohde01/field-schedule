@@ -334,13 +334,12 @@ def _get_possible_combos(constraint: Constraint, size_to_combos: Dict[Any, Any],
         possible_combos_part1 = size_to_combos.get(key_part1, [])
 
     if constraint.partial_ses_time:
-        if constraint.partial_ses_space:
-            if constraint.required_cost:
-                required_cost_part2 = constraint.partial_ses_space
-                possible_combos_part2 = cost_to_combos.get(required_cost_part2, [])
-            else:
-                key_part2 = (constraint.required_size, constraint.partial_ses_space)
-                possible_combos_part2 = size_to_combos.get(key_part2, [])
+        if constraint.partial_ses_space_cost is not None:
+            required_cost_part2 = constraint.partial_ses_space_cost
+            possible_combos_part2 = cost_to_combos.get(required_cost_part2, [])
+        elif constraint.partial_ses_space_size is not None:
+            key_part2 = (constraint.required_size, constraint.partial_ses_space_size)
+            possible_combos_part2 = size_to_combos.get(key_part2, [])
         else:
             possible_combos_part2 = possible_combos_part1
     else:
