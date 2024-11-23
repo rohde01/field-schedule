@@ -128,7 +128,7 @@ def main():
             print_solution(solver, teams, time_slots, interval_vars, field_to_smallest_subfields, smallest_subfields_list)
 
         if args.save:
-            save_schedule(solver, teams, interval_vars, field_name_to_id, club_id=1)
+            save_schedule(solver, teams, interval_vars, field_name_to_id, club_id=1, constraints_list=constraints_list)
     else:
         print('No feasible solution found.')
 

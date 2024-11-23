@@ -151,34 +151,64 @@ class Constraint:
 def get_constraints() -> List[Constraint]:
     """Returns a list of Constraint instances with 'team_id' instead of 'year'."""
     constraints_data = [
-        {'team_id': 2, 'required_cost': 250, 'sessions': 3, 'length': 4,
-         'partial_ses_space_cost': 500, 'partial_ses_time': 2},
+        {'team_id': 2, 'required_cost': 250, 'sessions': 3, 'length': 4, 'partial_ses_space_cost': 500, 'partial_ses_time': 2},
 
         {'team_id': 3, 'required_size': '11v11', 'subfield_type': 'quarter', 'sessions': 1, 'length': 4, 'partial_ses_space_size': 'half', 'partial_ses_time': 2},
+        
         {'team_id': 6, 'required_size': '11v11', 'subfield_type': 'quarter', 'sessions': 1, 'length': 2},
-        {'team_id': 4, 'required_size': '5v5', 'subfield_type': 'full', 'sessions': 1, 'length': 4},
-        {'team_id': 5, 'required_cost': 1000, 'sessions': 1, 'length': 4},
+
         {'team_id': 7, 'required_cost': 500, 'sessions': 3, 'length': 4},
+        
         {'team_id': 8, 'required_cost': 500, 'sessions': 4, 'length': 4},
+        
         {'team_id': 9, 'required_cost': 500, 'sessions': 1, 'length': 5, 'start_time': '16:15'},
     ]
     return [Constraint(**data) for data in constraints_data]
+
+def save_constraints(cursor: Any, schedule_entry_id: int, team_id: int, constraint: Constraint) -> None:
+    """
+    Saves a constraint to the constraints table.
+    """
+    insert_constraint_query = """
+    INSERT INTO constraints (
+        schedule_entry_id, team_id, required_size, subfield_type, required_cost,
+        sessions, length, partial_ses_space_size, partial_ses_space_cost,
+        partial_ses_time, start_time
+    )
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """
+    cursor.execute(
+        insert_constraint_query,
+        (
+            schedule_entry_id,
+            team_id,
+            constraint.required_size,
+            constraint.subfield_type,
+            constraint.required_cost,
+            constraint.sessions,
+            constraint.length,
+            constraint.partial_ses_space_size,
+            constraint.partial_ses_space_cost,
+            constraint.partial_ses_time,
+            constraint.start_time
+        )
+    )
 
 def save_schedule(
     solver: cp_model.CpSolver,
     teams: List[Team],
     interval_vars: Dict[int, Any],
     field_name_to_id: Dict[str, int],
-    club_id: int = 1
+    club_id: int = 1,
+    constraints_list: Optional[List[Constraint]] = None
 ) -> None:
     """
-    Saves the generated schedule into the 'schedules' and 'schedule_entries' tables.
+    Saves the generated schedule and its constraints into the database.
     """
     try:
         conn = psycopg2.connect(connection_string)
         cursor = conn.cursor()
 
-        # Insert a new schedule into the schedules table
         schedule_name = "Generated Schedule"
         insert_schedule_query = """
         INSERT INTO schedules (club_id, name)
@@ -188,15 +218,20 @@ def save_schedule(
         cursor.execute(insert_schedule_query, (club_id, schedule_name))
         schedule_id = cursor.fetchone()[0]
 
+        team_constraints = defaultdict(list)
+        if constraints_list:
+            for constraint in constraints_list:
+                team_constraints[constraint.team_id].append(constraint)
+
         schedule_entries = []
         for team in teams:
             team_id = team.team_id
             if team_id not in interval_vars:
                 continue
-            for idx_constraint in interval_vars[team_id]:
+            for idx_constraint, constraint in enumerate(team_constraints.get(team_id, [])):
                 sessions = interval_vars[team_id][idx_constraint]
+                parent_schedule_entry_id = None
                 for session in sessions:
-                    parent_schedule_entry_id = None
                     for part_idx, (interval, assigned_combo_var) in enumerate(
                         zip(session['intervals'], session['assigned_combos'])
                     ):
@@ -226,6 +261,7 @@ def save_schedule(
                         schedule_entry_id = cursor.fetchone()[0]
                         if parent_schedule_entry_id is None:
                             parent_schedule_entry_id = schedule_entry_id
+                            save_constraints(cursor, schedule_entry_id, team_id, constraint)
 
         insert_entries_query = """
         INSERT INTO schedule_entries (schedule_id, team_id, field_id, session_start, session_end)
@@ -236,6 +272,7 @@ def save_schedule(
 
     except Exception as e:
         print(f"Error saving schedule: {e}")
+        conn.rollback()
     finally:
         if 'conn' in locals() and conn:
             conn.close()
