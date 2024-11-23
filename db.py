@@ -145,16 +145,15 @@ class Constraint:
     length: int = 0
     partial_ses_space: Optional[str] = None
     partial_ses_time: Optional[int] = None
-    start_time: Optional[str] = None  # Assuming this field exists
+    start_time: Optional[str] = None 
 
 def get_constraints() -> List[Constraint]:
     """Returns a list of Constraint instances with 'team_id' instead of 'year'."""
     constraints_data = [
-        {'team_id': 1, 'required_size': '11v11', 'subfield_type': 'half', 'sessions': 2, 'length': 4,
-         'partial_ses_space': 'full', 'partial_ses_time': 4},
         {'team_id': 2, 'required_cost': 250, 'sessions': 3, 'length': 4,
          'partial_ses_space': 500, 'partial_ses_time': 2},
-        {'team_id': 3, 'required_cost': 500, 'sessions': 1, 'length': 4},
+        
+        {'team_id': 3, 'required_cost': 500, 'sessions': 1, 'length': 4, 'start_time': '16:15'},
         {'team_id': 6, 'required_size': '11v11', 'subfield_type': 'quarter', 'sessions': 1, 'length': 2},
         {'team_id': 4, 'required_size': '5v5', 'subfield_type': 'full', 'sessions': 1, 'length': 4},
         {'team_id': 5, 'required_cost': 1000, 'sessions': 1, 'length': 4},
@@ -196,6 +195,7 @@ def save_schedule(
             for idx_constraint in interval_vars[team_id]:
                 sessions = interval_vars[team_id][idx_constraint]
                 for session in sessions:
+                    parent_schedule_entry_id = None
                     for part_idx, (interval, assigned_combo_var) in enumerate(
                         zip(session['intervals'], session['assigned_combos'])
                     ):
@@ -205,7 +205,26 @@ def save_schedule(
                         assigned_combo = session['possible_combos'][part_idx][assigned_combo_idx]
                         field_name = assigned_combo[0]
                         field_id = field_name_to_id.get(field_name)
-                        schedule_entries.append((schedule_id, team_id, field_id, start_idx, end_idx))
+
+                        insert_entry_query = """
+                        INSERT INTO schedule_entries (schedule_id, team_id, field_id, session_start, session_end, parent_schedule_entry_id)
+                        VALUES (%s, %s, %s, %s, %s, %s)
+                        RETURNING schedule_entry_id;
+                        """
+                        cursor.execute(
+                            insert_entry_query,
+                            (
+                                schedule_id,
+                                team_id,
+                                field_id,
+                                start_idx,
+                                end_idx,
+                                parent_schedule_entry_id
+                            )
+                        )
+                        schedule_entry_id = cursor.fetchone()[0]
+                        if parent_schedule_entry_id is None:
+                            parent_schedule_entry_id = schedule_entry_id
 
         insert_entries_query = """
         INSERT INTO schedule_entries (schedule_id, team_id, field_id, session_start, session_end)
@@ -226,7 +245,7 @@ def get_schedule_entries(schedule_id: int) -> List[tuple]:
         conn = psycopg2.connect(connection_string)
         cursor = conn.cursor()
         query = """
-        SELECT se.team_id, se.field_id, se.session_start, se.session_end
+        SELECT se.team_id, se.field_id, se.session_start, se.session_end, se.parent_schedule_entry_id
         FROM schedule_entries se
         WHERE se.schedule_id = %s
         """
