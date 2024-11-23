@@ -41,7 +41,6 @@ def print_solution(solver: Any, teams: List[Team], time_slots: Dict[str, List[st
                 for idx_constraint in interval_vars[team_id]:
                     sessions = interval_vars[team_id][idx_constraint]
                     for session_idx, session in enumerate(sessions):
-                        # Handle each part of the session
                         for part_idx, (interval, assigned_combo_var) in enumerate(zip(session['intervals'], session['assigned_combos'])):
                             start = solver.Value(session['start_vars'][part_idx])
                             end = solver.Value(session['end_vars'][part_idx])
@@ -122,7 +121,7 @@ def print_schedule_from_db(schedule_id: int) -> None:
 
     assignments: Dict[Tuple[str, int, str], str] = {}
     for entry in entries:
-        team_id, field_id, session_start, session_end = entry
+        team_id, field_id, session_start, session_end, _ = entry
         team_name = team_id_to_name.get(team_id, f"Team {team_id}")
         field_name = field_id_to_name.get(field_id, f"Field {field_id}")
         smallest_subfields = field_id_to_smallest_subfields.get(field_id, [field_name])
@@ -153,7 +152,3 @@ def print_schedule_from_db(schedule_id: int) -> None:
         data = data_by_day[day]
         table = tabulate(data, headers=headers, tablefmt="fancy_grid")
         print(table)
-
-# Example usage:
-schedule_id = 5
-print_schedule_from_db(schedule_id)

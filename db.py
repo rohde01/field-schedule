@@ -119,8 +119,7 @@ def get_fields() -> List[Field]:
                 half_field.quarter_subfields.extend(quarter_children)
                 full_field.half_subfields.append(half_field)
                 full_field.quarter_subfields.extend(quarter_children)
-
-            # Remove duplicate quarter subfields
+                
             unique_quarters = {field.field_id: field for field in full_field.quarter_subfields}
             full_field.quarter_subfields = list(unique_quarters.values())
 

@@ -1,6 +1,8 @@
-# Filename: objectives.py
-# Objective functions for the scheduling model.
-# Contains functions to add objectives to the CP-SAT model.
+'''
+Filename: objectives.py
+Objective functions for the scheduling model.
+Contains functions to add objectives to the CP-SAT model.
+'''
 
 from ortools.sat.python import cp_model
 from typing import List, Dict, Any
@@ -42,12 +44,10 @@ def add_objective_function(
     for team in teams:
         team_id = team.team_id
         if team_id not in interval_vars:
-            continue  # Skip teams without interval variables
+            continue 
         team_sessions = [session for sessions in interval_vars[team_id].values() for session in sessions]
         day_vars = [session['day_var'] for session in team_sessions]
         num_sessions = len(day_vars)
-
-        # Penalties for consecutive training days
         for i in range(num_sessions - 1):
             is_consecutive = model.NewBoolVar(f'is_consecutive_{team_id}_{i}')
             model.Add(day_vars[i + 1] == day_vars[i] + 1).OnlyEnforceIf(is_consecutive)
@@ -55,8 +55,6 @@ def add_objective_function(
             penalty = model.NewIntVar(0, CONSECUTIVE_DAY_PENALTY, f'penalty_consecutive_{team_id}_{i}')
             model.Add(penalty == CONSECUTIVE_DAY_PENALTY * is_consecutive)
             penalties.append(penalty)
-
-        # Preferred pattern matching
         if num_sessions in preferred_days:
             pattern_matches = []
             for pattern in preferred_days[num_sessions]:
@@ -75,14 +73,12 @@ def add_objective_function(
             model.Add(pattern_penalty == PENALTY_PER_DAY_DEVIATION).OnlyEnforceIf(is_matching_any_pattern.Not())
             penalties.append(pattern_penalty)
         else:
-            # Teams without preferred patterns incur a penalty
             pattern_penalty = model.NewIntVar(0, PENALTY_PER_DAY_DEVIATION, f'pattern_penalty_{team_id}')
             model.Add(pattern_penalty == PENALTY_PER_DAY_DEVIATION)
             penalties.append(pattern_penalty)
             is_matching_any_pattern = model.NewBoolVar(f'is_matching_any_pattern_{team_id}')
             model.Add(is_matching_any_pattern == 0)
 
-        # Friday penalty for all sessions scheduled on Friday
         friday_index = day_name_to_index.get('Fri')
         if friday_index is not None:
             for idx, day_var in enumerate(day_vars):
@@ -94,6 +90,5 @@ def add_objective_function(
                 model.Add(friday_penalty == FRIDAY_PENALTY * is_friday)
                 penalties.append(friday_penalty)
 
-    # Minimize total penalties
     total_penalty = sum(penalties)
     model.Minimize(total_penalty)

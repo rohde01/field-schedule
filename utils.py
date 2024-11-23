@@ -1,6 +1,7 @@
-# Filename: utils.py
-# Utility functions for the scheduling problem.
-
+'''
+Filename: utils.py
+Utility functions for the scheduling problem.
+'''
 from typing import List, Dict, Set, Tuple, Any
 from collections import defaultdict
 from db import Field, get_fields, FieldAvailability, Constraint
@@ -78,7 +79,6 @@ def get_field_to_smallest_subfields(fields: List[Field]) -> Tuple[Dict[str, List
     smallest_subfields_set = set()
 
     for field_name, areas in subfield_areas.items():
-        # Get the smallest subfields by finding areas that aren't subdivided further
         smallest = [area for area in areas if len(subfield_areas[area]) == 1]
         field_to_smallest_subfields[field_name] = smallest
         smallest_subfields_set.update(smallest)
@@ -256,8 +256,7 @@ def _handle_start_time_constraint(constraint: Constraint, time_slots: Dict[str, 
             start_slot_idx = day_slots.index(specified_time)
         except ValueError:
             continue
-
-        # Check if there are enough slots left in the day for the entire session
+        
         if start_slot_idx + length <= len(day_slots):
             s_global = day_global_indices[start_slot_idx]
             allowed_assignments.append([mappings['day_name_to_index'][day_name], s_global])

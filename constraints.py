@@ -91,7 +91,6 @@ def add_field_availability_constraints(
         for idx_constraint in interval_vars[team_id]:
             sessions = interval_vars[team_id][idx_constraint]
             for session_idx, session in enumerate(sessions):
-                # Handle each part of the session separately
                 for part_idx, (assigned_combo_var, length) in enumerate(zip(session['assigned_combos'], session['lengths'])):
                     combo_indices = session['combo_indices'][part_idx]
                     start_var = session['start_vars'][part_idx]

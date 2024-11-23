@@ -31,8 +31,6 @@ from constraints import (
     add_team_day_constraints,
     add_allowed_assignments_constraints
 )
-
-
 from objectives import add_objective_function
 
 def add_objectives(model: cp_model.CpModel, teams: List[Any], interval_vars: Dict[int, Any], time_slots: Dict[str, List[str]], day_name_to_index: Dict[str, int]) -> None:
