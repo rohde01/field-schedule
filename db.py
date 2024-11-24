@@ -22,25 +22,72 @@ connection_string = (
 class Team:
     team_id: int
     name: str
-    year: int
+    year: Optional[str]
+    club_id: int
+    is_active: bool
 
-def get_teams() -> List[Team]:
+
+def get_teams(club_id: int, include_inactive: bool = False) -> List[Team]:
     """Fetches a list of Team instances from the database for a specific club."""
-    club_id = 1
     try:
         conn = psycopg2.connect(connection_string)
         cursor = conn.cursor()
         query = """
-        SELECT team_id, name, year
+        SELECT team_id, name, year, club_id, is_active
         FROM teams
         WHERE club_id = %s
         """
+        if not include_inactive:
+            query += " AND is_active = true"
         cursor.execute(query, (club_id,))
-        teams = [Team(*row) for row in cursor.fetchall()]
-        return teams
-    except Exception as e:
-        print(f"Error fetching teams: {e}")
-        return []
+        return [Team(team_id=row[0], name=row[1], year=row[2], 
+                    club_id=row[3], is_active=row[4]) 
+                for row in cursor.fetchall()]
+    finally:
+        if 'conn' in locals() and conn:
+            conn.close()
+
+def create_team(team_data: dict) -> Team:
+    """Creates a new team in the database."""
+    try:
+        conn = psycopg2.connect(connection_string)
+        cursor = conn.cursor()
+        query = """
+        INSERT INTO teams (name, year, club_id, is_active)
+        VALUES (%s, %s, %s, %s)
+        RETURNING team_id, name, year, club_id, is_active
+        """
+        cursor.execute(query, (
+            team_data["name"], 
+            team_data["year"], 
+            team_data["club_id"],
+            team_data.get("is_active", True)
+        ))
+        row = cursor.fetchone()
+        conn.commit()
+        return Team(team_id=row[0], name=row[1], year=row[2], 
+                   club_id=row[3], is_active=row[4])
+    finally:
+        if 'conn' in locals() and conn:
+            conn.close()
+
+def delete_team(team_id: int, hard_delete: bool = False) -> bool:
+    """Deletes a team from the database or marks it as inactive."""
+    try:
+        conn = psycopg2.connect(connection_string)
+        cursor = conn.cursor()
+        if hard_delete:
+            query = "DELETE FROM teams WHERE team_id = %s RETURNING team_id"
+        else:
+            query = """
+            UPDATE teams SET is_active = false 
+            WHERE team_id = %s 
+            RETURNING team_id
+            """
+        cursor.execute(query, (team_id,))
+        deleted = cursor.fetchone() is not None
+        conn.commit()
+        return deleted
     finally:
         if 'conn' in locals() and conn:
             conn.close()
