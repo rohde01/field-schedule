@@ -11,7 +11,10 @@ import argparse
 from typing import List, Dict, Any
 from ortools.sat.python import cp_model
 from collections import defaultdict
-from db import get_teams, get_fields, get_constraints, save_schedule
+from database.teams import get_teams
+from database.fields import get_fields
+from database.constraints import get_constraints
+from database.schedules import save_schedule
 from utils import (
     build_time_slots,
     get_subfields,

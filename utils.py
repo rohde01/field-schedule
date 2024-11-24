@@ -4,7 +4,8 @@ Utility functions for the scheduling problem.
 '''
 from typing import List, Dict, Set, Tuple, Any
 from collections import defaultdict
-from db import Field, get_fields, FieldAvailability, Constraint
+from database.fields import Field, get_fields
+from database.constraints import Constraint
 
 def build_time_slots(fields: List[Field]) -> Tuple[Dict[str, List[str]], List[str]]:
     """

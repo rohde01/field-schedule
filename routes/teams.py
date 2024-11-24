@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional
 from pydantic import BaseModel
-from db import create_team, get_teams, delete_team
+from database.teams import create_team, get_teams, delete_team
 
 router = APIRouter(
     prefix="/teams",

@@ -8,7 +8,9 @@ Contains functions to process and display the solution in a readable format.
 from tabulate import tabulate
 from typing import List, Dict, Any, Tuple
 from utils import get_field_to_smallest_subfields, build_time_slots, _build_time_slot_mappings
-from db import get_teams, get_fields, get_schedule_entries, Team, Field
+from .database.fields import get_fields, Field
+from database.teams import get_teams, Team
+from database.schedules import get_schedule_entries
 
 def print_solution(solver: Any, teams: List[Team], time_slots: Dict[str, List[str]], interval_vars: Dict[int, Any], field_to_smallest_subfields: Dict[str, List[str]], smallest_subfields_list: List[str]) -> None:
     """

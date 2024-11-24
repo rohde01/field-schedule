@@ -13,8 +13,8 @@ from utils import (
     _get_possible_combos,
     _build_time_slot_mappings
 )
-from db import Team, Constraint
-
+from database.teams import Team
+from database.constraints import Constraint
 
 def create_variables(
     model: cp_model.CpModel,
@@ -234,7 +234,6 @@ def _create_partial_session_variables(
         model.Add(start_var1 == allowed_start_times[0])
 
     return session_vars
-
 
 def _create_regular_session_variables(
     model: cp_model.CpModel,
