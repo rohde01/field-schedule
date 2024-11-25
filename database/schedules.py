@@ -1,22 +1,21 @@
+# database/schedules.py
+
 from typing import List, Dict, Optional, Any
 from collections import defaultdict
 from .index import with_db_connection
 from .teams import Team
 from .constraints import Constraint, save_constraints
-import psycopg2
-from database.index import connection_string
 
 @with_db_connection
 def save_schedule(conn, solver, teams: List[Team], interval_vars: Dict[int, Any],
                  field_name_to_id: Dict[str, int], club_id: int = 1,
-                 constraints_list: Optional[List[Constraint]] = None) -> None:
+                 constraints_list: Optional[List[Constraint]] = None) -> int:
     """
     Saves the generated schedule and its constraints into the database.
+    Returns the schedule_id.
     """
     try:
-        conn = psycopg2.connect(connection_string)
         cursor = conn.cursor()
-
         schedule_name = "Generated Schedule"
         insert_schedule_query = """
         INSERT INTO schedules (club_id, name)
@@ -31,7 +30,6 @@ def save_schedule(conn, solver, teams: List[Team], interval_vars: Dict[int, Any]
             for constraint in constraints_list:
                 team_constraints[constraint.team_id].append(constraint)
 
-        schedule_entries = []
         for team in teams:
             team_id = team.team_id
             if team_id not in interval_vars:
@@ -71,19 +69,14 @@ def save_schedule(conn, solver, teams: List[Team], interval_vars: Dict[int, Any]
                             parent_schedule_entry_id = schedule_entry_id
                             save_constraints(cursor, schedule_entry_id, team_id, constraint)
 
-        insert_entries_query = """
-        INSERT INTO schedule_entries (schedule_id, team_id, field_id, session_start, session_end)
-        VALUES (%s, %s, %s, %s, %s)
-        """
-        cursor.executemany(insert_entries_query, schedule_entries)
         conn.commit()
+        return schedule_id
 
     except Exception as e:
         print(f"Error saving schedule: {e}")
         conn.rollback()
-    finally:
-        if 'conn' in locals() and conn:
-            conn.close()
+        raise e
+
 
 @with_db_connection
 def get_schedule_entries(conn, schedule_id: int) -> List[tuple]:
