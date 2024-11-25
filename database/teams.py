@@ -55,3 +55,15 @@ def delete_team(conn, team_id: int, hard_delete: bool = False) -> bool:
     deleted = cursor.fetchone() is not None
     conn.commit()
     return deleted
+
+@with_db_connection
+def get_teams_by_ids(conn, team_ids: List[int]) -> List[Team]:
+    cursor = conn.cursor()
+    format_strings = ','.join(['%s'] * len(team_ids))
+    query = f"""
+    SELECT team_id, name, year, club_id, is_active
+    FROM teams
+    WHERE team_id IN ({format_strings})
+    """
+    cursor.execute(query, tuple(team_ids))
+    return [Team(team_id=row[0], name=row[1], year=row[2], club_id=row[3], is_active=row[4]) for row in cursor.fetchall()]
