@@ -224,8 +224,7 @@ def get_field_costs() -> Dict[Tuple[str, str], int]:
         '3v3': 125
     }
     costs: Dict[Tuple[str, str], int] = {}
-    fields = get_fields()
-    field_sizes = {field.size for field in fields}
+    field_sizes = ['11v11', '8v8', '5v5', '3v3']
 
     for size in field_sizes:
         base_cost = base_costs.get(size, 0)
