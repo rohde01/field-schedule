@@ -83,3 +83,34 @@ def get_fields(conn, facility_id: int) -> List[Field]:
         field_list.append(full_field)
 
     return field_list
+
+@with_db_connection
+def create_field(conn, facility_id: int, name: str, size: str, field_type: str, parent_field_id: Optional[int] = None) -> Field:
+    """Creates a new field in the database."""
+    cursor = conn.cursor()
+    try:
+        query = """
+            INSERT INTO fields (facility_id, name, size, field_type, parent_field_id)
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING field_id, name, size, field_type, parent_field_id
+        """
+        cursor.execute(query, (facility_id, name, size, field_type, parent_field_id))
+        conn.commit()
+        
+        result = cursor.fetchone()
+        return Field(
+            field_id=result[0],
+            name=result[1],
+            size=result[2],
+            field_type=result[3],
+            parent_field_id=result[4]
+        )
+    except psycopg2.IntegrityError as e:
+        conn.rollback()
+        if "fields_facility_id_name_key" in str(e):
+            raise ValueError("A field with this name already exists in this facility")
+        if "fields_parent_field_id_fkey" in str(e):
+            raise ValueError("Invalid parent field ID")
+        if "fields_facility_id_fkey" in str(e):
+            raise ValueError("Invalid facility ID")
+        raise
