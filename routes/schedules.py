@@ -23,6 +23,8 @@ class GenerateScheduleRequest(BaseModel):
     facility_id: int
     team_ids: List[int]
     constraints: List[ConstraintSchema]
+    club_id: int
+    schedule_name: str = Field(default="Generated Schedule")
 
 @router.post("/generate_schedule")
 async def generate_schedule_route(request: GenerateScheduleRequest):
@@ -32,7 +34,9 @@ async def generate_schedule_route(request: GenerateScheduleRequest):
         schedule_id = generate_schedule(
             facility_id=request.facility_id,
             team_ids=request.team_ids,
-            constraints_list=constraints_list
+            constraints_list=constraints_list,
+            club_id=request.club_id,
+            schedule_name=request.schedule_name
         )
         return {"schedule_id": schedule_id}
     except ValueError as ve:

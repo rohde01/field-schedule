@@ -9,6 +9,7 @@ from .constraints import Constraint, save_constraints
 @with_db_connection
 def save_schedule(conn, solver, teams: List[Team], interval_vars: Dict[int, Any],
                  field_name_to_id: Dict[str, int], club_id: int = 1,
+                 schedule_name: str = "Generated Schedule",
                  constraints_list: Optional[List[Constraint]] = None) -> int:
     """
     Saves the generated schedule and its constraints into the database.
@@ -16,7 +17,6 @@ def save_schedule(conn, solver, teams: List[Team], interval_vars: Dict[int, Any]
     """
     try:
         cursor = conn.cursor()
-        schedule_name = "Generated Schedule"
         insert_schedule_query = """
         INSERT INTO schedules (club_id, name)
         VALUES (%s, %s)
