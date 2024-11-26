@@ -5,16 +5,32 @@ from collections import defaultdict
 from .index import with_db_connection
 from .teams import Team
 from .constraints import Constraint, save_constraints
+from datetime import datetime, time
+from utils import (
+    build_time_slots,
+    _build_time_slot_mappings,
+    parse_time_string,
+    minutes_to_time_string,
+    time_string_to_time_obj,
+)
+from database.fields import Field
 
 @with_db_connection
 def save_schedule(conn, solver, teams: List[Team], interval_vars: Dict[int, Any],
-                 field_name_to_id: Dict[str, int], club_id: int = 1,
-                 schedule_name: str = "Generated Schedule",
+                 field_name_to_id: Dict[str, int], fields: List[Field],
+                 club_id: int = 1, schedule_name: str = "Generated Schedule",
                  constraints_list: Optional[List[Constraint]] = None) -> int:
+
     """
     Saves the generated schedule and its constraints into the database.
     Returns the schedule_id.
     """
+    time_slots, all_days = build_time_slots(fields)
+    mappings = _build_time_slot_mappings(time_slots)
+    idx_to_time = mappings['idx_to_time']
+    time_slots = time_slots
+    day_name_to_weekday_index = {'Mon': 0, 'Tue': 1, 'Wed': 2, 'Thu': 3, 'Fri': 4, 'Sat': 5, 'Sun': 6}
+
     try:
         cursor = conn.cursor()
         insert_schedule_query = """
@@ -47,10 +63,24 @@ def save_schedule(conn, solver, teams: List[Team], interval_vars: Dict[int, Any]
                         assigned_combo = session['possible_combos'][part_idx][assigned_combo_idx]
                         field_name = assigned_combo[0]
                         field_id = field_name_to_id.get(field_name)
-
+                        
+                        # Convert start_idx and end_idx to start_time, end_time, and week_day
+                        start_day, start_t = idx_to_time[start_idx]
+                        start_time_str = time_slots[start_day][start_t]
+                        start_time_minutes = parse_time_string(start_time_str)
+                        
+                        duration_minutes = (end_idx - start_idx) * 15
+                        end_time_minutes = start_time_minutes + duration_minutes
+                        end_time_str = minutes_to_time_string(end_time_minutes)
+                        
+                        start_time_obj = time_string_to_time_obj(start_time_str)
+                        end_time_obj = time_string_to_time_obj(end_time_str)
+                        
+                        week_day = day_name_to_weekday_index[start_day]
+                        
                         insert_entry_query = """
-                        INSERT INTO schedule_entries (schedule_id, team_id, field_id, session_start, session_end, parent_schedule_entry_id)
-                        VALUES (%s, %s, %s, %s, %s, %s)
+                        INSERT INTO schedule_entries (schedule_id, team_id, field_id, start_time, end_time, week_day, parent_schedule_entry_id)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
                         RETURNING schedule_entry_id;
                         """
                         cursor.execute(
@@ -59,8 +89,9 @@ def save_schedule(conn, solver, teams: List[Team], interval_vars: Dict[int, Any]
                                 schedule_id,
                                 team_id,
                                 field_id,
-                                start_idx,
-                                end_idx,
+                                start_time_obj,
+                                end_time_obj,
+                                week_day,
                                 parent_schedule_entry_id
                             )
                         )
@@ -68,6 +99,7 @@ def save_schedule(conn, solver, teams: List[Team], interval_vars: Dict[int, Any]
                         if parent_schedule_entry_id is None:
                             parent_schedule_entry_id = schedule_entry_id
                             save_constraints(cursor, schedule_entry_id, team_id, constraint)
+
 
         conn.commit()
         return schedule_id
@@ -82,7 +114,7 @@ def save_schedule(conn, solver, teams: List[Team], interval_vars: Dict[int, Any]
 def get_schedule_entries(conn, schedule_id: int) -> List[tuple]:
     cursor = conn.cursor()
     query = """
-    SELECT se.team_id, se.field_id, se.session_start, se.session_end, 
+    SELECT se.team_id, se.field_id, se.start_time, se.end_time, se.week_day, 
            se.parent_schedule_entry_id
     FROM schedule_entries se
     WHERE se.schedule_id = %s

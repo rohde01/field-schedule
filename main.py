@@ -130,7 +130,10 @@ def generate_schedule(facility_id: int, team_ids: List[int], club_id: int, sched
 
     if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
         # Save the schedule
-        schedule_id = save_schedule(solver, teams, interval_vars, field_name_to_id, club_id=club_id, schedule_name=schedule_name, constraints_list=constraints_list)
+        schedule_id = save_schedule(solver, teams, interval_vars, field_name_to_id, fields, club_id=club_id,
+        schedule_name=schedule_name,
+        constraints_list=constraints_list
+)
         profiler.disable()
         stats = pstats.Stats(profiler).sort_stats('cumtime')
         stats.print_stats(10)

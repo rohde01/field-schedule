@@ -53,9 +53,10 @@ async def get_entries(schedule_id: int) -> List[dict]:
             {
                 "team_id": entry[0],
                 "field_id": entry[1],
-                "session_start": entry[2],
-                "session_end": entry[3],
-                "parent_schedule_entry_id": entry[4],
+                "start_time": str(entry[2]),
+                "end_time": str(entry[3]),
+                "week_day": entry[4],
+                "parent_schedule_entry_id": entry[5],
             }
             for entry in entries
         ]

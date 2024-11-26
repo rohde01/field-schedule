@@ -6,6 +6,7 @@ from typing import List, Dict, Set, Tuple, Any
 from collections import defaultdict
 from database.fields import Field, get_fields
 from database.constraints import Constraint
+from datetime import datetime, time
 
 def build_time_slots(fields: List[Field]) -> Tuple[Dict[str, List[str]], List[str]]:
     """
@@ -345,3 +346,13 @@ def _get_possible_combos(constraint: Constraint, size_to_combos: Dict[Any, Any],
         possible_combos_part2 = possible_combos_part1
 
     return possible_combos_part1, possible_combos_part2
+
+def minutes_to_time_string(total_minutes: int) -> str:
+    """Converts total minutes to a time string 'HH:MM'."""
+    hours = total_minutes // 60
+    minutes = total_minutes % 60
+    return f"{hours}:{minutes:02d}"
+
+def time_string_to_time_obj(time_str: str) -> time:
+    """Converts a time string 'HH:MM' to a datetime.time object."""
+    return datetime.strptime(time_str, "%H:%M").time()
