@@ -1,3 +1,6 @@
+'''
+Filename: clubs.py in routes folder
+'''
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from database import clubs
