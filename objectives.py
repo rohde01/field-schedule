@@ -6,7 +6,7 @@ Contains functions to add objectives to the CP-SAT model.
 
 from ortools.sat.python import cp_model
 from typing import List, Dict, Any
-from db import Team
+from database.teams import Team
 
 
 def add_objective_function(

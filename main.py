@@ -1,17 +1,18 @@
 """
-Filename: main.py
+Filename: main.py 
 Main module to solve the soccer scheduling problem.
-
-Fetches data, builds the model, adds constraints, solves the model, and outputs the solution.
+Provides a generate_schedule function to be called from other modules.
 """
 
 import cProfile
 import pstats
-import argparse
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from ortools.sat.python import cp_model
 from collections import defaultdict
-from db import get_teams, get_fields, get_constraints, save_schedule
+from database.teams import get_teams_by_ids
+from database.fields import get_fields
+from database.constraints import get_constraints
+from database.schedules import save_schedule
 from utils import (
     build_time_slots,
     get_subfields,
@@ -23,13 +24,12 @@ from utils import (
     get_field_to_smallest_subfields,
 )
 from model import create_variables
-from output import print_solution, print_raw_solution
 from constraints import (
     add_no_overlapping_sessions_constraints,
     add_no_double_booking_constraints,
     add_field_availability_constraints,
     add_team_day_constraints,
-    add_allowed_assignments_constraints
+    add_allowed_assignments_constraints,
 )
 from objectives import add_objective_function
 
@@ -60,26 +60,34 @@ def solve_model(model: cp_model.CpModel) -> Any:
     status = solver.Solve(model)
     return solver, status
 
-def main():
+def generate_schedule(facility_id: int, team_ids: List[int], club_id: int, schedule_name: str = "Generated Schedule", constraints_list: Optional[List[Any]] = None) -> int:
     """
-    Main function to solve the soccer scheduling problem.
+    Generates a schedule based on the provided facility_id, team_ids, club_id, and constraints_list.
+    Returns the schedule_id if successful.
     """
-    parser = argparse.ArgumentParser(description='Solve the soccer scheduling problem.')
-    parser.add_argument('--raw', action='store_true', help='Print raw output instead of formatted output')
-    parser.add_argument('--both', action='store_true', help='Print both tabular and raw output')
-    parser.add_argument('--save', action='store_true', help='Save the generated schedule to the database')
-    args = parser.parse_args()
-
     profiler = cProfile.Profile()
     profiler.enable()
 
-    constraints_list = get_constraints()
-    constraints: Dict[int, List[Any]] = {}
-    for constraint in constraints_list:
-        constraints.setdefault(constraint.team_id, []).append(constraint)
+    constraints: Dict[int, List[Any]] = defaultdict(list)
+    if constraints_list:
+        for constraint in constraints_list:
+            constraints[constraint.team_id].append(constraint)
+    else:
+        constraints_list = get_constraints()
+        for constraint in constraints_list:
+            constraints.setdefault(constraint.team_id, []).append(constraint)
 
-    teams = get_teams()
-    fields = get_fields()
+    # Fetch teams
+    teams = get_teams_by_ids(team_ids)
+    if not teams:
+        raise ValueError("No teams found for the given team IDs")
+
+    # Fetch fields
+    fields = get_fields(facility_id)
+    if not fields:
+        raise ValueError("No fields found for the given facility ID")
+
+    # Build field mappings
     field_name_to_id: Dict[str, int] = {}
     for field in fields:
         field_name_to_id[field.name] = field.field_id
@@ -105,34 +113,33 @@ def main():
 
     model = cp_model.CpModel()
 
+    # Create variables
     interval_vars, assigned_fields, global_time_slots, day_name_to_index = create_variables(
         model, teams, constraints, time_slots, size_to_combos, cost_to_combos, parent_field_name_to_id, fields
     )
 
+    # Add constraints
     add_constraints(model, teams, constraints, time_slots, size_to_combos,
                     interval_vars, assigned_fields, subfield_areas, subfield_availability, global_time_slots)
 
+    # Add objectives
     add_objectives(model, teams, interval_vars, time_slots, day_name_to_index)
 
+    # Solve the model
     solver, status = solve_model(model)
 
     if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
-        if args.raw:
-            print_raw_solution(solver, teams, interval_vars, field_name_to_id)
-        elif args.both:
-            print_solution(solver, teams, time_slots, interval_vars, field_to_smallest_subfields, smallest_subfields_list)
-            print_raw_solution(solver, teams, interval_vars, field_name_to_id)
-        else:
-            print_solution(solver, teams, time_slots, interval_vars, field_to_smallest_subfields, smallest_subfields_list)
-
-        if args.save:
-            save_schedule(solver, teams, interval_vars, field_name_to_id, club_id=1, constraints_list=constraints_list)
+        # Save the schedule
+        schedule_id = save_schedule(solver, teams, interval_vars, field_name_to_id, fields, club_id=club_id,
+        schedule_name=schedule_name,
+        constraints_list=constraints_list
+)
+        profiler.disable()
+        stats = pstats.Stats(profiler).sort_stats('cumtime')
+        stats.print_stats(10)
+        return schedule_id
     else:
-        print('No feasible solution found.')
-
-    profiler.disable()
-    stats = pstats.Stats(profiler).sort_stats('cumtime')
-    stats.print_stats(10)
-
-if __name__ == "__main__":
-    main()
+        profiler.disable()
+        stats = pstats.Stats(profiler).sort_stats('cumtime')
+        stats.print_stats(10)
+        raise ValueError('No feasible solution found.')

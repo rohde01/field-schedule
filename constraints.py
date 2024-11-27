@@ -8,7 +8,7 @@ double booking, enforce field availability, and ensure sessions are on different
 from ortools.sat.python import cp_model
 from collections import defaultdict
 from typing import List, Dict, Any
-from db import Team
+from database.teams import Team
 
 
 def add_no_overlapping_sessions_constraints(

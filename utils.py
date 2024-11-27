@@ -4,7 +4,9 @@ Utility functions for the scheduling problem.
 '''
 from typing import List, Dict, Set, Tuple, Any
 from collections import defaultdict
-from db import Field, get_fields, FieldAvailability, Constraint
+from database.fields import Field, get_fields
+from database.constraints import Constraint
+from datetime import datetime, time
 
 def build_time_slots(fields: List[Field]) -> Tuple[Dict[str, List[str]], List[str]]:
     """
@@ -223,8 +225,7 @@ def get_field_costs() -> Dict[Tuple[str, str], int]:
         '3v3': 125
     }
     costs: Dict[Tuple[str, str], int] = {}
-    fields = get_fields()
-    field_sizes = {field.size for field in fields}
+    field_sizes = ['11v11', '8v8', '5v5', '3v3']
 
     for size in field_sizes:
         base_cost = base_costs.get(size, 0)
@@ -345,3 +346,13 @@ def _get_possible_combos(constraint: Constraint, size_to_combos: Dict[Any, Any],
         possible_combos_part2 = possible_combos_part1
 
     return possible_combos_part1, possible_combos_part2
+
+def minutes_to_time_string(total_minutes: int) -> str:
+    """Converts total minutes to a time string 'HH:MM'."""
+    hours = total_minutes // 60
+    minutes = total_minutes % 60
+    return f"{hours}:{minutes:02d}"
+
+def time_string_to_time_obj(time_str: str) -> time:
+    """Converts a time string 'HH:MM' to a datetime.time object."""
+    return datetime.strptime(time_str, "%H:%M").time()
