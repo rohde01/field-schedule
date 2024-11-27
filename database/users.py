@@ -51,3 +51,23 @@ def update_user(conn, user_id: int, user_data: dict):
         cur.execute(query, {**user_data, 'user_id': user_id})
         conn.commit()
         return cur.fetchone()
+
+@with_db_connection
+def authenticate_user(conn, username: str, password: str):
+    """Authenticate user by username and password."""
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("SELECT * FROM users WHERE username = %s", (username,))
+        user = cur.fetchone()
+        if user and bcrypt.checkpw(password.encode('utf-8'), user['password_hash'].encode('utf-8')):
+            return user
+        return None
+
+@with_db_connection
+def get_user_by_username(conn, username: str):
+    """Retrieve user information by username."""
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("""
+            SELECT user_id, username, email, first_name, last_name, role, created_at, is_active
+            FROM users WHERE username = %s
+        """, (username,))
+        return cur.fetchone()

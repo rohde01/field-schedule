@@ -2,10 +2,13 @@
 Filename: users.py in routes folder
 '''
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends, status
 from pydantic import BaseModel
 from typing import Optional
 from database import users
+from auth import create_access_token, get_current_user
+from datetime import timedelta
+from fastapi.security import OAuth2PasswordRequestForm
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -29,8 +32,21 @@ class UserUpdate(BaseModel):
 async def create_user(user: UserCreate):
     return users.create_user(user.dict())
 
+# Login route to authenticate users and return JWT token
+@router.post("/login")
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    user = users.authenticate_user(form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(status_code=400, detail="Incorrect username or password")
+    access_token = create_access_token(data={"sub": user["username"]})
+    return {"access_token": access_token, "token_type": "bearer"}
+
+@router.get("/me")
+async def read_users_me(current_user: dict = Depends(get_current_user)):
+    return current_user
+
 @router.get("/{user_id}")
-async def get_user(user_id: int):
+async def get_user(user_id: int, current_user: dict = Depends(get_current_user)):
     user = users.get_user(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
