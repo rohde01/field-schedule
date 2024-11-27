@@ -230,8 +230,9 @@ def _create_partial_session_variables(
         'assigned_parent_field': assigned_parent_field
     }
 
-    if constraint.start_time:
-        model.Add(start_var1 == allowed_start_times[0])
+    # Removed the following lines to allow start_time on all days
+    # if constraint.start_time:
+    #     model.Add(start_var1 == allowed_start_times[0])
 
     return session_vars
 
@@ -283,7 +284,8 @@ def _create_regular_session_variables(
         'day_var': day_var,
         'allowed_assignments': allowed_assignments
     }
-    if constraint.start_time:
-        model.Add(start_var == allowed_start_times[0])
+    # Removed the following lines to allow start_time on all days
+    # if constraint.start_time:
+    #     model.Add(start_var == allowed_start_times[0])
 
     return session_vars
