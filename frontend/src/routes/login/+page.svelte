@@ -1,67 +1,52 @@
 <script lang="ts">
-    import { user, token } from '../../stores/auth';
+    import { enhance } from '$app/forms';
     import { goto } from '$app/navigation';
-  
-    let username = '';
-    let password = '';
-    let error = '';
-  
-    const handleLogin = async () => {
-      error = '';
-      try {
-        const response = await fetch('http://localhost:8000/users/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          },
-          body: new URLSearchParams({
-            username,
-            password
-          })
-        });
-  
-        if (response.ok) {
-          const data = await response.json();
-          token.set(data.access_token);
-  
-          const userResponse = await fetch('http://localhost:8000/users/me', {
-            headers: {
-              'Authorization': `Bearer ${data.access_token}`
+    import type { ActionData } from './$types';
+    import { auth } from '$stores/auth';
+    import type { SubmitFunction } from '@sveltejs/kit';
+    
+    export let form: ActionData;
+
+    const handleSubmit: SubmitFunction = ({ formElement, formData }) => {
+        return async ({ result, update }) => {
+            if (result.type === 'success' && result.data?.userData) {
+                auth.setUser(result.data.userData);
+                await goto('/dashboard');
             }
-          });
-  
-          if (userResponse.ok) {
-            const userData = await userResponse.json();
-            user.set(userData);
-            goto('/');
-          } else {
-            error = 'Failed to fetch user data.';
-          }
-        } else {
-          const errorData = await response.json();
-          error = errorData.detail || 'Login failed.';
-        }
-      } catch (err) {
-        console.error(err);
-        error = 'An error occurred.';
-      }
-    };
-  </script>
-  
-  <h1>Login</h1>
-  
-  {#if error}
-    <p style="color: red;">{error}</p>
-  {/if}
-  
-  <form on:submit|preventDefault={handleLogin}>
-    <div>
-      <label for="username">Username:</label>
-      <input id="username" type="text" bind:value={username} required />
-    </div>
-    <div>
-      <label for="password">Password:</label>
-      <input id="password" type="password" bind:value={password} required />
-    </div>
-    <button type="submit">Login</button>
-  </form>
+            update();
+        };
+    }
+</script>
+
+{#if form?.error}
+    <p class="error">{form.error}</p>
+{/if}
+
+<form method="POST" use:enhance={handleSubmit}>
+    <label>
+        Username
+        <input 
+            name="username" 
+            type="text" 
+            value={form?.username ?? ''} 
+            required
+        >
+    </label>
+    
+    <label>
+        Password
+        <input 
+            name="password" 
+            type="password" 
+            required
+        >
+    </label>
+    <button type="submit">Log in</button>
+</form>
+
+<style>
+    .error {
+        color: red;
+        margin-bottom: 1rem;
+    }
+</style>

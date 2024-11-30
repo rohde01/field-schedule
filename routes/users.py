@@ -32,14 +32,21 @@ class UserUpdate(BaseModel):
 async def create_user(user: UserCreate):
     return users.create_user(user.dict())
 
-# Login route to authenticate users and return JWT token
 @router.post("/login")
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     user = users.authenticate_user(form_data.username, form_data.password)
     if not user:
         raise HTTPException(status_code=400, detail="Incorrect username or password")
     access_token = create_access_token(data={"sub": user["username"]})
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user_id": user["user_id"],
+        "first_name": user["first_name"],
+        "last_name": user["last_name"],
+        "email": user["email"],
+        "role": user["role"]
+    }
 
 @router.get("/me")
 async def read_users_me(current_user: dict = Depends(get_current_user)):
