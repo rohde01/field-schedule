@@ -30,6 +30,17 @@ class UserUpdate(BaseModel):
 
 @router.post("/")
 async def create_user(user: UserCreate):
+    existing = users.check_existing_credentials(user.username, user.email)
+    if existing:
+        if existing['username'] == user.username:
+            raise HTTPException(
+                status_code=400,
+                detail="Username already taken"
+            )
+        raise HTTPException(
+            status_code=400,
+            detail="Email already registered"
+        )
     return users.create_user(user.dict())
 
 @router.post("/login")

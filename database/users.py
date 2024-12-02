@@ -71,3 +71,13 @@ def get_user_by_username(conn, username: str):
             FROM users WHERE username = %s
         """, (username,))
         return cur.fetchone()
+
+@with_db_connection
+def check_existing_credentials(conn, username: str, email: str):
+    """Check if username or email already exists."""
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("""
+            SELECT username, email FROM users 
+            WHERE username = %s OR email = %s
+        """, (username, email))
+        return cur.fetchone()
