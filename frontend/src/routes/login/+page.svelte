@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { enhance } from '$app/forms';
+    import { goto } from '$app/navigation';
     import type { ActionData } from './$types';
     
     export let form: ActionData;
@@ -8,7 +10,16 @@
     <p class="error">{form.error}</p>
 {/if}
 
-<form method="POST">
+<form 
+    method="POST" 
+    use:enhance={({ formElement, formData, action, cancel }) => {
+        return async ({ result }) => {
+            if (result.type === 'redirect') {
+                goto(result.location);
+            }
+        };
+    }}
+>
     <label>
         Username
         <input 
