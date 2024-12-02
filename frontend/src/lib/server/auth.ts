@@ -1,4 +1,3 @@
-
 import type { User } from '$stores/auth.d';
 
 export async function validateUser(token: string): Promise<User | null> {
@@ -10,14 +9,18 @@ export async function validateUser(token: string): Promise<User | null> {
         if (!response.ok) return null;
         const data = await response.json();
         
-        return {
+        const user = {
             id: data.user_id,
             firstName: data.first_name,
             lastName: data.last_name,
             email: data.email,
             role: data.role
         };
+        
+        console.log('validateUser return value:', user);
+        return user;
     } catch {
+        console.log('validateUser return value: null');
         return null;
     }
 }

@@ -1,6 +1,5 @@
 <script lang="ts">
     import '../app.css';
-    import { onMount } from 'svelte';
     import { beforeNavigate, afterNavigate } from '$app/navigation';
     import { auth } from '$stores/auth';
     import { goto } from '$app/navigation';

@@ -7,6 +7,10 @@ function createAuthStore(): AuthStore {
         isAuthenticated: false
     });
 
+    subscribe((state) => {
+        console.log('isAuthenticated:', state.isAuthenticated);
+    });
+
     return {
         subscribe,
         set,
