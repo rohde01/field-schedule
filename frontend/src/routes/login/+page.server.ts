@@ -1,13 +1,15 @@
-import type { PageServerLoad } from './$types';
+import type { PageServerLoad, Actions } from './$types';
 import { fail, redirect } from '@sveltejs/kit';
-import type { Actions } from './$types';
 
-export const load = (async () => {
+export const load: PageServerLoad = async ({ locals }) => {
+    if (locals.user) {
+        throw redirect(303, '/dashboard');
+    }
     return {};
-}) satisfies PageServerLoad;
+};
 
 export const actions: Actions = {
-    default: async ({ request, cookies }) => {
+    default: async ({ request, cookies, locals }) => {
         const data = await request.formData();
         const username = data.get('username');
         const password = data.get('password');
@@ -47,14 +49,17 @@ export const actions: Actions = {
             maxAge: 60 * 60 * 24 // 1 day
         });
 
-        return {
-            userData: {
-                id: responseData.user_id,
-                firstName: responseData.first_name,
-                lastName: responseData.last_name,
-                email: responseData.email,
-                role: responseData.role
-            }
+        const userData = {
+            id: responseData.user_id,
+            firstName: responseData.first_name,
+            lastName: responseData.last_name,
+            email: responseData.email,
+            role: responseData.role
         };
+
+        locals.user = userData;
+        console.log('User data in locals:', locals.user);
+        
+        throw redirect(303, '/dashboard');
     }
 };

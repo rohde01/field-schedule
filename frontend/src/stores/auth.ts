@@ -11,13 +11,25 @@ function createAuthStore(): AuthStore {
         subscribe,
         set,
         update,
-        setUser: (user: User) => {
+        setUser: (user: User | null) => {
             set({
                 user,
-                isAuthenticated: true
+                isAuthenticated: !!user
             });
         },
-        logout: () => {
+        logout: async () => {
+            const response = await fetch('/logout', { 
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include' 
+            });
+
+            if (!response.ok) {
+                throw new Error('Logout failed');
+            }
+
             set({
                 user: null,
                 isAuthenticated: false

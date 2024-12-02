@@ -14,8 +14,8 @@ export interface AuthState {
 }
 
 export interface AuthStore extends Writable<AuthState> {
-    setUser: (user: User) => void;
-    logout: () => void;
+    setUser: (user: User | null) => void;
+    logout: () => Promise<void>;
 }
 
 export declare const auth: AuthStore;
