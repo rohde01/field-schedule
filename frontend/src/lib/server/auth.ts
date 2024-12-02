@@ -1,4 +1,4 @@
-import type { User } from '$stores/auth.d';
+import type { User } from '$lib/types/user';
 
 export async function validateUser(token: string): Promise<User | null> {
     try {
