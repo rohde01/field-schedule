@@ -49,6 +49,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     if not user:
         raise HTTPException(status_code=400, detail="Incorrect username or password")
     access_token = create_access_token(data={"sub": user["username"]})
+    primary_club_id = users.get_user_primary_club(user["user_id"])
     return {
         "access_token": access_token,
         "token_type": "bearer",
@@ -56,7 +57,8 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         "first_name": user["first_name"],
         "last_name": user["last_name"],
         "email": user["email"],
-        "role": user["role"]
+        "role": user["role"],
+        "primary_club_id": primary_club_id
     }
 
 @router.get("/me")

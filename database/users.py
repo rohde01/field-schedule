@@ -81,3 +81,14 @@ def check_existing_credentials(conn, username: str, email: str):
             WHERE username = %s OR email = %s
         """, (username, email))
         return cur.fetchone()
+
+@with_db_connection
+def get_user_primary_club(conn, user_id: int):
+    """Get user's primary club ID."""
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("""
+            SELECT club_id FROM user_club 
+            WHERE user_id = %s AND is_primary = true
+        """, (user_id,))
+        result = cur.fetchone()
+        return result['club_id'] if result else None
