@@ -63,7 +63,8 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
 @router.get("/me")
 async def read_users_me(current_user: dict = Depends(get_current_user)):
-    return current_user
+    primary_club_id = users.get_user_primary_club(current_user["user_id"])
+    return {**current_user, "primary_club_id": primary_club_id}
 
 @router.get("/{user_id}")
 async def get_user(user_id: int, current_user: dict = Depends(get_current_user)):

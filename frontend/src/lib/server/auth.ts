@@ -14,7 +14,8 @@ export async function validateUser(token: string): Promise<User | null> {
             firstName: data.first_name,
             lastName: data.last_name,
             email: data.email,
-            role: data.role
+            role: data.role,
+            primary_club_id: data.primary_club_id
         };
         
         console.log('validateUser return value:', user);

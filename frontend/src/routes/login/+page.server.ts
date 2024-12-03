@@ -54,7 +54,8 @@ export const actions: Actions = {
             firstName: responseData.first_name,
             lastName: responseData.last_name,
             email: responseData.email,
-            role: responseData.role
+            role: responseData.role,
+            primary_club_id: responseData.primary_club_id
         };
 
         locals.user = userData;

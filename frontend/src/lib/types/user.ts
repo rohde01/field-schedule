@@ -4,6 +4,7 @@ export interface User {
     lastName: string;
     email: string;
     role: string;
+    primary_club_id?: number | null; 
 }
 
 declare global {
