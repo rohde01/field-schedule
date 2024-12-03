@@ -1,3 +1,29 @@
 @import 'tailwindcss/base';
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
+
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+
+  .btn-primary {
+    @apply btn bg-mint-500 text-white hover:bg-mint-600 focus:ring-mint-500;
+  }
+
+  .btn-secondary {
+    @apply btn bg-sage-100 text-sage-700 hover:bg-sage-200 focus:ring-sage-500;
+  }
+
+  .form-input {
+    @apply block w-full rounded-lg border-sage-200 shadow-sm focus:border-mint-500 focus:ring-mint-500;
+  }
+
+  .form-label {
+    @apply block text-sm font-medium text-sage-700 mb-1;
+  }
+
+  .nav-link {
+    @apply px-3 py-2 text-sage-700 hover:text-mint-600 rounded-md hover:bg-sage-50 transition-colors duration-200;
+  }
+}

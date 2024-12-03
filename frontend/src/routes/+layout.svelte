@@ -4,23 +4,31 @@
     export let data: LayoutData;
 </script>
 
-<nav>
-    <div class="left">
-        <a href="/">Home</a>
-        {#if data.user}
-            <a href="/dashboard">Dashboard</a>
-        {/if}
-    </div>
-    <div class="right">
-        {#if data.user}
-            <form action="/logout" method="POST">
-                <button type="submit">Logout</button>
-            </form>
-        {:else}
-            <a href="/login">Login</a>
-            <a href="/register">Register</a>
-        {/if}
-    </div>
-</nav>
+<div class="min-h-screen bg-sage-50">
+    <nav class="bg-white border-b border-sage-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center space-x-4">
+                    <a href="/" class="nav-link">Home</a>
+                    {#if data.user}
+                        <a href="/dashboard" class="nav-link">Dashboard</a>
+                    {/if}
+                </div>
+                <div class="flex items-center space-x-4">
+                    {#if data.user}
+                        <form action="/logout" method="POST">
+                            <button type="submit" class="btn-secondary">Logout</button>
+                        </form>
+                    {:else}
+                        <a href="/login" class="nav-link">Login</a>
+                        <a href="/register" class="btn-primary">Register</a>
+                    {/if}
+                </div>
+            </div>
+        </div>
+    </nav>
 
-<slot />
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <slot />
+    </main>
+</div>
