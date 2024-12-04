@@ -5,7 +5,6 @@ export interface User {
     email: string;
     role: string;
     primary_club_id?: number | null; 
-    has_facilities?: boolean;
 
 }
 
