@@ -1,1 +1,6 @@
-<h1>this is the dashboard</h1>
+<script lang="ts">
+    import type { PageData } from './$types';
+    export let data: PageData;
+</script>
+
+<h1>Welcome, {data.firstName}!</h1>
