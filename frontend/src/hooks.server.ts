@@ -17,10 +17,12 @@ export const handle: Handle = async ({ event, resolve }) => {
     }
 
     if (routeMeta?.requiresClub && !event.locals.user?.primary_club_id) {
-        return new Response('Redirect', {
-            status: 303,
-            headers: { Location: '/club/create' },
-        });
+        if (path !== '/club/create') {
+            return new Response('Redirect', {
+                status: 303,
+                headers: { Location: '/club/create' },
+            });
+        }
     }
 
     return resolve(event);

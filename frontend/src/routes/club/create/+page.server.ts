@@ -2,10 +2,6 @@ import type { PageServerLoad, Actions } from './$types';
 import { fail, redirect } from '@sveltejs/kit';
 
 export const load = (async ({ locals }) => {
-    
-    if (locals.user?.primary_club_id) {
-        throw redirect(303, '/club');
-    }
     return {};
 }) satisfies PageServerLoad;
 
@@ -42,7 +38,7 @@ export const actions: Actions = {
         if (locals.user) {
             locals.user.primary_club_id = clubData.club_id;
         }
-
-        throw redirect(303, '/club');
+        
+        return { success: true };
     }
 };
