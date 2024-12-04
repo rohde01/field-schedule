@@ -1,5 +1,6 @@
 import type { PageServerLoad, Actions } from './$types';
 import { fail, redirect } from '@sveltejs/kit';
+import { user } from '$stores/user';
 
 export const load: PageServerLoad = async ({ locals }) => {
     if (locals.user) {
@@ -55,10 +56,12 @@ export const actions: Actions = {
             lastName: responseData.last_name,
             email: responseData.email,
             role: responseData.role,
-            primary_club_id: responseData.primary_club_id
+            primary_club_id: responseData.primary_club_id,
+            has_facilities: responseData.has_facilities
         };
 
         locals.user = userData;
+        user.set(userData);
         console.log('User data in locals:', locals.user);
         
         throw redirect(303, '/dashboard');

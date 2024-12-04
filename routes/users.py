@@ -9,6 +9,7 @@ from database import users
 from auth import create_access_token, get_current_user
 from datetime import timedelta
 from fastapi.security import OAuth2PasswordRequestForm
+from database import clubs
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -50,6 +51,8 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         raise HTTPException(status_code=400, detail="Incorrect username or password")
     access_token = create_access_token(data={"sub": user["username"]})
     primary_club_id = users.get_user_primary_club(user["user_id"])
+    has_facilities = clubs.club_has_facilities(primary_club_id) if primary_club_id else False
+    
     return {
         "access_token": access_token,
         "token_type": "bearer",
@@ -58,7 +61,8 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         "last_name": user["last_name"],
         "email": user["email"],
         "role": user["role"],
-        "primary_club_id": primary_club_id
+        "primary_club_id": primary_club_id,
+        "has_facilities": has_facilities
     }
 
 @router.get("/me")
