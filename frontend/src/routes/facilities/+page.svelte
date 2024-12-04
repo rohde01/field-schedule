@@ -1,5 +1,6 @@
 <script lang="ts">
     import type { PageData } from './$types';
+    import type { Facility } from '$lib/types/facilityStatus';
     import FacilityDropdown from '$lib/components/FacilityDropdown.svelte';
     import { facilityStatus } from '../../stores/facilityStatus';
     import { browser } from '$app/environment';
@@ -14,7 +15,7 @@
 
         // Set primary facility if none selected
         if (!$facilityStatus.selectedFacility) {
-            const primaryFacility = data.facilities.find(f => f.is_primary);
+            const primaryFacility = data.facilities.find((f: Facility) => f.is_primary);
             if (primaryFacility) {
                 facilityStatus.update(status => ({
                     ...status,

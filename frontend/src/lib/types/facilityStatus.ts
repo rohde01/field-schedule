@@ -1,9 +1,11 @@
+export interface Facility {
+    facility_id: number;
+    name: string;
+    is_primary: boolean;
+}
+
 export interface FacilityStatus {
-    selectedFacility: {
-        facility_id: number;
-        name: string;
-        is_primary: boolean;
-    } | null;
+    selectedFacility: Facility | null;
     has_facilities: boolean;
 }
 

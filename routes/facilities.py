@@ -23,8 +23,7 @@ async def get_club_facilities(club_id: int) -> List[dict]:
         {
             "facility_id": facility.facility_id,
             "name": facility.name,
-            "is_primary": facility.is_primary,
-            "club_id": facility.club_id
+            "is_primary": facility.is_primary
         }
         for facility in facilities
     ]
@@ -40,8 +39,7 @@ async def create_new_facility(facility: FacilityCreate) -> dict:
         return {
             "facility_id": new_facility.facility_id,
             "name": new_facility.name,
-            "is_primary": new_facility.is_primary,
-            "club_id": new_facility.club_id
+            "is_primary": new_facility.is_primary
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
