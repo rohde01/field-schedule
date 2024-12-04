@@ -4,8 +4,8 @@
     export let data: LayoutData;
 </script>
 
-<div class="min-h-screen bg-sage-50">
-    <nav class="bg-white border-b border-sage-200">
+<div class="min-h-screen bg-sage-50 relative">
+    <nav class="bg-white border-b border-sage-200 relative z-10">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center space-x-4">
