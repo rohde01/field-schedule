@@ -52,6 +52,6 @@
   }
 
   .dropdown-action-button {
-    @apply w-full px-4 py-3 flex items-center text-sm text-mint-600 hover:bg-mint-50 rounded-xl transition-colors duration-150;
+    @apply w-full flex items-center px-4 py-3 text-sm text-mint-700 hover:text-mint-800 hover:bg-mint-50 rounded-xl transition-colors duration-150;
   }
 }

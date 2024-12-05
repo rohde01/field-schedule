@@ -12,6 +12,8 @@
                     <a href="/" class="nav-link">Home</a>
                     {#if data.user}
                         <a href="/dashboard" class="nav-link">Dashboard</a>
+                        <a href="/club" class="nav-link">My Club</a>
+                        <a href="/facilities" class="nav-link">Facilities</a>
                     {/if}
                 </div>
                 <div class="flex items-center space-x-4">
