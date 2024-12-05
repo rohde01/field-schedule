@@ -41,6 +41,7 @@ function createFacilityStore() {
             try {
                 const response = await fetch(`/api/teams/${facility.facility_id}`);
                 if (!response.ok) {
+                    console.error('Failed to fetch fields:', response.statusText);
                     updateStore(status => ({ ...status, fields: [] }));
                     return;
                 }
@@ -48,6 +49,7 @@ function createFacilityStore() {
                 
                 updateStore(status => ({ ...status, fields }));
             } catch (error) {
+                console.error('Error fetching fields:', error);
                 updateStore(status => ({ ...status, fields: [] }));
             }
         },

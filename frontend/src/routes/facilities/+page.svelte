@@ -10,8 +10,10 @@
     export let data: PageData;
     export let form: ActionData;
 
+    let isInitializing = true;
+
     // On initial load, update the store with the fields from the server
-    onMount(() => {
+    onMount(async () => {
         if (browser) {
             facilityStatus.update((status: FacilityStatus) => ({
                 ...status,
@@ -19,12 +21,16 @@
                 fields: data.fields || []
             }));
 
-            if (data.has_facilities && data.facilities.length > 0 && !$facilityStatus.selectedFacility) {
+            if ($facilityStatus.selectedFacility && (!$facilityStatus.fields || $facilityStatus.fields.length === 0)) {
+                await facilityStatus.setFacility($facilityStatus.selectedFacility);
+            }
+            else if (data.has_facilities && data.facilities.length > 0 && !$facilityStatus.selectedFacility) {
                 const primaryFacility = data.facilities.find((f: Facility) => f.is_primary);
                 if (primaryFacility) {
-                    facilityStatus.setFacility(primaryFacility);
+                    await facilityStatus.setFacility(primaryFacility);
                 }
             }
+            isInitializing = false;
         }
     });
 
@@ -44,7 +50,11 @@
         <FacilityDropdown facilities={data.facilities} />
     </div>
 
-    {#if !$facilityStatus.has_facilities}
+    {#if isInitializing}
+        <div class="spinner-container">
+            <div class="spinner"></div>
+        </div>
+    {:else if !$facilityStatus.has_facilities}
         <div class="text-center bg-white p-8 rounded-lg shadow-md">
             <h2 class="text-2xl font-bold mb-4">Welcome to Field Schedule!</h2>
             <p class="text-gray-600 mb-6">
