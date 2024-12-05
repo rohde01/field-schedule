@@ -44,10 +44,12 @@
     }
 </script>
 
-<div class="flex flex-col gap-4 p-4">
+<div class="flex flex-col gap-4">
     <div class="flex justify-between items-center">
         <h1 class="text-2xl font-bold">Facilities</h1>
-        <FacilityDropdown facilities={data.facilities} />
+        <div class="w-72">
+            <FacilityDropdown facilities={data.facilities} />
+        </div>
     </div>
 
     {#if isInitializing}

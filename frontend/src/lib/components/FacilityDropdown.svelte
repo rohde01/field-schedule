@@ -65,7 +65,8 @@
     });
 </script>
 
-<div class="fixed bottom-12 left-16 z-50" bind:this={dropdownContainer}>
+
+<div class="fixed bottom-12 left-[max(1rem,calc((100%-80rem)/2+1rem))] z-50" bind:this={dropdownContainer}>
     <div 
         class="relative"
         class:w-72={isOpen}
