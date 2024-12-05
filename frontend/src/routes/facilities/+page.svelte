@@ -7,6 +7,7 @@
     import { browser } from '$app/environment';
     import { invalidate } from '$app/navigation';
     import { onMount } from 'svelte';
+    import CreateField from '$lib/components/createField.svelte';
 
     export let data: PageData;
     export let form: ActionData;
@@ -72,3 +73,5 @@
         </div>
     {/if}
 </div>
+
+<CreateField {facilityId} />

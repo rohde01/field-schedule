@@ -1,4 +1,5 @@
 import type { PageServerLoad, Actions } from './$types';
+import type { CreateFieldResponse } from '$lib/types/field'; // Add this import
 import { error, fail } from '@sveltejs/kit';
 
 export const load = (async ({ locals, fetch }) => {
@@ -116,5 +117,38 @@ export const actions = {
             console.error('Error creating facility:', e);
             return fail(500, { error: 'Failed to create facility' });
         }
+    },
+    
+    createField: async ({ request, fetch }) => {
+        const formData = await request.formData();
+        
+        try {
+            const fieldData = JSON.parse(formData.get('fieldData') as string);
+            console.log('Sending field data:', fieldData);
+
+            const response = await fetch('http://localhost:8000/fields', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(fieldData)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('Server error:', errorData);
+                return fail(response.status, { 
+                    error: errorData.detail || 'Failed to create field' 
+                });
+            }
+
+            const result: CreateFieldResponse = await response.json();
+            return { success: true, field_id: result.field_id };
+
+        } catch (error) {
+            console.error('Error creating field:', error);
+            return fail(500, { 
+                error: 'Failed to create field' 
+            });
+        }
     }
 } satisfies Actions;
+
