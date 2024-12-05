@@ -64,13 +64,13 @@ export const actions: Actions = {
         const facilityStatusData: FacilityStatus = {
             selectedFacility: null,
             has_facilities: responseData.has_facilities,
+            fields: []
         };
 
         locals.user = userData;
         locals.facilityStatus = facilityStatusData;
         user.set(userData);
         facilityStatus.set(facilityStatusData);
-        console.log('User data in locals:', locals.user);
         
         throw redirect(303, '/dashboard');
     }

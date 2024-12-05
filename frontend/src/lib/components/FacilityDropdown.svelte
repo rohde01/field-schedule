@@ -15,10 +15,7 @@
     let nameInput: HTMLInputElement;
 
     function handleSelect(facility: typeof facilities[0]) {
-        facilityStatus.update(status => ({
-            ...status!,
-            selectedFacility: facility
-        }));
+        facilityStatus.setFacility(facility);
         isOpen = false;
     }
 

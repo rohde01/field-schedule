@@ -22,8 +22,6 @@ class FieldCreate(BaseModel):
 @router.get("/facility/{facility_id}")
 async def get_facility_fields(facility_id: int) -> List[dict]:
     fields = get_fields(facility_id)
-    if not fields:
-        raise HTTPException(status_code=404, detail="No fields found for this facility")
     return [
         {
             "field_id": field.field_id,
