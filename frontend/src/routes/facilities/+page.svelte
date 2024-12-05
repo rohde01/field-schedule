@@ -70,9 +70,53 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {#each $facilityStatus.fields as field}
                             <div class="bg-white p-4 rounded-lg shadow">
-                                <h3 class="font-medium">{field.name}</h3>
-                                <p class="text-sm text-gray-600">Size: {field.size}</p>
-                                <p class="text-sm text-gray-600">Type: {field.field_type}</p>
+                                <h3 class="font-medium text-lg mb-2">{field.name}</h3>
+                                <div class="space-y-2">
+                                    <p class="text-sm text-gray-600">Size: {field.size}</p>
+                                    <p class="text-sm text-gray-600">Type: {field.field_type}</p>
+                                    
+                                    <!-- Availability -->
+                                    {#if Object.keys(field.availability).length > 0}
+                                        <div class="mt-3">
+                                            <h4 class="text-sm font-medium mb-1">Availability:</h4>
+                                            <div class="space-y-1">
+                                                {#each Object.entries(field.availability) as [day, time]}
+                                                    <p class="text-sm text-gray-600">
+                                                        {day}: {time.start_time} - {time.end_time}
+                                                    </p>
+                                                {/each}
+                                            </div>
+                                        </div>
+                                    {/if}
+
+                                    <!-- Half Subfields -->
+                                    {#if field.half_subfields.length > 0}
+                                        <div class="mt-3">
+                                            <h4 class="text-sm font-medium mb-1">Half Fields:</h4>
+                                            <div class="flex flex-wrap gap-2">
+                                                {#each field.half_subfields as subfield}
+                                                    <span class="inline-block bg-gray-100 rounded px-2 py-1 text-sm">
+                                                        {subfield.name}
+                                                    </span>
+                                                {/each}
+                                            </div>
+                                        </div>
+                                    {/if}
+
+                                    <!-- Quarter Subfields -->
+                                    {#if field.quarter_subfields.length > 0}
+                                        <div class="mt-3">
+                                            <h4 class="text-sm font-medium mb-1">Quarter Fields:</h4>
+                                            <div class="flex flex-wrap gap-2">
+                                                {#each field.quarter_subfields as subfield}
+                                                    <span class="inline-block bg-gray-100 rounded px-2 py-1 text-sm">
+                                                        {subfield.name}
+                                                    </span>
+                                                {/each}
+                                            </div>
+                                        </div>
+                                    {/if}
+                                </div>
                             </div>
                         {/each}
                     </div>

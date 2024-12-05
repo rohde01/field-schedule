@@ -4,15 +4,26 @@ export interface Facility {
     is_primary: boolean;
 }
 
+export interface FieldAvailability {
+    day_of_week: string;
+    start_time: string;
+    end_time: string;
+}
+
+export interface SubField {
+    field_id: number;
+    name: string;
+}
+
 export interface Field {
     field_id: number;
     name: string;
     size: string;
     field_type: string;
     parent_field_id: number | null;
-    availability: Record<string, any>;
-    quarter_subfields: any[];
-    half_subfields: any[];
+    availability: Record<string, FieldAvailability>;
+    quarter_subfields: SubField[];
+    half_subfields: SubField[];
 }
 
 export interface FacilityStatus {
