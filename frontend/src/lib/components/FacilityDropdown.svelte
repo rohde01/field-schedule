@@ -2,6 +2,7 @@
     import { facilityStatus } from '../../stores/facilityStatus';
     import { onMount } from 'svelte';
     import { enhance } from '$app/forms';
+    import { invalidateAll } from '$app/navigation';
     
     export let facilities: Array<{
         facility_id: number;
@@ -38,6 +39,22 @@
             isOpen = false;
             isCreating = false;
         }
+    }
+
+    function handleSubmit() {
+        return async ({ result, update }: { result: any; update: () => Promise<void> }) => {
+            if (result.type === 'success') {
+                facilityStatus.update(status => ({
+                    ...status,
+                    has_facilities: true,
+                    selectedFacility: result.data.facility
+                }));
+                await invalidateAll();
+            }
+            isCreating = false;
+            isOpen = false;
+            await update();
+        };
     }
 
     onMount(() => {
@@ -111,11 +128,7 @@
                                     method="POST"
                                     action="?/create"
                                     class="p-3 space-y-3 bg-mint-50/50 rounded-xl border border-mint-100"
-                                    use:enhance
-                                    on:submit={() => {
-                                        isCreating = false;
-                                        isOpen = false;
-                                    }}
+                                    use:enhance={handleSubmit}
                                 >
                                     <div class="space-y-2">
                                         <p class="text-sm text-sage-600">Give your new facility a unique name</p>
