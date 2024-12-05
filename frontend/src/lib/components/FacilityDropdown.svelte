@@ -1,5 +1,6 @@
 <script lang="ts">
     import { facilityStatus } from '../../stores/facilityStatus';
+    import { dropdownState, toggleDropdown } from '../../stores/dropdownState';
     import { onMount } from 'svelte';
     import { enhance } from '$app/forms';
     import { invalidateAll } from '$app/navigation';
@@ -10,19 +11,13 @@
         is_primary: boolean;
     }>;
 
-    let isOpen = false;
     let isCreating = false;
     let dropdownContainer: HTMLDivElement;
     let nameInput: HTMLInputElement;
 
     function handleSelect(facility: typeof facilities[0]) {
         facilityStatus.setFacility(facility);
-        isOpen = false;
-    }
-
-    function toggleDropdown() {
-        isOpen = !isOpen;
-        isCreating = false;
+        $dropdownState.facilityOpen = false;
     }
 
     function startCreating() {
@@ -36,7 +31,7 @@
 
     function handleClickOutside(event: MouseEvent) {
         if (dropdownContainer && !dropdownContainer.contains(event.target as Node)) {
-            isOpen = false;
+            $dropdownState.facilityOpen = false;
             isCreating = false;
         }
     }
@@ -52,7 +47,7 @@
                 await invalidateAll();
             }
             isCreating = false;
-            isOpen = false;
+            $dropdownState.facilityOpen = false;
             await update();
         };
     }
@@ -65,15 +60,14 @@
     });
 </script>
 
-
 <div class="fixed bottom-12 left-[max(1rem,calc((100%-80rem)/2+1rem))] z-50" bind:this={dropdownContainer}>
     <div 
         class="relative"
-        class:w-72={isOpen}
-        class:w-56={!isOpen}
+        class:w-72={$dropdownState.facilityOpen}
+        class:w-56={!$dropdownState.facilityOpen}
     >
         <button
-            on:click|stopPropagation={toggleDropdown}
+            on:click|stopPropagation={() => toggleDropdown('facilityOpen')}
             class="dropdown-trigger"
         >
             <span class="text-sm font-medium truncate">
@@ -81,7 +75,7 @@
             </span>
             <svg
                 class="w-5 h-5 transition-transform duration-200 ml-3"
-                class:rotate-180={isOpen}
+                class:rotate-180={$dropdownState.facilityOpen}
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 20 20"
                 fill="currentColor"
@@ -90,7 +84,7 @@
             </svg>
         </button>
 
-        {#if isOpen}
+        {#if $dropdownState.facilityOpen}
             <div class="dropdown-panel">
                 <div class="dropdown-content">
                     {#each facilities as facility}

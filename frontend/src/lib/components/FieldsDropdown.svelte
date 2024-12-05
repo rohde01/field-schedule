@@ -1,5 +1,6 @@
 <script lang="ts">
     import { facilityStatus } from '../../stores/facilityStatus';
+    import { dropdownState, toggleDropdown } from '../../stores/dropdownState';
     import type { Field, SubField } from '$lib/types/facilityStatus';
     
     export let fields: Field[];
@@ -35,37 +36,72 @@
 
     function handleSelectField(field: Field) {
         selectedField = selectedField?.field_id === field.field_id ? null : field;
+        $dropdownState.fieldsOpen = false;
+    }
+
+    function handleClickOutside(event: MouseEvent) {
+        const target = event.target as HTMLElement;
+        if (!target.closest('.fields-dropdown')) {
+            $dropdownState.fieldsOpen = false;
+        }
     }
 </script>
 
-<div class="fixed left-[max(1rem,calc((100%-80rem)/2+1rem))] top-32 z-40 w-72">
+<svelte:window on:click={handleClickOutside} />
+
+<div class="fixed left-[max(1rem,calc((100%-80rem)/2+1rem))] top-32 z-40 w-72 fields-dropdown">
     <div class="bg-white rounded-2xl shadow-xl border border-mint-100 overflow-hidden">
-        <div class="p-4 bg-mint-500 text-white">
-            <h2 class="text-sm font-medium">Fields</h2>
+        <div class="flex items-center">
+            <div class="flex-1 flex items-center">
+                <h2 class="text-sm font-medium text-sage-700 pl-4">Fields</h2>
+                <button
+                    class="p-2 ml-2"
+                    on:click={() => toggleDropdown('fieldsOpen')}
+                    aria-label="Toggle fields dropdown"
+                >
+                    <svg
+                        class="w-5 h-5 transition-transform duration-200 text-sage-600"
+                        class:rotate-180={$dropdownState.fieldsOpen}
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                    >
+                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+            </div>
+            <button 
+                class="btn-primary text-sm py-1.5 m-2"
+                on:click={() => window.location.href = '/fields/new'}
+            >
+                Create Field
+            </button>
         </div>
-        <div class="dropdown-content">
-            {#if fields && fields.length > 0}
-                <div class="p-1 space-y-3">
-                    {#each groupedFields as [size, sizeFields]}
-                        <div class="space-y-1">
-                            <h3 class="text-xs font-medium text-sage-600 px-2">{size}</h3>
-                            {#each sizeFields as field}
-                                <button
-                                    class="dropdown-item {selectedField?.field_id === field.field_id ? 'dropdown-item-selected' : ''}"
-                                    on:click={() => handleSelectField(field)}
-                                >
-                                    <span class="font-medium">{field.name}</span>
-                                </button>
-                            {/each}
-                        </div>
-                    {/each}
-                </div>
-            {:else}
-                <div class="p-4 text-sage-500 text-center text-sm">
-                    No fields available
-                </div>
-            {/if}
-        </div>
+        {#if $dropdownState.fieldsOpen}
+            <div class="dropdown-content border-t border-mint-100">
+                {#if fields && fields.length > 0}
+                    <div class="p-1 space-y-3">
+                        {#each groupedFields as [size, sizeFields]}
+                            <div class="space-y-1">
+                                <h3 class="text-xs font-medium text-sage-600 px-2">{size}</h3>
+                                {#each sizeFields as field}
+                                    <button
+                                        class="dropdown-item {selectedField?.field_id === field.field_id ? 'dropdown-item-selected' : ''}"
+                                        on:click={() => handleSelectField(field)}
+                                    >
+                                        <span class="font-medium">{field.name}</span>
+                                    </button>
+                                {/each}
+                            </div>
+                        {/each}
+                    </div>
+                {:else}
+                    <div class="p-4 text-sage-500 text-center text-sm">
+                        No fields available
+                    </div>
+                {/if}
+            </div>
+        {/if}
     </div>
 </div>
 
