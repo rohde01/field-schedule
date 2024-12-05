@@ -8,20 +8,32 @@
     import { invalidate } from '$app/navigation';
     import { onMount } from 'svelte';
     import CreateField from '$lib/components/createField.svelte';
+    import { dropdownState, setDefaultField, initializeDropdownState, resetFieldsState } from '../../stores/dropdownState';
+    import { page } from '$app/stores';
 
     export let data: PageData;
     export let form: ActionData;
 
     let isInitializing = true;
 
+    $: if ($page.url.pathname === '/facilities') {
+        initializeDropdownState();
+    }
+
     // On initial load, update the store with the fields from the server
     onMount(async () => {
         if (browser) {
+            initializeDropdownState();
+            
             facilityStatus.update((status: FacilityStatus) => ({
                 ...status,
                 has_facilities: data.has_facilities,
                 fields: data.fields || []
             }));
+
+            if (data.fields && data.fields.length > 0) {
+                setDefaultField(data.fields);
+            }
 
             if ($facilityStatus.selectedFacility && (!$facilityStatus.fields || $facilityStatus.fields.length === 0)) {
                 await facilityStatus.setFacility($facilityStatus.selectedFacility);
@@ -39,6 +51,17 @@
     $: if (form?.facility) {
         data.facilities = [...data.facilities, form.facility];
         facilityStatus.setFacility(form.facility);
+    }
+
+    // Watch for facility changes
+    $: if ($facilityStatus.selectedFacility) {
+        resetFieldsState();
+        invalidate('app:facilities');
+    }
+
+    // Watch for fields updates
+    $: if ($facilityStatus.fields && $facilityStatus.fields.length > 0) {
+        setDefaultField($facilityStatus.fields);
     }
 
     $: if ($facilityStatus.selectedFacility) {
@@ -73,5 +96,3 @@
         </div>
     {/if}
 </div>
-
-<CreateField {facilityId} />

@@ -3,7 +3,7 @@
     import { enhance } from '$app/forms';
     import type { SubmitFunction } from '@sveltejs/kit';
 
-    export let facilityId: number;
+    export let facilityId: number | undefined = undefined;
 
     const fieldSizes: FieldSize[] = ['11v11', '8v8', '5v5', '3v3'];
     
@@ -38,7 +38,7 @@
             }));
 
         return {
-            facility_id: facilityId,
+            facility_id: facilityId ?? 0,
             name: document.querySelector<HTMLInputElement>('#name')?.value,
             size: document.querySelector<HTMLSelectElement>('#size')?.value,
             field_type: 'full' as const,
