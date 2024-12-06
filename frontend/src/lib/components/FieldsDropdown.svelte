@@ -2,7 +2,7 @@
     import { facilityStatus } from '../../stores/facilityStatus';
     import { dropdownState, toggleDropdown, selectField, setDefaultField, toggleCreateField } from '../../stores/dropdownState';
     import type { Field, SubField } from '$lib/types/facilityStatus';
-    import CreateField from './createField.svelte';
+    import FieldCard from './FieldCard.svelte';
     
     export let fields: Field[];
 
@@ -60,7 +60,7 @@
                         viewBox="0 0 20 20"
                         fill="currentColor"
                     >
-                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a 1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a 1 1 0 010-1.414z" clip-rule="evenodd" />
+                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a 1 1 0 111.414 1.414l-4 4a 1 1 0 01-1.414 0l-4-4a 1 1 0 010-1.414z" clip-rule="evenodd" />
                     </svg>
                 </button>
             </div>
@@ -99,78 +99,12 @@
     </div>
 </div>
 
-{#if $dropdownState.selectedField}
+{#if $dropdownState.selectedField || $dropdownState.showCreateField}
     <div class="fixed left-[calc(20rem+max(1rem,calc((100%-80rem)/2+1rem)))] top-32 right-[max(1rem,calc((100%-80rem)/2+1rem))] z-30">
-        <div class="bg-white rounded-2xl shadow-xl border border-mint-100 p-6">
-            <h3 class="text-xl font-semibold mb-4">{$dropdownState.selectedField.name}</h3>
-            <div class="grid gap-4">
-                <div class="space-y-2">
-                    <p class="text-sm text-gray-600">Size: {$dropdownState.selectedField.size}</p>
-                    <p class="text-sm text-gray-600">Type: {$dropdownState.selectedField.field_type}</p>
-                    
-                    <!-- Availability -->
-                    {#if $dropdownState.selectedField.availability && Object.entries($dropdownState.selectedField.availability).length > 0}
-                        <div class="mt-3">
-                            <h4 class="text-sm font-medium mb-1">Availability:</h4>
-                            <div class="space-y-1">
-                                {#each Object.entries($dropdownState.selectedField.availability) as [day, time]}
-                                    <p class="text-sm text-gray-600">
-                                        {day}: {time.start_time} - {time.end_time}
-                                    </p>
-                                {/each}
-                            </div>
-                        </div>
-                    {/if}
-
-                    <!-- Half Subfields -->
-                    {#if $dropdownState.selectedField.half_subfields.length > 0}
-                        <div class="mt-3">
-                            <h4 class="text-sm font-medium mb-1">Half Fields:</h4>
-                            <div class="flex flex-wrap gap-2">
-                                {#each $dropdownState.selectedField.half_subfields as subfield}
-                                    <span class="inline-block bg-mint-50 text-mint-700 rounded-lg px-2 py-1 text-sm">
-                                        {subfield.name}
-                                    </span>
-                                {/each}
-                            </div>
-                        </div>
-                    {/if}
-
-                    <!-- Quarter Subfields -->
-                    {#if $dropdownState.selectedField.quarter_subfields.length > 0}
-                        <div class="mt-3">
-                            <h4 class="text-sm font-medium mb-1">Quarter Fields:</h4>
-                            <div class="flex flex-wrap gap-2">
-                                {#each $dropdownState.selectedField.quarter_subfields as subfield}
-                                    <span class="inline-block bg-mint-50 text-mint-700 rounded-lg px-2 py-1 text-sm">
-                                        {subfield.name}
-                                    </span>
-                                {/each}
-                            </div>
-                        </div>
-                    {/if}
-                </div>
-            </div>
-        </div>
-    </div>
-{/if}
-
-{#if $dropdownState.showCreateField}
-    <div class="fixed left-[calc(20rem+max(1rem,calc((100%-80rem)/2+1rem)))] top-32 right-[max(1rem,calc((100%-80rem)/2+1rem))] z-30 create-field-card">
-        <div class="bg-white rounded-2xl shadow-xl border border-mint-100 p-6">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-semibold">Create New Field</h3>
-                <button 
-                    class="text-sage-500 hover:text-sage-700"
-                    on:click={toggleCreateField}
-                    aria-label="Close create field form"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-            <CreateField facilityId={$facilityStatus.selectedFacility?.facility_id ?? 0} />
-        </div>
+        <FieldCard 
+            field={$dropdownState.selectedField} 
+            facilityId={$facilityStatus?.selectedFacility?.facility_id} 
+            isCreateMode={$dropdownState.showCreateField} 
+        />
     </div>
 {/if}

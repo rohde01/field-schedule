@@ -7,7 +7,6 @@
     import { browser } from '$app/environment';
     import { invalidate } from '$app/navigation';
     import { onMount } from 'svelte';
-    import CreateField from '$lib/components/createField.svelte';
     import { dropdownState, setDefaultField, initializeDropdownState, resetFieldsState } from '../../stores/dropdownState';
     import { page } from '$app/stores';
 
