@@ -114,7 +114,7 @@
     };
 </script>
 
-<div class="bg-white rounded-2xl shadow-xl border border-mint-100 p-6" role="presentation" on:mousedown|stopPropagation>
+<div class="field-card" role="presentation" on:mousedown|stopPropagation>
     {#if isCreateMode}
         <form
             method="POST"
@@ -123,86 +123,85 @@
         >
             <input type="hidden" name="facility_id" value={facilityId} />
             
-            <div class="grid grid-cols-2 gap-6">
+            <div class="field-card-grid">
                 <!-- Left Column: Field Configuration -->
-                <div class="space-y-6">
+                <div class="field-section">
                     <!-- Main Field Section -->
-                    <div class="space-y-4">
+                    <div class="field-subsection">
                         <!-- Name Section -->
                         {#if showNameInput}
                             <div class="space-y-1">
-                                <label for="name" class="form-label text-sm">Field Name</label>
-                                <input 
-                                    type="text" 
-                                    id="name" 
-                                    name="name" 
-                                    bind:value={mainFieldName}
-                                    required
-                                    class="form-input text-sm py-1 px-2" 
-                                    placeholder="Enter field name..."
-                                    on:blur={handleMainFieldBlur}
-                                />
+                                <label for="fieldName" class="field-subtitle">Field Name</label>
+                                <div class="flex gap-2">
+                                    <input
+                                        type="text"
+                                        id="fieldName"
+                                        name="name"
+                                        class="form-input-sm"
+                                        bind:value={mainFieldName}
+                                        on:blur={handleMainFieldBlur}
+                                    />
+                                </div>
                             </div>
                         {:else}
-                            <div class="flex items-center gap-2">
-                                <h3 class="text-base font-medium">
-                                    {mainFieldName}
-                                </h3>
-                                <button 
-                                    type="button"
-                                    class="text-mint-600 hover:text-mint-700"
-                                    on:click={editMainField}
-                                    aria-label="Edit field name"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
-                                        <path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" />
-                                    </svg>
-                                </button>
+                            <div class="mb-6">
+                                <div class="flex items-center gap-2">
+                                    <h3 class="field-card-title !mb-0">{mainFieldName}</h3>
+                                    <button 
+                                        type="button"
+                                        class="text-mint-600 hover:text-mint-700"
+                                        on:click={editMainField}
+                                        aria-label="Edit field name"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                                            <path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" />
+                                        </svg>
+                                    </button>
+                                </div>
                             </div>
                         {/if}
 
-                        <!-- Size Section -->
+                        <!-- Size and Type Section -->
                         {#if showSizeInput}
                             <div class="space-y-1">
-                                <label for="size" class="form-label text-sm">Field Size</label>
+                                <label for="fieldSize" class="field-subtitle">Field Size</label>
                                 <select 
-                                    id="size" 
-                                    name="size" 
+                                    id="fieldSize"
+                                    name="size"
+                                    class="form-input-sm"
                                     bind:value={selectedSize}
-                                    required
-                                    class="form-input text-sm py-1 px-2"
                                     on:change={handleSizeChange}
                                 >
-                                    <option value="" disabled>Choose a size</option>
+                                    <option value="">Select a size</option>
                                     {#each fieldSizes as size}
                                         <option value={size}>{size}</option>
                                     {/each}
                                 </select>
                             </div>
-                        {:else}
-                            <div class="flex items-center gap-2">
-                                <div>
-                                    <p class="text-sm text-gray-600">Size: {selectedSize}</p>
-                                    <p class="text-sm text-gray-600">Type: full</p>
+                        {:else if selectedSize}
+                            <div class="space-y-2">
+                                <div class="flex items-center gap-2">
+                                    <p class="field-info-text">Size: {selectedSize}</p>
+                                    <button 
+                                        type="button"
+                                        class="text-mint-600 hover:text-mint-700"
+                                        on:click={editSize}
+                                        aria-label="Edit field size"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                                            <path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" />
+                                        </svg>
+                                    </button>
                                 </div>
-                                <button 
-                                    type="button"
-                                    class="text-mint-600 hover:text-mint-700"
-                                    on:click={editSize}
-                                    aria-label="Edit field size"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
-                                        <path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" />
-                                    </svg>
-                                </button>
+                                <p class="field-info-text">Type: full</p>
                             </div>
                         {/if}
                     </div>
 
                     <!-- Half Fields Section -->
-                    <div class="space-y-4">
-                        <div class="flex items-center justify-between">
-                            <h3 class="text-sm font-medium text-sage-700">Half Fields</h3>
+                    <div class="field-subsection">
+                        <div class="field-header">
+                            <h3 class="field-subtitle">Half Fields</h3>
                             {#if halfFields.length === 0}
                                 <button 
                                     type="button" 
@@ -239,7 +238,7 @@
                                         name="half_fields[{halfIndex}].name"
                                         bind:value={halfField.name}
                                         placeholder="Half field name"
-                                        class="form-input text-sm"
+                                        class="form-input-sm"
                                         on:blur={() => handleHalfFieldBlur(halfIndex)}
                                     />
                                 {/if}
@@ -248,10 +247,10 @@
 
                         <!-- Quarter Fields Section -->
                         {#if areAllHalfFieldsComplete()}
-                            <div class="space-y-6">
-                                <div class="space-y-4">
-                                    <div class="flex items-center justify-between">
-                                        <h3 class="text-sm font-medium text-sage-700">Quarter Fields</h3>
+                            <div class="field-section">
+                                <div class="field-subsection">
+                                    <div class="field-header">
+                                        <h3 class="field-subtitle">Quarter Fields</h3>
                                         {#if !halfFields.some(field => field.quarterFields.length > 0)}
                                             <button 
                                                 type="button" 
@@ -268,13 +267,13 @@
 
                                     <!-- All Completed Quarter Fields Display -->
                                     {#if halfFields.some(field => field.quarterFields.some(q => q.isCollapsed))}
-                                        <div class="flex flex-wrap gap-2 ml-4">
-                                            {#each halfFields as halfField, halfIndex}
-                                                {#each halfField.quarterFields as quarterField, quarterIndex}
+                                        <div class="flex flex-wrap gap-2">
+                                            {#each halfFields as halfField}
+                                                {#each halfField.quarterFields as quarterField}
                                                     {#if quarterField.isCollapsed}
                                                         <button 
                                                             type="button"
-                                                            class="inline-block bg-mint-50 text-mint-700 rounded-lg px-2 py-1 text-sm hover:bg-mint-100 transition-colors"
+                                                            class="field-tag hover:bg-mint-100 transition-colors"
                                                             on:click={() => {
                                                                 quarterField.isCollapsed = false;
                                                                 halfFields = [...halfFields];
@@ -293,7 +292,7 @@
                                     <div class="space-y-8">
                                         {#each halfFields as halfField, halfIndex}
                                             {#if halfField.quarterFields.some(q => !q.isCollapsed)}
-                                                <div class="space-y-4">
+                                                <div class="field-subsection">
                                                     <h4 class="text-sm font-medium text-sage-600">
                                                         Quarter fields for {halfField.name}
                                                     </h4>
@@ -307,7 +306,7 @@
                                                                     name="half_fields[{halfIndex}].quarter_fields[{quarterIndex}].name"
                                                                     bind:value={quarterField.name}
                                                                     placeholder="Quarter field name"
-                                                                    class="form-input text-sm"
+                                                                    class="form-input-sm"
                                                                     on:blur={() => handleQuarterFieldBlur(halfIndex, quarterIndex)}
                                                                 />
                                                             {/if}
@@ -323,35 +322,35 @@
                     </div>
                 </div>
 
-                <!-- Right Column: Field Availability (Coming Soon) -->
-                <div class="space-y-4">
-                    <h3 class="text-sm font-medium text-sage-700">Field Availability</h3>
-                    <p class="text-sage-600 italic">We will implement field availability for field creation later</p>
+                <!-- Right Column: Field Availability -->
+                <div class="field-section">
+                    <h3 class="field-subtitle">Field Availability</h3>
+                    <p class="field-info-text italic">We will implement field availability for field creation later</p>
                 </div>
             </div>
 
-            <div class="flex justify-end mt-6">
+            <div class="field-actions">
                 <button type="submit" class="btn-primary">Create Field</button>
             </div>
         </form>
     {:else if field}
-        <div class="space-y-6">
-            <h3 class="text-xl font-semibold">{field.name}</h3>
-            <div class="grid grid-cols-2 gap-6">
-                <!-- Left Column: Basic Info and Subfields -->
-                <div class="space-y-4">
+        <h3 class="field-card-title">{field.name}</h3>
+        <div class="field-card-grid">
+            <!-- Left Column: Basic Info and Subfields -->
+            <div class="field-section">
+                <div class="field-subsection">
                     <div class="space-y-2">
-                        <p class="text-sm text-gray-600">Size: {field.size}</p>
-                        <p class="text-sm text-gray-600">Type: {field.field_type}</p>
+                        <p class="field-info-text">Size: {field.size}</p>
+                        <p class="field-info-text">Type: {field.field_type}</p>
                     </div>
 
                     <!-- Half Subfields -->
                     {#if field.half_subfields?.length > 0}
                         <div>
-                            <h4 class="text-sm font-medium mb-1">Half Fields:</h4>
+                            <h4 class="field-subtitle">Half Fields:</h4>
                             <div class="flex flex-wrap gap-2">
                                 {#each field.half_subfields as subfield}
-                                    <span class="inline-block bg-mint-50 text-mint-700 rounded-lg px-2 py-1 text-sm">
+                                    <span class="field-tag">
                                         {subfield.name}
                                     </span>
                                 {/each}
@@ -362,10 +361,10 @@
                     <!-- Quarter Subfields -->
                     {#if field.quarter_subfields?.length > 0}
                         <div>
-                            <h4 class="text-sm font-medium mb-1">Quarter Fields:</h4>
+                            <h4 class="field-subtitle">Quarter Fields:</h4>
                             <div class="flex flex-wrap gap-2">
                                 {#each field.quarter_subfields as subfield}
-                                    <span class="inline-block bg-mint-50 text-mint-700 rounded-lg px-2 py-1 text-sm">
+                                    <span class="field-tag">
                                         {subfield.name}
                                     </span>
                                 {/each}
@@ -373,22 +372,20 @@
                         </div>
                     {/if}
                 </div>
+            </div>
 
-                <!-- Right Column: Availability -->
-                <div>
-                    {#if field.availability && Object.entries(field.availability).length > 0}
-                        <div>
-                            <h4 class="text-sm font-medium mb-1">Availability:</h4>
-                            <div class="space-y-1">
-                                {#each Object.entries(field.availability) as [day, time]}
-                                    <p class="text-sm text-gray-600">
-                                        {day}: {(time as FieldAvailability).start_time} - {(time as FieldAvailability).end_time}
-                                    </p>
-                                {/each}
-                            </div>
-                        </div>
-                    {/if}
-                </div>
+            <!-- Right Column: Availability -->
+            <div class="field-section">
+                <h3 class="field-subtitle">Availability</h3>
+                {#if field.availability && Object.entries(field.availability).length > 0}
+                    <div class="space-y-1">
+                        {#each Object.entries(field.availability) as [day, time]}
+                            <p class="field-info-text">
+                                {day}: {(time as FieldAvailability).start_time} - {(time as FieldAvailability).end_time}
+                            </p>
+                        {/each}
+                    </div>
+                {/if}
             </div>
         </div>
     {/if}

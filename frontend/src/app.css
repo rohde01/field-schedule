@@ -19,6 +19,10 @@
     @apply block w-full rounded-lg border-sage-200 shadow-sm focus:border-mint-500 focus:ring-mint-500;
   }
 
+  .form-input-sm {
+    @apply block w-full rounded-lg border-sage-200 shadow-sm focus:border-mint-500 focus:ring-mint-500 py-1 px-2 text-sm;
+  }
+
   .spinner {
     @apply inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite];
   }
@@ -61,5 +65,49 @@
 
   .dropdown-action-button {
     @apply w-full flex items-center px-4 py-3 text-sm text-mint-700 hover:text-mint-800 hover:bg-mint-50 rounded-xl transition-colors duration-150;
+  }
+
+  .field-card {
+    @apply bg-white rounded-2xl shadow-xl border border-mint-100 p-6;
+  }
+
+  .field-card-grid {
+    @apply grid grid-cols-2 gap-6;
+  }
+
+  .field-section {
+    @apply space-y-6;
+  }
+
+  .field-subsection {
+    @apply space-y-4;
+  }
+
+  .field-header {
+    @apply flex items-center justify-between;
+  }
+
+  .field-title {
+    @apply text-sm font-medium text-sage-700;
+  }
+
+  .field-actions {
+    @apply flex justify-end mt-6;
+  }
+
+  .field-card-title {
+    @apply text-xl font-semibold mb-6;
+  }
+
+  .field-subtitle {
+    @apply text-sm font-medium mb-1;
+  }
+
+  .field-info-text {
+    @apply text-sm text-gray-600;
+  }
+
+  .field-tag {
+    @apply inline-block bg-mint-50 text-mint-700 rounded-lg px-2 py-1 text-sm;
   }
 }
