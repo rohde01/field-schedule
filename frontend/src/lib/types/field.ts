@@ -19,3 +19,13 @@ export interface CreateFieldResponse {
     field_id: number;
     error?: string;
 }
+
+export interface FieldAvailability {
+    day_of_week: 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun';
+    start_time: string;  // HH:MM format
+    end_time: string;    // HH:MM format
+}
+
+export interface FieldAvailabilityData {
+    availabilities: FieldAvailability[];
+}

@@ -1,10 +1,8 @@
 <script lang="ts">
-    import type { Field as CreateField, FieldSize, SubField } from '$lib/types/field';
-    import type { Field as ViewField, FieldAvailability } from '$lib/types/facilityStatus';
+    import type { Field as CreateField, FieldSize, SubField, FieldAvailability as CreateFieldAvailability } from '$lib/types/field';
+    import type { Field as ViewField, FieldAvailability as ViewFieldAvailability } from '$lib/types/facilityStatus';
     import { enhance } from '$app/forms';
     import type { SubmitFunction } from '@sveltejs/kit';
-    import { slide } from 'svelte/transition';
-    import { dropdownState } from '../../stores/dropdownState';
 
     export let field: ViewField | null = null;
     export let facilityId: number | undefined = undefined;
@@ -23,6 +21,9 @@
     let showNameInput = true;
     let showSizeInput = true;
 
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
+    let availabilities: CreateFieldAvailability[] = [];
+
     function addHalfField() {
         if (halfFields.length === 0) {
             halfFields = [
@@ -33,7 +34,6 @@
     }
 
     function addQuarterFields(halfFieldIndex: number) {
-        // Add 2 quarter fields for the half field
         halfFields[halfFieldIndex].quarterFields = [
             { name: '', isCollapsed: false },
             { name: '', isCollapsed: false }
@@ -108,9 +108,27 @@
         };
     }
 
+    function addAvailability() {
+        availabilities = [...availabilities, {
+            day_of_week: 'Mon',
+            start_time: '16:00',
+            end_time: '22:00'
+        }];
+    }
+
+    function removeAvailability(index: number) {
+        availabilities = availabilities.filter((_, i) => i !== index);
+    }
+
     const handleSubmit: SubmitFunction = ({ formData }) => {
         const fieldData = prepareFormData();
+        const availabilityData = {
+            availabilities: availabilities
+                .filter(a => a.day_of_week && a.start_time && a.end_time)
+        };
+
         formData.set('fieldData', JSON.stringify(fieldData));
+        formData.set('availabilityData', JSON.stringify(availabilityData));
     };
 </script>
 
@@ -325,7 +343,51 @@
                 <!-- Right Column: Field Availability -->
                 <div class="field-section">
                     <h3 class="field-subtitle">Field Availability</h3>
-                    <p class="field-info-text italic">We will implement field availability for field creation later</p>
+                    <div class="space-y-4">
+                        <button
+                            type="button"
+                            class="btn-secondary text-sm"
+                            on:click={addAvailability}
+                        >
+                            Add Availability
+                        </button>
+
+                        {#each availabilities as availability, i}
+                            <div class="flex gap-2 items-center">
+                                <select
+                                    bind:value={availability.day_of_week}
+                                    class="form-input-sm"
+                                >
+                                    {#each days as day}
+                                        <option value={day}>{day}</option>
+                                    {/each}
+                                </select>
+
+                                <input
+                                    type="time"
+                                    bind:value={availability.start_time}
+                                    class="form-input-sm"
+                                />
+
+                                <input
+                                    type="time"
+                                    bind:value={availability.end_time}
+                                    class="form-input-sm"
+                                />
+
+                                <button
+                                    type="button"
+                                    class="text-red-600 hover:text-red-700"
+                                    on:click={() => removeAvailability(i)}
+                                    aria-label="Remove availability"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                                        <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                                    </svg>
+                                </button>
+                            </div>
+                        {/each}
+                    </div>
                 </div>
             </div>
 
@@ -381,7 +443,7 @@
                     <div class="space-y-1">
                         {#each Object.entries(field.availability) as [day, time]}
                             <p class="field-info-text">
-                                {day}: {(time as FieldAvailability).start_time} - {(time as FieldAvailability).end_time}
+                                {day}: {(time as ViewFieldAvailability).start_time} - {(time as ViewFieldAvailability).end_time}
                             </p>
                         {/each}
                     </div>

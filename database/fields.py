@@ -1,14 +1,14 @@
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Literal
 from .index import with_db_connection
 import psycopg2
 from database.index import connection_string
 
 @dataclass
 class FieldAvailability:
-    day_of_week: str
-    start_time: str
-    end_time: str
+    day_of_week: Literal['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    start_time: str 
+    end_time: str    
 
 @dataclass
 class Field:
@@ -113,4 +113,29 @@ def create_field(conn, facility_id: int, name: str, size: str, field_type: str, 
             raise ValueError("Invalid parent field ID")
         if "fields_facility_id_fkey" in str(e):
             raise ValueError("Invalid facility ID")
+        raise
+
+@with_db_connection
+def add_field_availabilities(conn, field_id: int, availabilities: List[FieldAvailability]) -> int:
+    cursor = conn.cursor()
+    added = 0
+    try:
+        for avail in availabilities:
+            query = """
+                INSERT INTO field_availability (field_id, day_of_week, start_time, end_time)
+                VALUES (%s, %s, %s, %s)
+            """
+            cursor.execute(query, (
+                field_id,
+                avail.day_of_week,
+                avail.start_time,
+                avail.end_time
+            ))
+            added += 1
+        conn.commit()
+        return added
+    except psycopg2.IntegrityError as e:
+        conn.rollback()
+        if "field_availability_pkey" in str(e):
+            raise ValueError("Availability already exists for this time slot")
         raise

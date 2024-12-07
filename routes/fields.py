@@ -3,10 +3,11 @@ Filename: fields.py in routes folder
 '''
 
 from fastapi import APIRouter, HTTPException
-from database.fields import get_fields, create_field
+from database.fields import get_fields, create_field, add_field_availabilities
 from typing import List, Optional, Literal
 from pydantic import BaseModel, Field
 import logging
+from datetime import time
 
 # Add logging configuration
 logging.basicConfig(level=logging.DEBUG)
@@ -48,6 +49,28 @@ class FieldCreate(BaseModel):
                 "size": "11v11",
                 "field_type": "full",
                 "half_fields": []
+            }
+        }
+
+
+class FieldAvailabilityBase(BaseModel):
+    day_of_week: Literal['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    start_time: str
+    end_time: str
+
+class FieldAvailabilityCreate(BaseModel):
+    availabilities: List[FieldAvailabilityBase]
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "availabilities": [
+                    {
+                        "day_of_week": "Mon",
+                        "start_time": "09:00",
+                        "end_time": "17:00"
+                    }
+                ]
             }
         }
 
@@ -111,4 +134,15 @@ async def create_new_field(field: FieldCreate) -> dict:
         return {"field_id": new_field.field_id}
     except Exception as e:
         logger.error(f"Error creating field: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+    
+@router.post("/{field_id}/availability")
+async def add_field_availability(
+    field_id: int,
+    availability: FieldAvailabilityCreate
+) -> dict:
+    try:
+        added = add_field_availabilities(field_id, availability.availabilities)
+        return {"message": "Availability added successfully", "count": added}
+    except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
