@@ -139,3 +139,59 @@ def add_field_availabilities(conn, field_id: int, availabilities: List[FieldAvai
         if "field_availability_pkey" in str(e):
             raise ValueError("Availability already exists for this time slot")
         raise
+
+@with_db_connection
+def delete_field(conn, field_id: int) -> dict:
+    """Deletes a field and its child fields based on usage in schedule entries."""
+    cursor = conn.cursor()
+    
+    try:
+        # Check if field exists and get all related field IDs (including children)
+        cursor.execute("""
+            WITH RECURSIVE field_tree AS (
+                SELECT field_id FROM fields WHERE field_id = %s
+                UNION
+                SELECT f.field_id FROM fields f
+                INNER JOIN field_tree ft ON f.parent_field_id = ft.field_id
+            )
+            SELECT array_agg(field_id) FROM field_tree
+        """, (field_id,))
+        
+        field_ids = cursor.fetchone()[0]
+        if not field_ids:
+            raise ValueError("Field not found")
+
+        # Check if any of these fields are used in schedule entries
+        cursor.execute("""
+            SELECT EXISTS (
+                SELECT 1 FROM schedule_entries 
+                WHERE field_id = ANY(%s)
+            )
+        """, (field_ids,))
+        
+        has_schedules = cursor.fetchone()[0]
+
+        if has_schedules:
+            # Soft delete - update is_active flag
+            cursor.execute("""
+                UPDATE fields 
+                SET is_active = false 
+                WHERE field_id = ANY(%s)
+            """, (field_ids,))
+        else:
+            # Hard delete - field_availability will be deleted automatically due to CASCADE
+            cursor.execute("""
+                DELETE FROM fields 
+                WHERE field_id = ANY(%s)
+            """, (field_ids,))
+
+        conn.commit()
+        return {
+            "success": True,
+            "action": "soft_delete" if has_schedules else "hard_delete",
+            "affected_fields": len(field_ids)
+        }
+        
+    except Exception as e:
+        conn.rollback()
+        raise

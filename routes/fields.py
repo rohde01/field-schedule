@@ -3,7 +3,7 @@ Filename: fields.py in routes folder
 '''
 
 from fastapi import APIRouter, HTTPException
-from database.fields import get_fields, create_field, add_field_availabilities
+from database.fields import get_fields, create_field, add_field_availabilities, delete_field
 from typing import List, Optional, Literal
 from pydantic import BaseModel, Field
 import logging
@@ -145,4 +145,15 @@ async def add_field_availability(
         added = add_field_availabilities(field_id, availability.availabilities)
         return {"message": "Availability added successfully", "count": added}
     except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.delete("/{field_id}")
+async def delete_field_endpoint(field_id: int) -> dict:
+    try:
+        result = delete_field(field_id)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error deleting field: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
