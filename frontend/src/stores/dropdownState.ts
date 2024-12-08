@@ -66,12 +66,15 @@ export function resetFieldsState() {
 }
 
 export function toggleCreateField() {
-    dropdownState.update(state => ({
-        ...state,
-        showCreateField: !state.showCreateField,
-        selectedField: null,
-        fieldsOpen: false
-    }));
+    dropdownState.update(state => {
+        const showCreate = !state.showCreateField;
+        return {
+            ...state,
+            showCreateField: showCreate,
+            selectedField: null,
+            fieldsOpen: !showCreate
+        };
+    });
 }
 
 export function closeAllDropdowns() {

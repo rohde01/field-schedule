@@ -165,6 +165,43 @@ export const actions = {
                 error: 'Failed to create field' 
             });
         }
+    },
+
+    deleteField: async ({ request, fetch }) => {
+        const formData = await request.formData();
+        const fieldId = formData.get('fieldId');
+
+        if (!fieldId) {
+            return fail(400, { error: 'Field ID is required' });
+        }
+
+        try {
+            const response = await fetch(`http://localhost:8000/fields/${fieldId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                return fail(response.status, { 
+                    error: errorData.detail || 'Failed to delete field' 
+                });
+            }
+
+            return { 
+                success: true,
+                field_id: fieldId
+            };
+
+        } catch (error) {
+            console.error('Error deleting field:', error);
+            return fail(500, { 
+                error: 'Failed to delete field' 
+            });
+        }
     }
 } satisfies Actions;
 

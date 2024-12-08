@@ -59,6 +59,12 @@ function createFacilityStore() {
                 has_facilities: false,
                 fields: []
             });
+        },
+        removeField: (fieldId: number) => {
+            updateStore(status => ({
+                ...status,
+                fields: status.fields.filter(field => field.field_id !== fieldId)
+            }));
         }
     };
 }
