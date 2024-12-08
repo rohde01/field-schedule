@@ -344,19 +344,11 @@
                 <div class="field-section">
                     <h3 class="field-subtitle">Field Availability</h3>
                     <div class="space-y-4">
-                        <button
-                            type="button"
-                            class="btn-secondary text-sm"
-                            on:click={addAvailability}
-                        >
-                            Add Availability
-                        </button>
-
                         {#each availabilities as availability, i}
                             <div class="flex gap-2 items-center">
                                 <select
                                     bind:value={availability.day_of_week}
-                                    class="form-input-sm"
+                                    class="form-input-sm bg-white [&>option:hover]:bg-mint-100 [&>option:checked]:bg-mint-500 [&>option:checked]:text-white"
                                 >
                                     {#each days as day}
                                         <option value={day}>{day}</option>
@@ -366,18 +358,18 @@
                                 <input
                                     type="time"
                                     bind:value={availability.start_time}
-                                    class="form-input-sm"
+                                    class="form-input-sm [&::-webkit-calendar-picker-indicator]:filter-mint"
                                 />
 
                                 <input
                                     type="time"
                                     bind:value={availability.end_time}
-                                    class="form-input-sm"
+                                    class="form-input-sm [&::-webkit-calendar-picker-indicator]:filter-mint"
                                 />
 
                                 <button
                                     type="button"
-                                    class="text-red-600 hover:text-red-700"
+                                    class="text-sage-500 hover:text-sage-700 transition-colors duration-200"
                                     on:click={() => removeAvailability(i)}
                                     aria-label="Remove availability"
                                 >
@@ -387,6 +379,14 @@
                                 </button>
                             </div>
                         {/each}
+                        
+                        <button
+                            type="button"
+                            class="text-xs px-2 py-1 bg-white text-mint-600 rounded-lg hover:bg-mint-50 transition-colors border border-mint-200"
+                            on:click={addAvailability}
+                        >
+                            Add Availability
+                        </button>
                     </div>
                 </div>
             </div>
