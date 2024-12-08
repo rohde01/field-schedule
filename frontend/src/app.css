@@ -1,0 +1,149 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+
+  .btn-primary {
+    @apply btn bg-mint-500 text-white hover:bg-mint-600 focus:ring-mint-500;
+  }
+
+  .btn-secondary {
+    @apply btn bg-sage-100 text-sage-700 hover:bg-sage-200 focus:ring-sage-500;
+  }
+
+  .form-input {
+    @apply block w-full rounded-lg border-sage-200 shadow-sm focus:border-mint-500 focus:ring-mint-500;
+  }
+
+  .form-input-sm {
+    @apply block w-full rounded-lg border-sage-200 shadow-sm focus:border-mint-500 focus:ring-mint-500 py-1 px-2 text-sm;
+  }
+
+  .spinner {
+    @apply inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite];
+  }
+
+  .spinner-container {
+    @apply text-center p-8;
+  }
+
+  .form-label {
+    @apply block text-sm font-medium text-sage-700 mb-1;
+  }
+
+  .nav-link {
+    @apply px-3 py-2 text-sage-700 hover:text-mint-600 rounded-md hover:bg-sage-50 transition-colors duration-200;
+  }
+
+  .dropdown-trigger {
+    @apply w-full flex items-center justify-between px-5 py-3.5 bg-mint-500 hover:bg-mint-600 text-white rounded-2xl shadow-lg transition-all duration-200;
+  }
+
+  .dropdown-panel {
+    @apply absolute bottom-full mb-2 w-full bg-white rounded-2xl shadow-xl border border-mint-100 overflow-hidden transition-all duration-200;
+  }
+
+  .dropdown-content {
+    @apply max-h-80 overflow-y-auto p-1;
+  }
+
+  .dropdown-item {
+    @apply w-full px-4 py-3 text-left text-sm hover:bg-mint-50 rounded-xl transition-colors duration-150;
+  }
+
+  .dropdown-item-selected {
+    @apply bg-mint-100;
+  }
+
+  .dropdown-divider {
+    @apply border-t border-mint-100 p-1;
+  }
+
+  .dropdown-action-button {
+    @apply w-full flex items-center px-4 py-3 text-sm text-mint-700 hover:text-mint-800 hover:bg-mint-50 rounded-xl transition-colors duration-150;
+  }
+
+  .field-card {
+    @apply relative bg-white rounded-lg shadow-md p-6 mb-4;
+  }
+
+  .field-card-grid {
+    @apply grid grid-cols-2 gap-6;
+  }
+
+  .field-section {
+    @apply space-y-6;
+  }
+
+  .field-subsection {
+    @apply space-y-4;
+  }
+
+  .field-header {
+    @apply flex items-center justify-between;
+  }
+
+  .field-title {
+    @apply text-sm font-medium text-sage-700;
+  }
+
+  .field-actions {
+    @apply flex justify-end mt-6;
+  }
+
+  .field-card-title {
+    @apply text-xl font-semibold mb-6;
+  }
+
+  .field-subtitle {
+    @apply text-sm font-medium mb-1;
+  }
+
+  .field-info-text {
+    @apply text-sm text-gray-600;
+  }
+
+  .field-tag {
+    @apply inline-block bg-mint-50 text-mint-700 rounded-lg px-2 py-1 text-sm;
+  }
+
+  .btn-trash {
+    @apply absolute bottom-2 right-2 p-2 text-red-500 hover:text-red-600 transition-colors duration-200;
+  }
+
+  .delete-button {
+    @apply bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded;
+  }
+
+  .confirmation-modal {
+    @apply fixed top-0 left-0 w-full h-full bg-black bg-opacity-50 flex justify-center items-center;
+  }
+
+  .confirmation-modal-content {
+    @apply bg-white rounded-lg shadow-md p-6;
+  }
+
+  .confirmation-modal-title {
+    @apply text-lg font-bold mb-4;
+  }
+
+  .confirmation-modal-text {
+    @apply text-sm mb-4;
+  }
+
+  .confirmation-modal-actions {
+    @apply flex justify-end;
+  }
+
+  .confirmation-modal-cancel-button {
+    @apply bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded;
+  }
+
+  .confirmation-modal-confirm-button {
+    @apply bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded;
+  }
+}

@@ -51,3 +51,44 @@ def update_user(conn, user_id: int, user_data: dict):
         cur.execute(query, {**user_data, 'user_id': user_id})
         conn.commit()
         return cur.fetchone()
+
+@with_db_connection
+def authenticate_user(conn, username: str, password: str):
+    """Authenticate user by username and password."""
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("SELECT * FROM users WHERE username = %s", (username,))
+        user = cur.fetchone()
+        if user and bcrypt.checkpw(password.encode('utf-8'), user['password_hash'].encode('utf-8')):
+            return user
+        return None
+
+@with_db_connection
+def get_user_by_username(conn, username: str):
+    """Retrieve user information by username."""
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("""
+            SELECT user_id, username, email, first_name, last_name, role, created_at, is_active
+            FROM users WHERE username = %s
+        """, (username,))
+        return cur.fetchone()
+
+@with_db_connection
+def check_existing_credentials(conn, username: str, email: str):
+    """Check if username or email already exists."""
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("""
+            SELECT username, email FROM users 
+            WHERE username = %s OR email = %s
+        """, (username, email))
+        return cur.fetchone()
+
+@with_db_connection
+def get_user_primary_club(conn, user_id: int):
+    """Get user's primary club ID."""
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("""
+            SELECT club_id FROM user_club 
+            WHERE user_id = %s AND is_primary = true
+        """, (user_id,))
+        result = cur.fetchone()
+        return result['club_id'] if result else None

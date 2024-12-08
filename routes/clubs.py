@@ -1,3 +1,6 @@
+'''
+Filename: clubs.py in routes folder
+'''
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from database import clubs
@@ -6,6 +9,7 @@ router = APIRouter(prefix="/clubs", tags=["clubs"])
 
 class ClubCreate(BaseModel):
     name: str
+    user_id: int
 
 class UserClubCreate(BaseModel):
     user_id: int
@@ -13,7 +17,9 @@ class UserClubCreate(BaseModel):
 
 @router.post("/")
 async def create_club(club: ClubCreate):
-    return clubs.create_club(club.dict())
+    new_club = clubs.create_club({"name": club.name})
+    clubs.add_user_to_club(club.user_id, new_club["club_id"], True)
+    return {"club_id": new_club["club_id"], "name": new_club["name"]}
 
 @router.get("/{club_id}")
 async def get_club(club_id: int):

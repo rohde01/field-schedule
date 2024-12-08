@@ -1,14 +1,14 @@
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Literal
 from .index import with_db_connection
 import psycopg2
 from database.index import connection_string
 
 @dataclass
 class FieldAvailability:
-    day_of_week: str
-    start_time: str
-    end_time: str
+    day_of_week: Literal['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    start_time: str 
+    end_time: str    
 
 @dataclass
 class Field:
@@ -113,4 +113,85 @@ def create_field(conn, facility_id: int, name: str, size: str, field_type: str, 
             raise ValueError("Invalid parent field ID")
         if "fields_facility_id_fkey" in str(e):
             raise ValueError("Invalid facility ID")
+        raise
+
+@with_db_connection
+def add_field_availabilities(conn, field_id: int, availabilities: List[FieldAvailability]) -> int:
+    cursor = conn.cursor()
+    added = 0
+    try:
+        for avail in availabilities:
+            query = """
+                INSERT INTO field_availability (field_id, day_of_week, start_time, end_time)
+                VALUES (%s, %s, %s, %s)
+            """
+            cursor.execute(query, (
+                field_id,
+                avail.day_of_week,
+                avail.start_time,
+                avail.end_time
+            ))
+            added += 1
+        conn.commit()
+        return added
+    except psycopg2.IntegrityError as e:
+        conn.rollback()
+        if "field_availability_pkey" in str(e):
+            raise ValueError("Availability already exists for this time slot")
+        raise
+
+@with_db_connection
+def delete_field(conn, field_id: int) -> dict:
+    """Deletes a field and its child fields based on usage in schedule entries."""
+    cursor = conn.cursor()
+    
+    try:
+        # Check if field exists and get all related field IDs (including children)
+        cursor.execute("""
+            WITH RECURSIVE field_tree AS (
+                SELECT field_id FROM fields WHERE field_id = %s
+                UNION
+                SELECT f.field_id FROM fields f
+                INNER JOIN field_tree ft ON f.parent_field_id = ft.field_id
+            )
+            SELECT array_agg(field_id) FROM field_tree
+        """, (field_id,))
+        
+        field_ids = cursor.fetchone()[0]
+        if not field_ids:
+            raise ValueError("Field not found")
+
+        # Check if any of these fields are used in schedule entries
+        cursor.execute("""
+            SELECT EXISTS (
+                SELECT 1 FROM schedule_entries 
+                WHERE field_id = ANY(%s)
+            )
+        """, (field_ids,))
+        
+        has_schedules = cursor.fetchone()[0]
+
+        if has_schedules:
+            # Soft delete - update is_active flag
+            cursor.execute("""
+                UPDATE fields 
+                SET is_active = false 
+                WHERE field_id = ANY(%s)
+            """, (field_ids,))
+        else:
+            # Hard delete - field_availability will be deleted automatically due to CASCADE
+            cursor.execute("""
+                DELETE FROM fields 
+                WHERE field_id = ANY(%s)
+            """, (field_ids,))
+
+        conn.commit()
+        return {
+            "success": True,
+            "action": "soft_delete" if has_schedules else "hard_delete",
+            "affected_fields": len(field_ids)
+        }
+        
+    except Exception as e:
+        conn.rollback()
         raise
