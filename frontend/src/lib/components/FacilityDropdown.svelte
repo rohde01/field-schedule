@@ -1,6 +1,6 @@
 <script lang="ts">
     import { facilityStatus } from '../../stores/facilityStatus';
-    import { dropdownState, toggleDropdown } from '../../stores/dropdownState';
+    import { dropdownState, toggleDropdown } from '../../stores/FacilityDropdownState';
     import { onMount } from 'svelte';
     import { enhance } from '$app/forms';
     import { invalidateAll } from '$app/navigation';

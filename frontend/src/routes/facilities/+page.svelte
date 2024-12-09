@@ -7,7 +7,7 @@
     import { browser } from '$app/environment';
     import { invalidate } from '$app/navigation';
     import { onMount } from 'svelte';
-    import { dropdownState, setDefaultField, initializeDropdownState, resetFieldsState } from '../../stores/dropdownState';
+    import { dropdownState, setDefaultField, initializeDropdownState, resetFieldsState } from '../../stores/FacilityDropdownState';
     import { page } from '$app/stores';
 
     export let data: PageData;

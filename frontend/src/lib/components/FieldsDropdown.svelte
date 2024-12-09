@@ -1,6 +1,6 @@
 <script lang="ts">
     import { facilityStatus } from '../../stores/facilityStatus';
-    import { dropdownState, toggleDropdown, selectField, setDefaultField, toggleCreateField } from '../../stores/dropdownState';
+    import { dropdownState, toggleDropdown, selectField, setDefaultField, toggleCreateField } from '../../stores/FacilityDropdownState';
     import type { Field } from '$lib/types/facilityStatus';
     import FieldCard from './FieldCard.svelte';
     
