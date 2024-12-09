@@ -6,7 +6,11 @@ export const GET: RequestHandler = async ({ params, locals, fetch }) => {
         return new Response('Unauthorized', { status: 401 });
     }
 
-    const fieldsResponse = await fetch(`http://localhost:8000/fields/facility/${params.facilityId}`);
+    const fieldsResponse = await fetch(`http://localhost:8000/fields/facility/${params.facilityId}`, {
+        headers: {
+            'Authorization': `Bearer ${locals.token}`
+        }
+    });
     
     if (!fieldsResponse.ok) {
         if (fieldsResponse.status !== 404) {

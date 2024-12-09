@@ -36,6 +36,7 @@ export const actions: Actions = {
         });
 
         const responseData = await response.json();
+        console.log('Login response data:', responseData);
 
         if (!response.ok) {
             return fail(response.status, {
@@ -52,24 +53,41 @@ export const actions: Actions = {
             maxAge: 60 * 60 * 24 // 1 day
         });
 
-        const userData = {
-            id: responseData.user_id,
-            firstName: responseData.first_name,
-            lastName: responseData.last_name,
-            email: responseData.email,
-            role: responseData.role,
-            primary_club_id: responseData.primary_club_id,
+        // Fetch user data after successful login
+        const userResponse = await fetch('http://localhost:8000/users/me', {
+            headers: { 
+                Authorization: `Bearer ${responseData.access_token}`
+            }
+        });
+        
+        if (!userResponse.ok) {
+            return fail(userResponse.status, {
+                error: 'Failed to fetch user data',
+                username: username.toString()
+            });
+        }
+
+        const userData = await userResponse.json();
+        console.log('User data:', userData);
+
+        const userStore = {
+            id: userData.user_id,
+            firstName: userData.first_name,
+            lastName: userData.last_name,
+            email: userData.email,
+            role: userData.role,
+            primary_club_id: userData.primary_club_id,
         };
 
         const facilityStatusData: FacilityStatus = {
             selectedFacility: null,
-            has_facilities: responseData.has_facilities,
+            has_facilities: userData.has_facilities,
             fields: []
         };
 
-        locals.user = userData;
+        locals.user = userStore;
         locals.facilityStatus = facilityStatusData;
-        user.set(userData);
+        user.set(userStore);
         facilityStatus.set(facilityStatusData);
         
         throw redirect(303, '/dashboard');

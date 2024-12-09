@@ -1,5 +1,5 @@
 import type { PageServerLoad, Actions } from './$types';
-import type { CreateFieldResponse } from '$lib/types/field'; // Add this import
+import type { CreateFieldResponse } from '$lib/types/field';
 import { error, fail } from '@sveltejs/kit';
 
 export const load = (async ({ locals, fetch }) => {
@@ -17,7 +17,11 @@ export const load = (async ({ locals, fetch }) => {
     }
 
     try {
-        const facilitiesResponse = await fetch(`http://localhost:8000/facilities/club/${locals.user.primary_club_id}`);
+        const facilitiesResponse = await fetch(`http://localhost:8000/facilities/club/${locals.user.primary_club_id}`, {
+            headers: {
+                'Authorization': `Bearer ${locals.token}`
+            }
+        });
         
         if (!facilitiesResponse.ok) {
             if (facilitiesResponse.status === 404) {
@@ -43,13 +47,16 @@ export const load = (async ({ locals, fetch }) => {
         let fields = [];
         if (locals.facilityStatus?.selectedFacility) {
             try {
-                const fieldsResponse = await fetch(`http://localhost:8000/fields/facility/${locals.facilityStatus.selectedFacility.facility_id}`);
+                const fieldsResponse = await fetch(`http://localhost:8000/fields/facility/${locals.facilityStatus.selectedFacility.facility_id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${locals.token}`
+                    }
+                });
                 if (fieldsResponse.ok) {
                     fields = await fieldsResponse.json();
                 }
             } catch (error) {
                 console.error('Failed to fetch fields:', error);
-                // Continue without fields if fetch fails
             }
         }
 
@@ -86,7 +93,8 @@ export const actions = {
             const response = await fetch('http://localhost:8000/facilities', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${locals.token}`
                 },
                 body: JSON.stringify({
                     name,
@@ -119,7 +127,7 @@ export const actions = {
         }
     },
     
-    createField: async ({ request, fetch }) => {
+    createField: async ({ request, fetch, locals }) => {
         const formData = await request.formData();
         
         try {
@@ -129,7 +137,10 @@ export const actions = {
             // First create the field
             const response = await fetch('http://localhost:8000/fields', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${locals.token}`
+                },
                 body: JSON.stringify(fieldData)
             });
 
@@ -147,7 +158,10 @@ export const actions = {
             if (availabilityData.availabilities.length > 0) {
                 const availabilityResponse = await fetch(`http://localhost:8000/fields/${result.field_id}/availability`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${locals.token}`
+                    },
                     body: JSON.stringify(availabilityData)
                 });
 
@@ -167,7 +181,7 @@ export const actions = {
         }
     },
 
-    deleteField: async ({ request, fetch }) => {
+    deleteField: async ({ request, fetch, locals }) => {
         const formData = await request.formData();
         const fieldId = formData.get('fieldId');
 
@@ -179,8 +193,7 @@ export const actions = {
             const response = await fetch(`http://localhost:8000/fields/${fieldId}`, {
                 method: 'DELETE',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
+                    'Authorization': `Bearer ${locals.token}`
                 }
             });
 
@@ -204,4 +217,3 @@ export const actions = {
         }
     }
 } satisfies Actions;
-

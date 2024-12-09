@@ -3,7 +3,8 @@ import { routeConfig } from '$lib/server/routeConfig';
 import type { Handle } from '@sveltejs/kit';
 
 export const handle: Handle = async ({ event, resolve }) => {
-    const token = event.cookies.get('token');
+    const token = event.cookies.get('token') ?? null;
+    event.locals.token = token;
     event.locals.user = token ? await validateUser(token) : null;
 
     const path = event.url.pathname;
