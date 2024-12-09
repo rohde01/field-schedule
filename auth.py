@@ -7,6 +7,7 @@ from database import users
 from dotenv import load_dotenv
 import os
 from pydantic import BaseModel
+from models.users import User
 
 load_dotenv()
 
@@ -55,7 +56,7 @@ def verify_token(token: str, secret_key: str = SECRET_KEY) -> Tuple[bool, dict]:
     except JWTError:
         return False, {"error": "Invalid token"}
 
-async def get_current_user(token: str = Depends(oauth2_scheme)):
+async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     """Retrieve the current user based on the JWT token."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -78,11 +79,19 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     if username is None:
         raise credentials_exception
 
-    user = users.get_user_by_username(username)
-    if user is None:
+    user_data = users.get_user_by_username(username)
+    if user_data is None:
         raise credentials_exception
 
-    return user
+    # Convert RealDictRow to User model
+    return User(
+        user_id=user_data["user_id"],
+        username=user_data["username"],
+        email=user_data["email"],
+        first_name=user_data.get("first_name"),
+        last_name=user_data.get("last_name"),
+        role=user_data.get("role", "member")
+    )
 
 async def refresh_access_token(refresh_token: str) -> Token:
     """Create new access token using refresh token."""

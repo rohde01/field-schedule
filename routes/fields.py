@@ -2,12 +2,14 @@
 Filename: fields.py in routes folder
 '''
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from database.fields import get_fields, create_field, add_field_availabilities, delete_field
 from typing import List, Optional, Literal
 from pydantic import BaseModel, Field
 import logging
 from datetime import time
+from auth import get_current_user
+from models.users import User
 
 # Add logging configuration
 logging.basicConfig(level=logging.DEBUG)
@@ -75,7 +77,7 @@ class FieldAvailabilityCreate(BaseModel):
         }
 
 @router.get("/facility/{facility_id}")
-async def get_facility_fields(facility_id: int) -> List[dict]:
+async def get_facility_fields(facility_id: int, current_user: User = Depends(get_current_user)) -> List[dict]:
     fields = get_fields(facility_id)
     return [
         {
@@ -96,7 +98,7 @@ async def get_facility_fields(facility_id: int) -> List[dict]:
     ]
 
 @router.post("")
-async def create_new_field(field: FieldCreate) -> dict:
+async def create_new_field(field: FieldCreate, current_user: User = Depends(get_current_user)) -> dict:
     try:
         # Add debug logging
         logger.debug(f"Received field data: {field.dict()}")
@@ -139,7 +141,8 @@ async def create_new_field(field: FieldCreate) -> dict:
 @router.post("/{field_id}/availability")
 async def add_field_availability(
     field_id: int,
-    availability: FieldAvailabilityCreate
+    availability: FieldAvailabilityCreate,
+    current_user: User = Depends(get_current_user)
 ) -> dict:
     try:
         added = add_field_availabilities(field_id, availability.availabilities)
@@ -148,7 +151,7 @@ async def add_field_availability(
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.delete("/{field_id}")
-async def delete_field_endpoint(field_id: int) -> dict:
+async def delete_field_endpoint(field_id: int, current_user: User = Depends(get_current_user)) -> dict:
     try:
         result = delete_field(field_id)
         return result

@@ -1,8 +1,9 @@
-
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from database.facilities import create_facility, get_facilities
 from typing import List, Optional
 from pydantic import BaseModel, Field
+from auth import get_current_user
+from models.users import User
 
 router = APIRouter(
     prefix="/facilities",
@@ -15,7 +16,7 @@ class FacilityCreate(BaseModel):
     is_primary: bool = False
 
 @router.get("/club/{club_id}")
-async def get_club_facilities(club_id: int) -> List[dict]:
+async def get_club_facilities(club_id: int, current_user: User = Depends(get_current_user)) -> List[dict]:
     facilities = get_facilities(club_id)
     if not facilities:
         raise HTTPException(status_code=404, detail="No facilities found for this club")
@@ -29,7 +30,7 @@ async def get_club_facilities(club_id: int) -> List[dict]:
     ]
 
 @router.post("")
-async def create_new_facility(facility: FacilityCreate) -> dict:
+async def create_new_facility(facility: FacilityCreate, current_user: User = Depends(get_current_user)) -> dict:
     try:
         new_facility = create_facility(
             club_id=facility.club_id,
