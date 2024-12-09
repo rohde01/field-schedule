@@ -24,25 +24,24 @@
         if (browser) {
             initializeDropdownState();
             
+            // Reset the facility status first
+            facilityStatus.reset();
+            
+            // Then update with server data
             facilityStatus.update((status: FacilityStatus) => ({
                 ...status,
                 has_facilities: data.has_facilities,
-                fields: data.fields || []
+                fields: []
             }));
 
-            if (data.fields && data.fields.length > 0) {
-                setDefaultField(data.fields);
-            }
-
-            if ($facilityStatus.selectedFacility && (!$facilityStatus.fields || $facilityStatus.fields.length === 0)) {
-                await facilityStatus.setFacility($facilityStatus.selectedFacility);
-            }
-            else if (data.has_facilities && data.facilities.length > 0 && !$facilityStatus.selectedFacility) {
+            // Only set a facility if we have facilities and no facility is currently selected
+            if (data.has_facilities && data.facilities.length > 0 && !$facilityStatus.selectedFacility) {
                 const primaryFacility = data.facilities.find((f: Facility) => f.is_primary);
                 if (primaryFacility) {
                     await facilityStatus.setFacility(primaryFacility);
                 }
             }
+            
             isInitializing = false;
         }
     });

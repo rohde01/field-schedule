@@ -22,6 +22,7 @@ export const actions: Actions = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${locals.token}`
             },
             body: JSON.stringify({
                 name: name,

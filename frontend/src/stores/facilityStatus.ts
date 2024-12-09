@@ -1,7 +1,8 @@
 import { writable, derived } from 'svelte/store';
 import type { FacilityStatus } from '$lib/types/facilityStatus';
 
-const storedStatus = typeof localStorage !== 'undefined' 
+// Only load from localStorage if it exists and we're in a browser
+const storedStatus = typeof localStorage !== 'undefined' && localStorage.getItem('facilityStatus')
     ? JSON.parse(localStorage.getItem('facilityStatus') || 'null')
     : null;
 
@@ -20,19 +21,42 @@ function createFacilityStore() {
                 fields: value.fields || []
             };
             setStore(safeValue);
+            
+            // Only persist if there's actual facility data
+            if (typeof localStorage !== 'undefined') {
+                if (safeValue.selectedFacility) {
+                    localStorage.setItem('facilityStatus', JSON.stringify(safeValue));
+                } else {
+                    localStorage.removeItem('facilityStatus');
+                }
+            }
         },
         update: (updater: (state: FacilityStatus) => FacilityStatus) => {
             updateStore(state => {
                 const updated = updater(state);
-                return {
+                const safeValue = {
                     ...updated,
                     fields: updated.fields || []
                 };
+                
+                // Only persist if there's actual facility data
+                if (typeof localStorage !== 'undefined') {
+                    if (safeValue.selectedFacility) {
+                        localStorage.setItem('facilityStatus', JSON.stringify(safeValue));
+                    } else {
+                        localStorage.removeItem('facilityStatus');
+                    }
+                }
+                
+                return safeValue;
             });
         },
         setFacility: async (facility: FacilityStatus['selectedFacility']) => {
             if (!facility) {
                 updateStore(status => ({ ...status, selectedFacility: null, fields: [] }));
+                if (typeof localStorage !== 'undefined') {
+                    localStorage.removeItem('facilityStatus');
+                }
                 return;
             }
 
@@ -54,6 +78,9 @@ function createFacilityStore() {
             }
         },
         reset: () => {
+            if (typeof localStorage !== 'undefined') {
+                localStorage.removeItem('facilityStatus');
+            }
             setStore({
                 selectedFacility: null,
                 has_facilities: false,
@@ -74,7 +101,9 @@ export const facilityStatus = createFacilityStore();
 // Subscribe to store changes to update localStorage and log updates
 facilityStatus.subscribe((value) => {
     if (typeof localStorage !== 'undefined') {
-        localStorage.setItem('facilityStatus', JSON.stringify(value));
+        if (value.selectedFacility) {
+            localStorage.setItem('facilityStatus', JSON.stringify(value));
+        }
         console.log('Facility status updated:', { 
             facility: value.selectedFacility?.name,
             fieldCount: value.fields.length,
