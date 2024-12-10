@@ -132,9 +132,8 @@ export const actions = {
         
         try {
             const fieldData = JSON.parse(formData.get('fieldData') as string);
-            const availabilityData = JSON.parse(formData.get('availabilityData') as string);
             
-            // First create the field
+            // Send field data including availabilities in a single request
             const response = await fetch('http://localhost:8000/fields', {
                 method: 'POST',
                 headers: {
@@ -153,24 +152,6 @@ export const actions = {
             }
 
             const result: CreateFieldResponse = await response.json();
-
-            // Then add the availability
-            if (availabilityData.availabilities.length > 0) {
-                const availabilityResponse = await fetch(`http://localhost:8000/fields/${result.field_id}/availability`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${locals.token}`
-                    },
-                    body: JSON.stringify(availabilityData)
-                });
-
-                if (!availabilityResponse.ok) {
-                    console.error('Failed to add field availability');
-                    // We don't fail the whole operation if availability fails
-                }
-            }
-
             return { success: true, field_id: result.field_id };
 
         } catch (error) {

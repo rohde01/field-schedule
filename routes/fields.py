@@ -20,6 +20,27 @@ router = APIRouter(
     tags=["fields"]
 )
 
+class FieldAvailabilityBase(BaseModel):
+    day_of_week: Literal['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    start_time: str
+    end_time: str
+
+class FieldAvailabilityCreate(BaseModel):
+    availabilities: List[FieldAvailabilityBase]
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "availabilities": [
+                    {
+                        "day_of_week": "Mon",
+                        "start_time": "09:00",
+                        "end_time": "17:00"
+                    }
+                ]
+            }
+        }
+
 class SubFieldCreate(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     field_type: Literal['half', 'quarter']
@@ -42,6 +63,7 @@ class FieldCreate(BaseModel):
     size: Literal['11v11', '8v8', '5v5', '3v3']
     field_type: Literal['full']
     half_fields: Optional[List[SubFieldCreate]] = []
+    availabilities: Optional[List[FieldAvailabilityBase]] = []
 
     class Config:
         schema_extra = {
@@ -50,31 +72,11 @@ class FieldCreate(BaseModel):
                 "name": "Main Field",
                 "size": "11v11",
                 "field_type": "full",
-                "half_fields": []
+                "half_fields": [],
+                "availabilities": []
             }
         }
 
-
-class FieldAvailabilityBase(BaseModel):
-    day_of_week: Literal['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-    start_time: str
-    end_time: str
-
-class FieldAvailabilityCreate(BaseModel):
-    availabilities: List[FieldAvailabilityBase]
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "availabilities": [
-                    {
-                        "day_of_week": "Mon",
-                        "start_time": "09:00",
-                        "end_time": "17:00"
-                    }
-                ]
-            }
-        }
 
 @router.get("/facility/{facility_id}")
 async def get_facility_fields(facility_id: int, current_user: User = Depends(get_current_user)) -> List[dict]:
@@ -99,9 +101,7 @@ async def get_facility_fields(facility_id: int, current_user: User = Depends(get
 
 @router.post("")
 async def create_new_field(field: FieldCreate, current_user: User = Depends(get_current_user)) -> dict:
-    try:
-        # Add debug logging
-        logger.debug(f"Received field data: {field.dict()}")
+    try:      
         
         # Create main field
         new_field = create_field(
@@ -110,6 +110,12 @@ async def create_new_field(field: FieldCreate, current_user: User = Depends(get_
             size=field.size,
             field_type=field.field_type
         )
+        
+        if field.availabilities:
+            try:
+                add_field_availabilities(new_field.field_id, field.availabilities)
+            except ValueError as e:
+                logger.error(f"Error adding availabilities: {str(e)}")
         
         # Create half fields if any
         if field.half_fields:

@@ -45,20 +45,13 @@
             name: mainFieldName,
             size: selectedSize,
             field_type: 'full' as const,
-            half_fields: subfieldsData
+            half_fields: subfieldsData,
+            availabilities: availabilities
         };
     }
 
     const handleSubmit: SubmitFunction = ({ formData }) => {
-        // We get subfield and availability data when we submit
-        // We'll handle that by listening to a custom event dispatched by subfield and availability editors
-        // or simply referencing their states directly.
-
-        // We'll assume we have a function or a reactive block that gives us `subfieldsData` from FieldSubfieldsEditor
-        // For simplicity, we will store them in this component using a callback.
-
         formData.set('fieldData', JSON.stringify(prepareFormData(halfFieldsData)));
-        formData.set('availabilityData', JSON.stringify({ availabilities }));
     };
 
     // We'll store halfFieldsData coming from FieldSubfieldsEditor via events

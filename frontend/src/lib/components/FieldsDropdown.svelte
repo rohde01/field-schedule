@@ -91,7 +91,8 @@
                     </div>
                 {:else}
                     <div class="p-4 text-sage-500 text-center text-sm">
-                        No fields available
+                        <p>No fields available</p>
+                        <p class="mt-1 text-xs">Click 'Create Field' to add one</p>
                     </div>
                 {/if}
             </div>

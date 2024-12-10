@@ -76,13 +76,7 @@
 
     {#if !isInitializing}
         {#if $facilityStatus.selectedFacility}
-            {#if $facilityStatus.fields && $facilityStatus.fields.length > 0}
-                <FieldsDropdown fields={$facilityStatus.fields} />
-            {:else}
-                <div class="text-center p-8 text-sage-500">
-                    No fields available for this facility
-                </div>
-            {/if}
+            <FieldsDropdown fields={$facilityStatus.fields} />
         {:else}
             <div class="text-center p-8 text-sage-500">
                 Please select a facility to view fields

@@ -119,26 +119,40 @@ def create_field(conn, facility_id: int, name: str, size: str, field_type: str, 
 def add_field_availabilities(conn, field_id: int, availabilities: List[FieldAvailability]) -> int:
     cursor = conn.cursor()
     added = 0
+    
     try:
+        cursor.execute("BEGIN")
+        
+        cursor.execute(
+            "DELETE FROM field_availability WHERE field_id = %s",
+            (field_id,)
+        )
+        
         for avail in availabilities:
-            query = """
-                INSERT INTO field_availability (field_id, day_of_week, start_time, end_time)
-                VALUES (%s, %s, %s, %s)
-            """
-            cursor.execute(query, (
-                field_id,
-                avail.day_of_week,
-                avail.start_time,
-                avail.end_time
-            ))
-            added += 1
-        conn.commit()
+            cursor.execute("""
+                SELECT COUNT(*) FROM field_availability 
+                WHERE field_id = %s AND day_of_week = %s AND start_time = %s
+            """, (field_id, avail.day_of_week, avail.start_time))
+            
+            if cursor.fetchone()[0] == 0:
+                cursor.execute("""
+                    INSERT INTO field_availability (field_id, day_of_week, start_time, end_time)
+                    VALUES (%s, %s, %s, %s)
+                """, (
+                    field_id,
+                    avail.day_of_week,
+                    avail.start_time,
+                    avail.end_time
+                ))
+                added += 1
+        
+        cursor.execute("COMMIT")
         return added
-    except psycopg2.IntegrityError as e:
-        conn.rollback()
-        if "field_availability_pkey" in str(e):
-            raise ValueError("Availability already exists for this time slot")
-        raise
+        
+    except Exception as e:
+        # If anything goes wrong, rollback the transaction
+        cursor.execute("ROLLBACK")
+        raise ValueError(f"Error managing field availability: {str(e)}")
 
 @with_db_connection
 def delete_field(conn, field_id: int) -> dict:
