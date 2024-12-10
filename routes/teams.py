@@ -5,14 +5,15 @@ Filename: teams.py in routes folder
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional
 from pydantic import BaseModel, Field, model_validator
-import re
 from database.teams import create_team, get_teams, delete_team, update_team
 from auth import get_current_user
 from models.users import User
 
 router = APIRouter(
     prefix="/teams",
-    tags=["teams"]
+    tags=["teams"],
+    include_in_schema=True,
+    redirect_slashes=False
 )
 
 class TeamBase(BaseModel):
@@ -64,7 +65,7 @@ class TeamUpdate(BaseModel):
             raise ValueError('Preferred field size must be one of: 125, 250, 500, 1000')
         return self
 
-@router.post("/", response_model=Team)
+@router.post("", response_model=Team) 
 async def create_team_route(team: TeamCreate, current_user: User = Depends(get_current_user)):
     try:
         return create_team(team.dict())
@@ -75,7 +76,7 @@ async def create_team_route(team: TeamCreate, current_user: User = Depends(get_c
             raise HTTPException(status_code=400, detail="Invalid club_id")
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/", response_model=List[Team])
+@router.get("", response_model=List[Team])
 async def get_teams_route(club_id: int, include_inactive: bool = False, current_user: User = Depends(get_current_user)):
     return get_teams(club_id, include_inactive)
 

@@ -3,4 +3,5 @@ export const routeConfig = {
     '/club': { requiresAuth: true, requiresClub: true },
     '/club/create': { requiresAuth: true, requiresClub: false },
     '/facilities': { requiresAuth: true, requiresClub: true },
+    '/teams': { requiresAuth: true, requiresClub: true },
 };

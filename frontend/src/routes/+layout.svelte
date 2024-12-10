@@ -13,6 +13,7 @@
                     {#if data.user}
                         <a href="/dashboard" class="nav-link">Dashboard</a>
                         <a href="/club" class="nav-link">My Club</a>
+                        <a href="/teams" class="nav-link">Teams</a>
                         <a href="/facilities" class="nav-link">Facilities</a>
                     {/if}
                 </div>
