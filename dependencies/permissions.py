@@ -4,6 +4,7 @@ from models.users import User
 from database.users import user_belongs_to_club
 from database.facilities import get_facility
 from .auth import get_current_user 
+from database.fields import get_field_facility_id
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -59,3 +60,16 @@ async def validate_facility_access(facility_id: int, current_user: User = Depend
             detail="You do not have access to this facility"
         )
     return facility
+
+async def validate_field_access(field_id: int, current_user: User = Depends(get_current_user)):
+    """
+    Dependency to validate field access based on the field ID by checking its facility
+    """
+    facility_id = get_field_facility_id(field_id)
+    if facility_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Field not found"
+        )
+    
+    return await validate_facility_access(facility_id, current_user)

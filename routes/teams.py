@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional
 from pydantic import BaseModel, Field, model_validator
 from database.teams import create_team, get_teams, delete_team, update_team
-from auth import get_current_user
+from dependencies.auth import get_current_user
 from models.users import User
 
 router = APIRouter(

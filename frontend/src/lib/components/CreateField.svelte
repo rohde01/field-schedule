@@ -40,8 +40,11 @@
     }
 
     function prepareFormData(subfieldsData: any) {
+        if (!facilityId) {
+            throw new Error('Facility ID is required');
+        }
         return {
-            facility_id: facilityId ?? 0,
+            facility_id: facilityId,
             name: mainFieldName,
             size: selectedSize,
             field_type: 'full' as const,
@@ -51,7 +54,13 @@
     }
 
     const handleSubmit: SubmitFunction = ({ formData }) => {
-        formData.set('fieldData', JSON.stringify(prepareFormData(halfFieldsData)));
+        const fieldData = prepareFormData(halfFieldsData);
+        formData.set('fieldData', JSON.stringify(fieldData));
+        return async ({ result, update }) => {
+            if (result.type === 'success') {
+                await update();
+            }
+        };
     };
 
     // We'll store halfFieldsData coming from FieldSubfieldsEditor via events
@@ -79,8 +88,6 @@
     action="?/createField"
     use:enhance={handleSubmit}
 >
-    <input type="hidden" name="facility_id" value={facilityId} />
-
     <div class="field-card-grid">
         <!-- Left Column: Field Configuration -->
         <div class="field-section">

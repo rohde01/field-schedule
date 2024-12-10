@@ -209,3 +209,14 @@ def delete_field(conn, field_id: int) -> dict:
     except Exception as e:
         conn.rollback()
         raise
+
+@with_db_connection
+def get_field_facility_id(conn, field_id: int) -> Optional[int]:
+    """Get the facility ID for a given field."""
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT facility_id FROM fields 
+        WHERE field_id = %s
+    """, (field_id,))
+    result = cursor.fetchone()
+    return result[0] if result else None

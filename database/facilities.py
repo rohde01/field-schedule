@@ -83,3 +83,23 @@ def create_facility(conn, club_id: int, name: str, is_primary: bool = False) -> 
         conn.rollback()
         print(f"Unexpected error creating facility: {str(e)}")
         raise
+
+@with_db_connection
+def get_facility(conn, facility_id: int) -> Optional[Facility]:
+    """Fetch a single facility by ID."""
+    cursor = conn.cursor()
+    query = """
+        SELECT facility_id, club_id, name, is_primary
+        FROM facilities
+        WHERE facility_id = %s
+    """
+    cursor.execute(query, (facility_id,))
+    row = cursor.fetchone()
+    if row:
+        return Facility(
+            facility_id=row[0],
+            club_id=row[1],
+            name=row[2],
+            is_primary=row[3]
+        )
+    return None

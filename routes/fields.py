@@ -2,14 +2,17 @@
 Filename: fields.py in routes folder
 '''
 
+from dataclasses import field
 from fastapi import APIRouter, HTTPException, Depends
 from database.fields import get_fields, create_field, add_field_availabilities, delete_field
 from typing import List, Optional, Literal
 from pydantic import BaseModel, Field
 import logging
 from datetime import time
-from auth import get_current_user
+from dependencies.auth import get_current_user
+from dependencies.permissions import validate_facility_access, validate_field_access
 from models.users import User
+from database.facilities import Facility
 
 # Add logging configuration
 logging.basicConfig(level=logging.DEBUG)
@@ -28,8 +31,8 @@ class FieldAvailabilityBase(BaseModel):
 class FieldAvailabilityCreate(BaseModel):
     availabilities: List[FieldAvailabilityBase]
 
-    class Config:
-        schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "availabilities": [
                     {
@@ -40,14 +43,15 @@ class FieldAvailabilityCreate(BaseModel):
                 ]
             }
         }
+    }
 
 class SubFieldCreate(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     field_type: Literal['half', 'quarter']
     quarter_fields: Optional[List['SubFieldCreate']] = []
 
-    class Config:
-        schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "name": "Half Field A",
                 "field_type": "half",
@@ -56,6 +60,7 @@ class SubFieldCreate(BaseModel):
                 ]
             }
         }
+    }
 
 class FieldCreate(BaseModel):
     facility_id: int
@@ -65,8 +70,8 @@ class FieldCreate(BaseModel):
     half_fields: Optional[List[SubFieldCreate]] = []
     availabilities: Optional[List[FieldAvailabilityBase]] = []
 
-    class Config:
-        schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "facility_id": 1,
                 "name": "Main Field",
@@ -76,10 +81,15 @@ class FieldCreate(BaseModel):
                 "availabilities": []
             }
         }
+    }
 
 
 @router.get("/facility/{facility_id}")
-async def get_facility_fields(facility_id: int, current_user: User = Depends(get_current_user)) -> List[dict]:
+async def get_facility_fields(
+    facility_id: int, 
+    _: Facility = Depends(validate_facility_access),
+    current_user: User = Depends(get_current_user)
+) -> List[dict]:
     fields = get_fields(facility_id)
     return [
         {
@@ -100,9 +110,14 @@ async def get_facility_fields(facility_id: int, current_user: User = Depends(get
     ]
 
 @router.post("")
-async def create_new_field(field: FieldCreate, current_user: User = Depends(get_current_user)) -> dict:
+async def create_new_field(
+    field: FieldCreate,
+    current_user: User = Depends(get_current_user)
+) -> dict:
+    # Validate facility access first
+    facility = await validate_facility_access(field.facility_id, current_user)
+    
     try:      
-        
         # Create main field
         new_field = create_field(
             facility_id=field.facility_id,
@@ -148,6 +163,7 @@ async def create_new_field(field: FieldCreate, current_user: User = Depends(get_
 async def add_field_availability(
     field_id: int,
     availability: FieldAvailabilityCreate,
+    facility: Facility = Depends(validate_field_access),
     current_user: User = Depends(get_current_user)
 ) -> dict:
     try:
@@ -157,7 +173,11 @@ async def add_field_availability(
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.delete("/{field_id}")
-async def delete_field_endpoint(field_id: int, current_user: User = Depends(get_current_user)) -> dict:
+async def delete_field_endpoint(
+    field_id: int, 
+    facility: Facility = Depends(validate_field_access),
+    current_user: User = Depends(get_current_user)
+) -> dict:
     try:
         result = delete_field(field_id)
         return result

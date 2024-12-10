@@ -129,11 +129,15 @@ export const actions = {
     
     createField: async ({ request, fetch, locals }) => {
         const formData = await request.formData();
+        const fieldDataString = formData.get('fieldData');
+        
+        if (!fieldDataString || typeof fieldDataString !== 'string') {
+            return fail(400, { error: 'Field data is missing or invalid' });
+        }
         
         try {
-            const fieldData = JSON.parse(formData.get('fieldData') as string);
+            const fieldData = JSON.parse(fieldDataString);
             
-            // Send field data including availabilities in a single request
             const response = await fetch('http://localhost:8000/fields', {
                 method: 'POST',
                 headers: {
@@ -144,20 +148,20 @@ export const actions = {
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                console.error('Server error:', errorData);
+                const errorText = await response.text();
+                console.error('Server error:', errorText);
                 return fail(response.status, { 
-                    error: errorData.detail || 'Failed to create field' 
+                    error: `Failed to create field: ${errorText}` 
                 });
             }
 
-            const result: CreateFieldResponse = await response.json();
+            const result = await response.json();
             return { success: true, field_id: result.field_id };
 
         } catch (error) {
             console.error('Error creating field:', error);
             return fail(500, { 
-                error: 'Failed to create field' 
+                error: error instanceof Error ? error.message : 'Failed to create field' 
             });
         }
     },

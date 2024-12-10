@@ -4,7 +4,7 @@ Filename: clubs.py in routes folder
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from database import clubs
-from auth import get_current_user
+from dependencies.auth import get_current_user
 from models.users import User
 
 router = APIRouter(prefix="/clubs", tags=["clubs"])
