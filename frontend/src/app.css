@@ -146,4 +146,37 @@
   .confirmation-modal-confirm-button {
     @apply bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded;
   }
+
+  /* Common card styles */
+  .detail-card-container {
+    @apply fixed left-[calc(20rem+max(1rem,calc((100%-80rem)/2+1rem)))] top-32 right-[max(1rem,calc((100%-80rem)/2+1rem))] z-30;
+  }
+
+  .detail-card {
+    @apply bg-white rounded-lg shadow-md p-6;
+  }
+
+  .detail-card-title {
+    @apply text-xl font-semibold mb-6;
+  }
+
+  .detail-card-content {
+    @apply space-y-4;
+  }
+
+  .detail-card-grid {
+    @apply grid grid-cols-2 gap-4;
+  }
+
+  .detail-card-label {
+    @apply text-sm font-medium text-sage-600;
+  }
+
+  .detail-card-value {
+    @apply text-sage-800;
+  }
+
+  .sidebar-container {
+    @apply fixed left-[max(1rem,calc((100%-80rem)/2+1rem))] top-32 z-40 w-72;
+  }
 }

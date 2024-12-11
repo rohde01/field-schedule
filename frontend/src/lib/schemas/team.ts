@@ -4,6 +4,7 @@ const validFieldSizes = [125, 250, 500, 1000] as const;
 type ValidFieldSize = typeof validFieldSizes[number];
 
 export const teamSchema = z.object({
+    team_id: z.number().int().positive().optional(),
     name: z.string().min(1),
     year: z.string().regex(/^U([4-9]|1[0-9]|2[0-4])$/),
     club_id: z.number().int().positive(),
@@ -20,4 +21,4 @@ export const teamSchema = z.object({
     is_active: z.boolean().default(true)
 });
 
-export type TeamSchema = z.infer<typeof teamSchema>;
+export type TeamSchema = typeof teamSchema._type;

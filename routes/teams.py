@@ -7,6 +7,7 @@ from typing import List, Optional
 from pydantic import BaseModel, Field, model_validator
 from database.teams import create_team, get_teams, delete_team, update_team
 from dependencies.auth import get_current_user
+from dependencies.permissions import require_club_access
 from models.users import User
 
 router = APIRouter(
@@ -65,10 +66,15 @@ class TeamUpdate(BaseModel):
             raise ValueError('Preferred field size must be one of: 125, 250, 500, 1000')
         return self
 
-@router.post("", response_model=Team) 
-async def create_team_route(team: TeamCreate, current_user: User = Depends(get_current_user)):
+@router.post("", response_model=Team)
+async def create_team_route(
+    team: TeamCreate,
+    current_user: User = Depends(get_current_user)
+):
+    # Check club access before creating team
+    await require_club_access(team.club_id)(current_user)
     try:
-        return create_team(team.dict())
+        return create_team(team.model_dump())
     except Exception as e:
         if 'unique_team_name_per_club' in str(e):
             raise HTTPException(status_code=400, detail="Team name already exists for this club")
@@ -77,7 +83,13 @@ async def create_team_route(team: TeamCreate, current_user: User = Depends(get_c
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("", response_model=List[Team])
-async def get_teams_route(club_id: int, include_inactive: bool = False, current_user: User = Depends(get_current_user)):
+async def get_teams_route(
+    club_id: int,
+    include_inactive: bool = False,
+    current_user: User = Depends(get_current_user)
+):
+    # Check club access before getting teams
+    await require_club_access(club_id)(current_user)
     return get_teams(club_id, include_inactive)
 
 @router.delete("/{team_id}")

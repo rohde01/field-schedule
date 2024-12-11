@@ -88,14 +88,13 @@
     action="?/createField"
     use:enhance={handleSubmit}
 >
-    <div class="field-card-grid">
+    <div class="detail-card-grid">
         <!-- Left Column: Field Configuration -->
-        <div class="field-section">
-
+        <div class="detail-card-content">
             <!-- Name Section -->
             {#if showNameInput}
                 <div class="space-y-1">
-                    <label for="fieldName" class="field-subtitle">Field Name</label>
+                    <label for="fieldName" class="detail-card-label">Field Name</label>
                     <div class="flex gap-2">
                         <input
                             type="text"
@@ -110,7 +109,7 @@
             {:else}
                 <div class="mb-6">
                     <div class="flex items-center gap-2">
-                        <h3 class="field-card-title !mb-0">{mainFieldName}</h3>
+                        <h3 class="detail-card-title !mb-0">{mainFieldName}</h3>
                         <button 
                             type="button"
                             class="text-mint-600 hover:text-mint-700"
@@ -129,7 +128,7 @@
             <!-- Size Section -->
             {#if showSizeInput}
                 <div class="space-y-1">
-                    <label for="fieldSize" class="field-subtitle">Field Size</label>
+                    <label for="fieldSize" class="detail-card-label">Field Size</label>
                     <select 
                         id="fieldSize"
                         name="size"
@@ -146,7 +145,7 @@
             {:else if selectedSize}
                 <div class="space-y-2">
                     <div class="flex items-center gap-2">
-                        <p class="field-info-text">Size: {selectedSize}</p>
+                        <p class="detail-card-value">Size: {selectedSize}</p>
                         <button 
                             type="button"
                             class="text-mint-600 hover:text-mint-700"
@@ -159,13 +158,12 @@
                             </svg>
                         </button>
                     </div>
-                    <p class="field-info-text">Type: full</p>
+                    <p class="detail-card-value">Type: full</p>
                 </div>
             {/if}
 
             <!-- Subfields Section -->
             <FieldSubfieldsEditor on:subfieldsChange={handleSubfieldsChange} />
-
         </div>
 
         <!-- Right Column: Field Availability -->
@@ -173,7 +171,6 @@
             {availabilities}
             on:availabilitiesChange={handleAvailabilitiesChange}
         />
-
     </div>
 
     <div class="field-actions">

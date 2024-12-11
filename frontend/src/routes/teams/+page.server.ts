@@ -43,7 +43,7 @@ export const load: PageServerLoad = async ({ fetch, locals }) => {
         throw error(response.status, 'Failed to fetch teams');
     }
 
-    const teams = await response.json() as TeamSchema[];
+    const teams = await response.json();
     console.log('Fetched teams:', teams);
 
     return {
