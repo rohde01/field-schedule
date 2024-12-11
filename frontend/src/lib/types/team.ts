@@ -1,4 +1,3 @@
-
 export type Team = {
     team_id: number;
     name: string;
@@ -10,6 +9,7 @@ export type Team = {
     preferred_field_size: number | null;
     level: number;
     is_active: boolean;
+    weekly_trainings: number;
 };
 
 export type TeamCreate = Omit<Team, 'team_id'>;

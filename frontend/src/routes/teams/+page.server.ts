@@ -18,7 +18,8 @@ export const load: PageServerLoad = async ({ fetch, locals }) => {
             minimum_field_size: 125,
             preferred_field_size: null,
             level: 1,
-            is_active: true
+            is_active: true,
+            weekly_trainings: 1
         }
     });
 
@@ -111,6 +112,41 @@ export const actions: Actions = {
                 form, 
                 error: 'Failed to create team' 
             });
+        }
+    },
+
+    delete: async ({ request, fetch, locals }) => {
+        const formData = await request.formData();
+        const team_id = formData.get('team_id');
+
+        if (!team_id) {
+            return fail(400, { error: 'Team ID is required' });
+        }
+
+        try {
+            const response = await fetch(`http://localhost:8000/teams/${team_id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${locals.token}`
+                }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                return fail(response.status, { 
+                    error: errorData.detail || 'Failed to delete team'
+                });
+            }
+
+            const result = await response.json();
+            return { 
+                success: true,
+                message: result.message,
+                action: result.action
+            };
+        } catch (err) {
+            console.error('API call failed:', err);
+            return fail(500, { error: 'Failed to delete team' });
         }
     }
 };

@@ -1,6 +1,4 @@
 <script lang="ts">
-    import type { PageData } from './$types';
-    import type { Team } from '$lib/types/team';
     import { teams, setTeams } from '$stores/teams';
     import TeamsDropdown from '$lib/components/TeamsDropdown.svelte';
     import TeamCard from '$lib/components/TeamCard.svelte';

@@ -14,13 +14,14 @@ class Team:
     preferred_field_size: Optional[int]
     level: int
     is_active: bool
+    weekly_trainings: int
 
 @with_db_connection
 def get_teams(conn, club_id: int, include_inactive: bool = False) -> List[Team]:
     cursor = conn.cursor()
     query = """
     SELECT team_id, name, year, club_id, gender, is_academy, 
-           minimum_field_size, preferred_field_size, level, is_active
+           minimum_field_size, preferred_field_size, level, is_active, weekly_trainings
     FROM teams
     WHERE club_id = %s
     """
@@ -34,10 +35,10 @@ def create_team(conn, team_data: dict) -> Team:
     cursor = conn.cursor()
     query = """
     INSERT INTO teams (name, year, club_id, gender, is_academy, 
-                      minimum_field_size, preferred_field_size, level, is_active)
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                      minimum_field_size, preferred_field_size, level, is_active, weekly_trainings)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     RETURNING team_id, name, year, club_id, gender, is_academy, 
-              minimum_field_size, preferred_field_size, level, is_active
+              minimum_field_size, preferred_field_size, level, is_active, weekly_trainings
     """
     cursor.execute(query, (
         team_data["name"],
@@ -48,7 +49,8 @@ def create_team(conn, team_data: dict) -> Team:
         team_data["minimum_field_size"],
         team_data.get("preferred_field_size"),
         team_data["level"],
-        team_data.get("is_active", True)
+        team_data.get("is_active", True),
+        team_data["weekly_trainings"]
     ))
     row = cursor.fetchone()
     conn.commit()
@@ -99,7 +101,7 @@ def get_teams_by_ids(conn, team_ids: List[int]) -> List[Team]:
     format_strings = ','.join(['%s'] * len(team_ids))
     query = f"""
     SELECT team_id, name, year, club_id, gender, is_academy, 
-           minimum_field_size, preferred_field_size, level, is_active
+           minimum_field_size, preferred_field_size, level, is_active, weekly_trainings
     FROM teams
     WHERE team_id IN ({format_strings})
     """
@@ -120,7 +122,7 @@ def update_team(conn, team_id: int, update_data: dict) -> Optional[Team]:
     SET {set_clause}
     WHERE team_id = %s
     RETURNING team_id, name, year, club_id, gender, is_academy, 
-              minimum_field_size, preferred_field_size, level, is_active
+              minimum_field_size, preferred_field_size, level, is_active, weekly_trainings
     """
     
     # Execute query with update values plus team_id

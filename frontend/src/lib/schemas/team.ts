@@ -18,7 +18,8 @@ export const teamSchema = z.object({
             { message: 'Preferred field size must be one of: 125, 250, 500, 1000' })
         .nullable(),
     level: z.number().int().min(1).max(5),
-    is_active: z.boolean().default(true)
+    is_active: z.boolean().default(true),
+    weekly_trainings: z.number().int().min(1).max(5)
 });
 
 export type TeamSchema = typeof teamSchema._type;

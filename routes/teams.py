@@ -5,7 +5,7 @@ Filename: teams.py in routes folder
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional
 from pydantic import BaseModel, Field, model_validator
-from database.teams import create_team, get_teams, delete_team, update_team
+from database.teams import create_team, get_teams, delete_team, update_team, get_teams_by_ids
 from dependencies.auth import get_current_user
 from dependencies.permissions import require_club_access
 from models.users import User
@@ -27,6 +27,7 @@ class TeamBase(BaseModel):
     preferred_field_size: Optional[int] = Field(None, ge=125, le=1000)
     level: int = Field(..., ge=1, le=5)
     is_active: bool = True
+    weekly_trainings: int = Field(..., ge=1, le=5)
 
     @model_validator(mode='after')
     def validate_field_sizes(self):
@@ -56,6 +57,7 @@ class TeamUpdate(BaseModel):
     preferred_field_size: Optional[int] = Field(None, ge=125, le=1000)
     level: Optional[int] = Field(None, ge=1, le=5)
     is_active: Optional[bool] = None
+    weekly_trainings: Optional[int] = Field(None, ge=1, le=5)
 
     @model_validator(mode='after')
     def validate_field_sizes(self):
@@ -88,18 +90,23 @@ async def get_teams_route(
     include_inactive: bool = False,
     current_user: User = Depends(get_current_user)
 ):
-    # Check club access before getting teams
     await require_club_access(club_id)(current_user)
     return get_teams(club_id, include_inactive)
 
 @router.delete("/{team_id}")
 async def delete_team_route(team_id: int, current_user: User = Depends(get_current_user)):
+    teams = get_teams_by_ids([team_id])
+    if not teams:
+        raise HTTPException(status_code=404, detail="Team not found")
+    
+    await require_club_access(teams[0].club_id)(current_user)
+    
     result = delete_team(team_id)
     if not result["success"]:
         raise HTTPException(status_code=404, detail="Team not found")
     
     message = "Team successfully deleted" if result["action"] == "hard_deleted" else "Team deactivated due to existing schedule references"
-    return {"message": message, "action": result["action"]}
+    return {"message": message}
 
 @router.patch("/{team_id}", response_model=Team)
 async def update_team_route(
@@ -107,11 +114,17 @@ async def update_team_route(
     team_update: TeamUpdate, 
     current_user: User = Depends(get_current_user)
 ):
+    teams = get_teams_by_ids([team_id])
+    if not teams:
+        raise HTTPException(status_code=404, detail="Team not found")
+    
+    await require_club_access(teams[0].club_id)(current_user)
+    
     try:
-        updated_team = update_team(team_id, team_update.model_dump(exclude_unset=True))
-        if not updated_team:
+        result = update_team(team_id, team_update.model_dump(exclude_unset=True))
+        if not result:
             raise HTTPException(status_code=404, detail="Team not found")
-        return updated_team
+        return result
     except Exception as e:
         if 'unique_team_name_per_club' in str(e):
             raise HTTPException(status_code=400, detail="Team name already exists for this club")
