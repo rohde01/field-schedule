@@ -72,7 +72,7 @@
                             id="name" 
                             name="name"
                             bind:value={$form.name}
-                            class="form-input"
+                            class="form-input-sm"
                         />
                         {#if $errors.name}<span class="text-red-500 text-sm mt-1">{$errors.name}</span>{/if}
                     </div>
@@ -84,7 +84,7 @@
                             id="year" 
                             name="year"
                             bind:value={$form.year}
-                            class="form-input"
+                            class="form-input-sm"
                             placeholder="U13"
                         />
                         {#if $errors.year}<span class="text-red-500 text-sm mt-1">{$errors.year}</span>{/if}
@@ -96,7 +96,7 @@
                             id="gender" 
                             name="gender"
                             bind:value={$form.gender}
-                            class="form-input"
+                            class="form-input-sm"
                         >
                             <option value="boys">Boys</option>
                             <option value="girls">Girls</option>
@@ -116,12 +116,29 @@
 
                 <div class="space-y-4">
                     <div>
+                        <label for="weekly_trainings" class="detail-card-label">Weekly Trainings</label>
+                        <input
+                            type="number"
+                            id="weekly_trainings"
+                            name="weekly_trainings"
+                            bind:value={$form.weekly_trainings}
+                            min="1"
+                            max="5"
+                            class="form-input-sm"
+                            required
+                        />
+                        {#if $errors.weekly_trainings}
+                            <span class="text-red-500 text-sm mt-1">{$errors.weekly_trainings}</span>
+                        {/if}
+                    </div>
+
+                    <div>
                         <label for="minimum_field_size" class="detail-card-label">Minimum Field Size</label>
                         <select 
                             id="minimum_field_size" 
                             name="minimum_field_size"
                             bind:value={$form.minimum_field_size}
-                            class="form-input"
+                            class="form-input-sm"
                         >
                             <option value={125}>125</option>
                             <option value={250}>250</option>
@@ -137,7 +154,7 @@
                             id="preferred_field_size" 
                             name="preferred_field_size"
                             bind:value={$form.preferred_field_size}
-                            class="form-input"
+                            class="form-input-sm"
                         >
                             <option value="">None</option>
                             <option value={125}>125</option>
@@ -157,7 +174,7 @@
                             bind:value={$form.level}
                             min="1"
                             max="5"
-                            class="form-input"
+                            class="form-input-sm"
                         />
                         {#if $errors.level}<span class="text-red-500 text-sm mt-1">{$errors.level}</span>{/if}
                     </div>

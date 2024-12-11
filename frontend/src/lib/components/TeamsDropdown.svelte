@@ -7,7 +7,7 @@
     const yearOrder = (a: string, b: string) => {
         const numA = parseInt(a.replace('U', ''));
         const numB = parseInt(b.replace('U', ''));
-        return numA - numB;
+        return numB - numA;
     };
 
     const groupedTeams = $derived(
@@ -81,15 +81,12 @@
                                 <h3 class="text-xs font-medium text-sage-600 px-2">{year}</h3>
                                 {#each yearTeams as team}
                                 <button
-                                class="flex items-center justify-between w-full px-2 py-1 text-sm text-sage-700 hover:bg-mint-50 rounded"
-                                class:bg-mint-100={$dropdownState.selectedTeam?.team_id === team.team_id}
-                                class:hover:bg-mint-100={$dropdownState.selectedTeam?.team_id === team.team_id}
-                                onclick={() => selectTeam(team)}
-                            >
-                                <span class="font-medium">{team.name}</span>
-                                <span class="text-xs text-sage-500">{team.gender}</span>
-                            </button>
-                            
+                                    class="dropdown-item {$dropdownState.selectedTeam?.team_id === team.team_id ? 'dropdown-item-selected' : ''}"
+                                    onclick={() => selectTeam(team)}
+                                >
+                                    <span class="font-medium">{team.name}</span>
+                                    <span class="text-xs text-sage-500">{team.gender}</span>
+                                </button>
                                 {/each}
                             </div>
                         {/each}

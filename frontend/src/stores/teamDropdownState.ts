@@ -8,7 +8,7 @@ type TeamDropdownState = {
 };
 
 const initialState: TeamDropdownState = {
-    teamsOpen: false,
+    teamsOpen: true,
     selectedTeam: null,
     showCreateTeam: false,
 };

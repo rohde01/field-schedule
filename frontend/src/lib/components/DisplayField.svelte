@@ -47,16 +47,16 @@
 
         <!-- Delete Confirmation Modal -->
         {#if showDeleteConfirm}
-            <div class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center" transition:fade="{{ duration: 200 }}">
-                <div class="bg-white rounded-lg p-6 max-w-sm mx-4" 
+            <div class="modal-overlay" transition:fade={{ duration: 200 }}>
+                <div class="modal-container"
                      role="dialog"
                      aria-labelledby="delete-modal-title"
                      aria-describedby="delete-modal-description">
-                    <h3 id="delete-modal-title" class="text-lg font-semibold mb-2">Delete Field</h3>
-                    <p id="delete-modal-description" class="text-sage-600 mb-4">
+                    <h3 id="delete-modal-title" class="modal-title">Delete Field</h3>
+                    <p id="delete-modal-description" class="modal-description">
                         Are you sure you want to delete {field.name}? This action cannot be undone.
                     </p>
-                    <div class="flex justify-end space-x-3">
+                    <div class="modal-actions">
                         <button
                             type="button"
                             class="btn-secondary"
@@ -74,7 +74,7 @@
                             <input type="hidden" name="fieldId" value={field.field_id} />
                             <button
                                 type="submit"
-                                class="btn bg-red-500 text-white hover:bg-red-600 focus:ring-red-500"
+                                class="btn-danger"
                                 disabled={isDeleting}
                             >
                                 {isDeleting ? 'Deleting...' : 'Delete'}
