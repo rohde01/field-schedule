@@ -23,7 +23,7 @@
     {#if $dropdownState.selectedTeam || $dropdownState.showCreateTeam}
         <div class="detail-card-container">
             <TeamCard 
-                team={$dropdownState.selectedTeam} 
+                team={$dropdownState.selectedTeam}
                 isCreateMode={$dropdownState.showCreateTeam}
                 form={data.form}
             />

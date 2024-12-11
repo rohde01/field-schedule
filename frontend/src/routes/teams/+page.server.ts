@@ -97,19 +97,13 @@ export const actions: Actions = {
                 });
             }
 
-            const responseText = await response.text();
-            console.log('API Response:', response.status, responseText);
-
-            if (!response.ok) {
-                return fail(response.status, { 
-                    form, 
-                    error: responseText 
-                });
-            }
+            const team = await response.json();
+            console.log('API Response:', response.status, team);
 
             return { 
                 form,
-                success: true 
+                success: true,
+                team
             };
         } catch (err) {
             console.error('API call failed:', err);

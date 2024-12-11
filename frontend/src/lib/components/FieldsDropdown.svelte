@@ -41,7 +41,6 @@
     }
 </script>
 
-<svelte:window on:mousedown={handleClickOutside} />
 
 <div class="fixed left-[max(1rem,calc((100%-80rem)/2+1rem))] top-32 z-40 w-72 fields-dropdown">
     <div class="bg-white rounded-2xl shadow-xl border border-mint-100 overflow-hidden">

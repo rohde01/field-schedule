@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { Team } from '$lib/types/team';
-    import TeamForm from '../../routes/teams/TeamForm.svelte';
+    import TeamForm from './CreateTeam.svelte';
 
     let { team, isCreateMode, form } = $props<{
         team: Team | null;

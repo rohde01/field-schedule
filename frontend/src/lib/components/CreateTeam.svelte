@@ -3,6 +3,8 @@
     import type { SuperValidated } from 'sveltekit-superforms';
     import type { TeamSchema } from '$lib/schemas/team';
     import { page } from '$app/stores';
+    import { dropdownState } from '$stores/teamDropdownState';
+    import { addTeam } from '$stores/teams';
 
     let { form: formData } = $props<{ form: SuperValidated<TeamSchema> }>();
     let formElement: HTMLFormElement;
@@ -16,6 +18,14 @@
             console.log('Form submission result:', result);
             if (result.type === 'success') {
                 console.log('Team created successfully');
+                if (result.data?.team) {
+                    addTeam(result.data.team);
+                }
+                dropdownState.update(state => ({
+                    ...state,
+                    showCreateTeam: false,
+                    selectedTeam: result.data?.team || null
+                }));
             }
         },
         onError: (err) => {
@@ -23,15 +33,7 @@
         }
     });
 
-    // Set default values
     $form.is_active = true;
-
-    function handleSubmit(e: Event) {
-        e.preventDefault();
-        if (formElement) {
-            enhance(formElement);
-        }
-    }
 </script>
 
 <div class="detail-card">
@@ -52,7 +54,7 @@
         method="POST" 
         action="?/create" 
         bind:this={formElement}
-        onsubmit={handleSubmit}
+        use:enhance
         class="detail-card-grid"
     >
         <!-- Left Column: Basic Info -->
