@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { Team } from '$lib/types/team';
+    import type { Team } from '$lib/schemas/team';
     import TeamForm from './CreateTeam.svelte';
     import { fade } from 'svelte/transition';
     import { enhance } from '$app/forms';

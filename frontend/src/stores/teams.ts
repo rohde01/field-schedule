@@ -1,6 +1,6 @@
 // a store for fetched teams
 import { writable } from 'svelte/store';
-import type { Team } from '$lib/types/team';
+import type { Team } from '$lib/schemas/team';
 
 export const teams = writable([] as Team[]);
 

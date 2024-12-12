@@ -1,9 +1,8 @@
 import { fail } from '@sveltejs/kit';
 import { superValidate } from 'sveltekit-superforms/server';
+import { zod } from 'sveltekit-superforms/adapters';
 import { teamSchema } from '$lib/schemas/team';
 import type { PageServerLoad, Actions } from './$types';
-import { zod } from 'sveltekit-superforms/adapters';
-import type { TeamSchema } from '$lib/schemas/team';
 import { error } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ fetch, locals }) => {

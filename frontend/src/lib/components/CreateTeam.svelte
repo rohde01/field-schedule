@@ -1,13 +1,16 @@
 <script lang="ts">
     import { superForm } from 'sveltekit-superforms/client';
     import type { SuperValidated } from 'sveltekit-superforms';
-    import type { TeamSchema } from '$lib/schemas/team';
+    import type { z } from 'zod';
+    import { teamSchema } from '$lib/schemas/team';
     import { page } from '$app/stores';
     import { dropdownState } from '$stores/teamDropdownState';
     import { addTeam } from '$stores/teams';
     import EditableField from './EditableField.svelte';
 
-    let { form: formData } = $props<{ form: SuperValidated<TeamSchema> }>();
+    type TeamFormData = SuperValidated<z.infer<typeof teamSchema>>;
+
+    let { form: formData } = $props<{ form: TeamFormData }>();
     let formElement: HTMLFormElement;
 
     const { form, errors, enhance, message } = superForm(formData, {
