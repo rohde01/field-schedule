@@ -23,3 +23,12 @@ export const teamSchema = z.object({
 });
 
 export type Team = z.infer<typeof teamSchema>;
+
+export const deleteTeamSchema = z.object({
+    team_id: z.number().int().positive()
+});
+
+export type DeleteTeamResponse = {
+    message: string;
+    action: string;
+};

@@ -1,12 +1,14 @@
 import { fail } from '@sveltejs/kit';
 import { superValidate } from 'sveltekit-superforms/server';
 import { zod } from 'sveltekit-superforms/adapters';
-import { teamSchema } from '$lib/schemas/team';
+import { teamSchema, deleteTeamSchema, type DeleteTeamResponse } from '$lib/schemas/team';
+import type { Team } from '$lib/schemas/team';
 import type { PageServerLoad, Actions } from './$types';
 import { error } from '@sveltejs/kit';
 
-export const load: PageServerLoad = async ({ fetch, locals }) => {
-    const form = await superValidate(zod(teamSchema), {
+export const load = (async ({ fetch, locals }) => {
+    const deleteForm = await superValidate(zod(deleteTeamSchema));
+    const createForm = await superValidate(zod(teamSchema), {
         id: 'team-form',
         defaults: {
             name: '',
@@ -21,13 +23,12 @@ export const load: PageServerLoad = async ({ fetch, locals }) => {
             weekly_trainings: 1
         }
     });
-
-    console.log('Load handler - locals:', { user: locals.user, token: !!locals.token });
     
     if (!locals.user?.primary_club_id) {
         console.log('No primary_club_id found');
         return {
-            form,
+            deleteForm,
+            createForm,
             teams: []
         };
     }
@@ -43,17 +44,19 @@ export const load: PageServerLoad = async ({ fetch, locals }) => {
         throw error(response.status, 'Failed to fetch teams');
     }
 
-    const teams = await response.json();
+    const teams: Team[] = await response.json();
     console.log('Fetched teams:', teams);
 
     return {
-        form,
+        deleteForm,
+        createForm,
         teams
     };
-};
+}) satisfies PageServerLoad;
 
 export const actions: Actions = {
     create: async ({ request, fetch, locals }) => {
+
         console.log('Create action started');
         
         if (!locals.user?.primary_club_id) {
@@ -114,16 +117,15 @@ export const actions: Actions = {
         }
     },
 
-    delete: async ({ request, fetch, locals }) => {
-        const formData = await request.formData();
-        const team_id = formData.get('team_id');
+    deleteTeam: async ({ request, fetch, locals }) => {
+        const form = await superValidate(request, zod(deleteTeamSchema));
 
-        if (!team_id) {
-            return fail(400, { error: 'Team ID is required' });
+        if (!form.valid) {
+            return fail(400, { form });
         }
 
         try {
-            const response = await fetch(`http://localhost:8000/teams/${team_id}`, {
+            const response = await fetch(`http://localhost:8000/teams/${form.data.team_id}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${locals.token}`
@@ -133,19 +135,24 @@ export const actions: Actions = {
             if (!response.ok) {
                 const errorData = await response.json();
                 return fail(response.status, { 
+                    form,
                     error: errorData.detail || 'Failed to delete team'
                 });
             }
 
-            const result = await response.json();
+            const result: DeleteTeamResponse = await response.json();
             return { 
+                form,
                 success: true,
                 message: result.message,
                 action: result.action
             };
         } catch (err) {
             console.error('API call failed:', err);
-            return fail(500, { error: 'Failed to delete team' });
+            return fail(500, { 
+                form,
+                error: 'Failed to delete team' 
+            });
         }
     }
 };

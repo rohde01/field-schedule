@@ -133,11 +133,7 @@
         <input 
             type="hidden" 
             name={name} 
-            value={
-                type === 'checkbox'
-                ? (fieldValue ? 'on' : '')
-                : (fieldValue ?? '')
-            } 
+            bind:value={form[name]}
         />
     {/if}
 </div>
