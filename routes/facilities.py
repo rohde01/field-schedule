@@ -1,6 +1,9 @@
 import logging
 from fastapi import APIRouter, HTTPException, Depends
-from database.facilities import create_facility, get_facilities, Facility
+from database.facilities import (
+    create_facility, get_facilities, Facility,
+    FacilityError, DuplicatePrimaryFacilityError, DuplicateFacilityNameError
+)
 from typing import List, Optional
 from pydantic import BaseModel, Field
 from dependencies.auth import get_current_user
@@ -70,8 +73,15 @@ async def create_new_facility(
             "name": new_facility.name,
             "is_primary": new_facility.is_primary
         }
-    except Exception as e:
+    except DuplicatePrimaryFacilityError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except DuplicateFacilityNameError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except FacilityError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Unexpected error creating facility: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/{facility_id}")
 async def get_facility_by_id(

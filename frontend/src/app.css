@@ -147,6 +147,15 @@
     @apply bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded;
   }
 
+  /* Button Styles */
+  .btn-add {
+    @apply text-xs px-2 py-1 bg-white text-mint-600 rounded-lg hover:bg-mint-50 transition-colors border border-mint-200;
+  }
+
+  .btn-remove {
+    @apply text-xs px-1.5 py-0.5 text-gray-500 hover:text-red-600 transition-colors;
+  }
+
   /* Common card styles */
   .detail-card-container {
     @apply fixed left-[calc(20rem+max(1rem,calc((100%-80rem)/2+1rem)))] top-32 right-[max(1rem,calc((100%-80rem)/2+1rem))] z-30;

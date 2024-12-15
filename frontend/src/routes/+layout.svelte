@@ -14,7 +14,7 @@
                         <a href="/dashboard" class="nav-link">Dashboard</a>
                         <a href="/club" class="nav-link">My Club</a>
                         <a href="/teams" class="nav-link">Teams</a>
-                        <a href="/facilities" class="nav-link">Facilities</a>
+                        <a href="/fields" class="nav-link">Fields</a>
                     {/if}
                 </div>
                 <div class="flex items-center space-x-4">

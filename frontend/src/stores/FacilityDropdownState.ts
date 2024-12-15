@@ -1,115 +1,45 @@
+import type { Facility } from '$lib/schemas/facility';
 import { writable } from 'svelte/store';
-import type { Field } from '$lib/types/facilityStatus';
-import { browser } from '$app/environment';
+import { facilities } from './facilities';
 
-interface DropdownState {
-    facilityOpen: boolean;
-    fieldsOpen: boolean;
-    selectedField: Field | null;
-    showCreateField: boolean;
-}
+type FacilityDropdownState = {
+    isOpen: boolean;
+    selectedFacility: Facility | null;
+};
 
-// Initialize with defaults
-const dropdownState = writable<DropdownState>({
-    facilityOpen: false,
-    fieldsOpen: true,
-    selectedField: null,
-    showCreateField: false
-});
+const initialState: FacilityDropdownState = {
+    isOpen: false,
+    selectedFacility: null
+};
 
-export function initializeDropdownState() {
-    if (browser) {
+export const dropdownState = writable<FacilityDropdownState>(initialState);
+
+facilities.subscribe(facilityList => {
+    const primaryFacility = facilityList.find(f => f.is_primary);
+    if (primaryFacility) {
         dropdownState.update(state => ({
             ...state,
-            fieldsOpen: true, // Always ensure fields are open
-            showCreateField: false
+            selectedFacility: primaryFacility
         }));
     }
-}
+});
 
-let previousFieldsState = true;
+dropdownState.subscribe(state => {
+    if (state.selectedFacility) {
+        console.log('Selected facility changed:', state.selectedFacility);
+    }
+});
 
-export { dropdownState };
-
-export function selectField(field: Field | null) {
+export function toggleDropdown(key: keyof Pick<FacilityDropdownState, 'isOpen'>) {
     dropdownState.update(state => ({
         ...state,
-        selectedField: state.selectedField?.field_id === field?.field_id ? null : field,
-        showCreateField: false
+        [key]: !state[key]
     }));
 }
 
-export function setDefaultField(fields: Field[]) {
-    dropdownState.update(state => {
-        if (!state.selectedField && fields.length > 0) {
-            const default11v11Field = fields.find(field => field.size === '11v11');
-            return {
-                ...state,
-                selectedField: default11v11Field || fields[0],
-                fieldsOpen: true 
-            };
-        }
-        return {
-            ...state,
-            fieldsOpen: true
-        };
-    });
-}
-
-export function resetFieldsState() {
+export function selectFacility(facility: Facility) {
     dropdownState.update(state => ({
         ...state,
-        fieldsOpen: true,
-        selectedField: null,
-        showCreateField: false
+        selectedFacility: facility,
     }));
-}
-
-export function toggleCreateField() {
-    dropdownState.update(state => {
-        const showCreate = !state.showCreateField;
-        return {
-            ...state,
-            showCreateField: showCreate,
-            selectedField: null,
-            fieldsOpen: !showCreate
-        };
-    });
-}
-
-export function closeAllDropdowns() {
-    dropdownState.update(state => ({
-        ...state,
-        facilityOpen: false,
-        fieldsOpen: false,
-        selectedField: null,
-        showCreateField: false
-    }));
-}
-
-export function toggleDropdown(dropdown: keyof DropdownState) {
-    dropdownState.update(state => {
-        const newState = { ...state };
-        
-        if (dropdown === 'facilityOpen') {
-            if (state.facilityOpen) {
-                // When closing facility dropdown, restore previous fields state
-                newState.facilityOpen = false;
-                newState.fieldsOpen = previousFieldsState;
-            } else {
-                // When opening facility dropdown, save fields state and close it
-                previousFieldsState = state.fieldsOpen;
-                newState.facilityOpen = true;
-                newState.fieldsOpen = false;
-            }
-        } else if (dropdown === 'fieldsOpen') {
-            newState.fieldsOpen = !state.fieldsOpen;
-            previousFieldsState = newState.fieldsOpen;
-            if (newState.fieldsOpen) {
-                newState.facilityOpen = false;
-            }
-        }
-        
-        return newState;
-    });
 }

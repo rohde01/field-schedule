@@ -1,23 +1,55 @@
 <script lang="ts">
-    import { facilityStatus } from '../../stores/facilityStatus';
-    import { dropdownState, toggleDropdown } from '../../stores/FacilityDropdownState';
-    import { onMount } from 'svelte';
-    import { enhance } from '$app/forms';
     import { invalidateAll } from '$app/navigation';
+    import { superForm } from 'sveltekit-superforms/client';
+    import type { SuperValidated } from 'sveltekit-superforms';
+    import { facilities, addFacility } from '$stores/facilities';
+    import { dropdownState, toggleDropdown, selectFacility } from '$stores/FacilityDropdownState';
+    import type { Facility } from '$lib/schemas/facility';
+    import type { z } from 'zod';
+    import { facilityCreateSchema } from '$lib/schemas/facility';
+
+    type FacilityFormData = SuperValidated<z.infer<typeof facilityCreateSchema>>;
     
-    export let facilities: Array<{
-        facility_id: number;
-        name: string;
-        is_primary: boolean;
-    }>;
+    let { form: facilityFormData } = $props<{ form: FacilityFormData }>();
 
-    let isCreating = false;
+    let errorMessage = $state('');
+
+    const { form, errors, enhance, message } = superForm(facilityFormData, {
+        taintedMessage: null,
+        onUpdate: ({ form }) => {
+            console.log('Form data being submitted:', form.data);
+        },
+        onResult: async ({ result }) => {
+            if (result.type === 'success') {
+                errorMessage = '';
+                const newFacility = result.data?.facility;
+                if (newFacility) {
+                    addFacility(newFacility);
+                    selectFacility(newFacility);
+                    dropdownState.update(state => ({
+                        ...state,
+                        isOpen: false,
+                        selectedFacility: newFacility 
+                    }));
+                    isCreating = false;
+                }
+                await invalidateAll();
+            } else if (result.type === 'failure') {
+                errorMessage = result.data?.error || 'Failed to create facility';
+            }
+        },
+        onError: (err) => {
+            console.error('Form submission error:', err);
+        }
+    });
+
     let dropdownContainer: HTMLDivElement;
-    let nameInput: HTMLInputElement;
+    let nameInput = $state<HTMLInputElement | null>(null);
+    let isCreating = $state(false);
 
-    function handleSelect(facility: typeof facilities[0]) {
-        facilityStatus.setFacility(facility);
-        $dropdownState.facilityOpen = false;
+    function handleSelect(facility: Facility) {
+        selectFacility(facility);
+        dropdownState.update(state => ({ ...state, isOpen: false }));
     }
 
     function startCreating() {
@@ -27,55 +59,35 @@
 
     function cancelCreating() {
         isCreating = false;
+        $form.name = '';
     }
 
-    function handleClickOutside(event: MouseEvent) {
-        if (dropdownContainer && !dropdownContainer.contains(event.target as Node)) {
-            $dropdownState.facilityOpen = false;
+    $effect(() => {
+        if ($message?.type === 'success') {
             isCreating = false;
         }
-    }
-
-    function handleSubmit() {
-        return async ({ result, update }: { result: any; update: () => Promise<void> }) => {
-            if (result.type === 'success') {
-                facilityStatus.update(status => ({
-                    ...status,
-                    has_facilities: true,
-                    selectedFacility: result.data.facility
-                }));
-                await invalidateAll();
-            }
-            isCreating = false;
-            $dropdownState.facilityOpen = false;
-            await update();
-        };
-    }
-
-    onMount(() => {
-        document.addEventListener('click', handleClickOutside);
-        return () => {
-            document.removeEventListener('click', handleClickOutside);
-        };
     });
 </script>
 
 <div class="fixed bottom-12 left-[max(1rem,calc((100%-80rem)/2+1rem))] z-50" bind:this={dropdownContainer}>
     <div 
         class="relative"
-        class:w-72={$dropdownState.facilityOpen}
-        class:w-56={!$dropdownState.facilityOpen}
+        class:w-72={$dropdownState.isOpen}
+        class:w-56={!$dropdownState.isOpen}
     >
         <button
-            on:click|stopPropagation={() => toggleDropdown('facilityOpen')}
+            onclick={(e) => {
+                e.stopPropagation();
+                toggleDropdown('isOpen');
+            }}
             class="dropdown-trigger"
         >
             <span class="text-sm font-medium truncate">
-                {$facilityStatus.selectedFacility?.name || 'Select Facility'}
+                {$dropdownState.selectedFacility?.name || 'Select Facility'}
             </span>
             <svg
                 class="w-5 h-5 transition-transform duration-200 ml-3"
-                class:rotate-180={$dropdownState.facilityOpen}
+                class:rotate-180={$dropdownState.isOpen}
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 20 20"
                 fill="currentColor"
@@ -84,13 +96,16 @@
             </svg>
         </button>
 
-        {#if $dropdownState.facilityOpen}
+        {#if $dropdownState.isOpen}
             <div class="dropdown-panel">
                 <div class="dropdown-content">
-                    {#each facilities as facility}
+                    {#each $facilities as facility}
                         <button
-                            on:click|stopPropagation={() => handleSelect(facility)}
-                            class="dropdown-item {$facilityStatus.selectedFacility?.facility_id === facility.facility_id ? 'dropdown-item-selected' : ''}"
+                            onclick={(e) => {
+                                e.stopPropagation();
+                                handleSelect(facility);
+                            }}
+                            class="dropdown-item {$dropdownState.selectedFacility?.facility_id === facility.facility_id ? 'dropdown-item-selected' : ''}"
                         >
                             <span class="font-medium">{facility.name}</span>
                             {#if facility.is_primary}
@@ -101,29 +116,33 @@
                 </div>
                 
                 <div class="dropdown-divider">
-                    <button
-                        class="dropdown-action-button"
-                        on:click|stopPropagation={startCreating}
-                    >
-                        <svg
-                            class="w-4 h-4 mr-2"
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
+                    {#if !isCreating}
+                        <button
+                            type="button"
+                            class="dropdown-action-button"
+                            onclick={(e) => {
+                                e.stopPropagation();
+                                startCreating();
+                            }}
                         >
-                            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
-                        </svg>
-                        Create New Facility
-                    </button>
-                    
-                    {#if isCreating}
+                            <svg
+                                class="w-4 h-4 mr-2"
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                            >
+                                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                            </svg>
+                            Create New Facility
+                        </button>
+                    {:else}
                         <div class="pl-6 mt-2 relative before:absolute before:left-[0.9375rem] before:top-0 before:h-full before:w-px before:bg-mint-200">
                             <div class="relative before:absolute before:left-[-0.9375rem] before:top-[1.125rem] before:w-3 before:h-px before:bg-mint-200">
                                 <form
                                     method="POST"
                                     action="?/create"
                                     class="p-3 space-y-3 bg-mint-50/50 rounded-xl border border-mint-100"
-                                    use:enhance={handleSubmit}
+                                    use:enhance
                                 >
                                     <div class="space-y-2">
                                         <p class="text-sm text-sage-600">Give your new facility a unique name</p>
@@ -134,7 +153,11 @@
                                             class="form-input text-sm"
                                             placeholder="Facility name"
                                             required
+                                            class:border-red-300={!!errorMessage}
                                         >
+                                        {#if errorMessage}
+                                            <p class="text-sm text-red-600 mt-1">{errorMessage}</p>
+                                        {/if}
                                     </div>
                                     <div class="flex items-center space-x-2 text-sm text-sage-700">
                                         <input
@@ -149,7 +172,7 @@
                                         <button
                                             type="button"
                                             class="btn-secondary text-sm px-3 py-1.5"
-                                            on:click={cancelCreating}
+                                            onclick={cancelCreating}
                                         >
                                             Cancel
                                         </button>
