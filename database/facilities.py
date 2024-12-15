@@ -10,6 +10,18 @@ class Facility:
     name: str
     is_primary: bool
 
+class FacilityError(Exception):
+    """Base exception for facility-related errors"""
+    pass
+
+class DuplicatePrimaryFacilityError(FacilityError):
+    """Raised when attempting to create a second primary facility"""
+    pass
+
+class DuplicateFacilityNameError(FacilityError):
+    """Raised when attempting to create a facility with an existing name"""
+    pass
+
 def _has_primary_facility(conn, club_id: int) -> bool:
     """Internal function to check if the club already has a primary facility."""
     cursor = conn.cursor()
@@ -53,7 +65,7 @@ def create_facility(conn, club_id: int, name: str, is_primary: bool = False) -> 
     cursor = conn.cursor()
     try:
         if is_primary and _has_primary_facility(conn, club_id):
-            raise ValueError("Club already has a primary facility")
+            raise DuplicatePrimaryFacilityError("Club already has a primary facility")
 
         print(f"Attempting to create facility: club_id={club_id}, name={name}, is_primary={is_primary}")
         query = """
@@ -74,15 +86,17 @@ def create_facility(conn, club_id: int, name: str, is_primary: bool = False) -> 
     except psycopg2.IntegrityError as e:
         conn.rollback()
         print(f"Database integrity error: {str(e)}")
-        if "facilities_club_id_name_key" in str(e):
-            raise ValueError("A facility with this name already exists in this club")
+        if "unique_club_facility_name" in str(e):
+            raise DuplicateFacilityNameError("A facility with this name already exists in this club")
         if "facilities_club_id_fkey" in str(e):
             raise ValueError("Invalid club ID")
+        raise FacilityError(str(e))
+    except DuplicatePrimaryFacilityError as e:
         raise
     except Exception as e:
         conn.rollback()
         print(f"Unexpected error creating facility: {str(e)}")
-        raise
+        raise FacilityError(str(e))
 
 @with_db_connection
 def get_facility(conn, facility_id: int) -> Optional[Facility]:

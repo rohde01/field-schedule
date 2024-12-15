@@ -87,7 +87,7 @@
         class="space-y-6"
     >
         <EditableField
-            bind:form={$form}
+            {form}
             errors={$errors}
             name="name"
             label="Team Name"
@@ -103,7 +103,7 @@
                 <div class="space-y-4">
                     <div class="space-y-4">
                         <EditableField
-                            bind:form={$form}
+                            {form}
                             errors={$errors}
                             name="year"
                             label="Year"
@@ -115,7 +115,7 @@
                         />
 
                         <EditableField
-                            bind:form={$form}
+                            {form}
                             errors={$errors}
                             name="gender"
                             label="Gender"
@@ -127,7 +127,7 @@
                         />
 
                         <EditableField
-                            bind:form={$form}
+                            {form}
                             errors={$errors}
                             name="level"
                             label="Level"
@@ -139,7 +139,7 @@
                         />
 
                         <EditableField
-                            bind:form={$form}
+                            {form}
                             errors={$errors}
                             name="is_academy"
                             label="Academy Team"
@@ -155,7 +155,7 @@
                 <div class="space-y-4">
                     <div class="space-y-4">
                         <EditableField
-                            bind:form={$form}
+                            {form}
                             errors={$errors}
                             name="weekly_trainings"
                             label="Weekly Trainings"
@@ -167,7 +167,7 @@
                         />
 
                         <EditableField
-                            bind:form={$form}
+                            {form}
                             errors={$errors}
                             name="minimum_field_size"
                             label="Minimum Field Size"
@@ -179,7 +179,7 @@
                         />
 
                         <EditableField
-                            bind:form={$form}
+                            {form}
                             errors={$errors}
                             name="preferred_field_size"
                             label="Preferred Field Size"

@@ -1,9 +1,9 @@
 <script lang="ts">
-    import { writable } from 'svelte/store';
+    import { writable, type Writable } from 'svelte/store';
     import { tick } from 'svelte';
     import type { ValidationErrors } from 'sveltekit-superforms';
 
-    export let form: Record<string, any>;
+    export let form: Writable<Record<string, any>>;
     export let errors: ValidationErrors<any>;
     export let name: string;
     export let label: string;
@@ -16,10 +16,44 @@
     export let max: number | undefined = undefined;
     export let options: { value: string | number; label: string }[] = [];
 
-    let isEditMode = writable(true);
+    const initialEditMode = (() => {
+        const keys = name.split(/[\[\].]+/).filter(Boolean);
+        const lastKey = keys[keys.length - 1];
+        return !(lastKey === 'start_time' || lastKey === 'end_time');
+    })();
+    
+    let isEditMode = writable(initialEditMode);
     let fieldError = '';
 
-    $: fieldValue = form[name];
+    $: fieldValue = (() => {
+        const keys = name.split(/[\[\].]+/).filter(Boolean);
+        let value = $form;
+        for (const key of keys) {
+            if (value && typeof value === 'object') {
+                const index = parseInt(key);
+                value = isNaN(index) ? value[key] : value[index];
+            } else {
+                return undefined;
+            }
+        }
+        return value;
+    })();
+
+    // Initialize default values after fieldValue is computed
+    $: {
+        const keys = name.split(/[\[\].]+/).filter(Boolean);
+        const lastKey = keys[keys.length - 1];
+        const isEmpty = 
+            fieldValue === undefined || 
+            fieldValue === null || 
+            (typeof fieldValue === 'string' && fieldValue === '');
+        
+        if ((lastKey === 'start_time' || lastKey === 'end_time') && isEmpty) {
+            const defaultValue = lastKey === 'start_time' ? '16:00' : '22:00';
+            updateFormValue(defaultValue);
+        }
+    }
+
     $: {
         const error = errors[name];
         fieldError = error 
@@ -30,11 +64,60 @@
     }
     $: selectedOption = options.find(opt => String(opt.value) === String(fieldValue ?? ''));
 
+    $: hide_label_in_view = (() => {
+        const keys = name.split(/[\[\].]+/).filter(Boolean);
+        const lastKey = keys[keys.length - 1];
+        return hide_label_in_view || lastKey === 'start_time' || lastKey === 'end_time';
+    })();
+
+    function updateFormValue(value: any) {
+        form.update(f => {
+            const keys = name.split(/[\[\].]+/).filter(Boolean);
+            let current: any = f;
+            
+            for (let i = 0; i < keys.length - 1; i++) {
+                const key = keys[i];
+                const index = parseInt(key);
+                
+                if (isNaN(index)) {
+                    if (typeof current !== 'object') current = {};
+                    if (!current[key]) current[key] = {};
+                    current = current[key];
+                } else {
+                    if (!Array.isArray(current)) current = [];
+                    while (current.length <= index) {
+                        current.push({});
+                    }
+                    current = current[index];
+                }
+            }
+            
+            const lastKey = keys[keys.length - 1];
+            const lastIndex = parseInt(lastKey);
+            if (isNaN(lastIndex)) {
+                if (typeof current !== 'object') current = {};
+                current[lastKey] = value;
+            } else {
+                if (!Array.isArray(current)) current = [];
+                while (current.length <= lastIndex) {
+                    current.push(null);
+                }
+                current[lastIndex] = value;
+            }
+            
+            return f;
+        });
+    }
+
     async function handleBlur() {
         if (type === 'checkbox') {
             isEditMode.set(false);
         } else {
-            if (fieldValue !== null && fieldValue !== undefined && fieldValue !== '') {
+            const hasValue = fieldValue !== null && fieldValue !== undefined && 
+                (typeof fieldValue !== 'string' || fieldValue !== '');
+            const isNestedField = name.includes('[') && name.includes(']');
+            
+            if (hasValue || isNestedField) {
                 isEditMode.set(false);
             }
         }
@@ -50,10 +133,8 @@
     function enterEditMode() {
         isEditMode.set(true);
         tick().then(() => {
-            const input = document.getElementById(name) as HTMLInputElement | HTMLSelectElement | null;
-            if (input && type !== 'checkbox') {
-                input.focus();
-            }
+            const input = document.getElementById(name);
+            input?.focus();
         });
     }
 </script>
@@ -67,7 +148,11 @@
             <select 
                 id={name}
                 name={name}
-                bind:value={form[name]}
+                value={$form[name]}
+                on:change={(e) => {
+                    const target = e.target as HTMLSelectElement;
+                    updateFormValue(target.value);
+                }}
                 on:blur={handleBlur}
                 class="form-input-sm"
                 {required}
@@ -85,7 +170,11 @@
                     id={name}
                     name={name}
                     type="checkbox"
-                    bind:checked={form[name]}
+                    checked={$form[name]}
+                    on:change={(e) => {
+                        const target = e.target as HTMLInputElement;
+                        updateFormValue(target.checked);
+                    }}
                     class="rounded border-sage-300 text-mint-600 shadow-sm focus:border-mint-500 focus:ring-mint-500"
                     on:blur={handleBlur}
                 />
@@ -96,14 +185,18 @@
                 {type}
                 id={name}
                 {name}
-                bind:value={form[name]}
+                value={$form[name] ?? ''}
+                on:input={(e) => {
+                    const target = e.target as HTMLInputElement;
+                    updateFormValue(target.value);
+                }}
+                on:blur={handleBlur}
+                on:keydown={handleKeydown}
                 class="form-input-sm"
                 {placeholder}
                 {required}
                 {min}
                 {max}
-                on:blur={handleBlur}
-                on:keydown={handleKeydown}
             />
         {/if}
         {#if fieldError}
@@ -122,18 +215,18 @@
             tabindex="0"
         >
             {#if type === 'select'}
-                {selectedOption?.label ?? fieldValue}
+                {selectedOption?.label ?? fieldValue ?? ''}
             {:else if type === 'checkbox'}
                 {fieldValue ? 'Yes' : 'No'}
             {:else}
-                {fieldValue}
+                {fieldValue ?? ''}
             {/if}
         </div>
         <!-- Hidden input to ensure the value is included in the form submission even in view mode -->
         <input 
             type="hidden" 
             name={name} 
-            bind:value={form[name]}
+            bind:value={$form[name]}
         />
     {/if}
 </div>

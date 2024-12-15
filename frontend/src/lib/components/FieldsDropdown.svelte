@@ -1,10 +1,15 @@
 <script lang="ts">
-    import { facilityStatus } from '../../stores/facilityStatus';
-    import { dropdownState, toggleDropdown, selectField, setDefaultField, toggleCreateField } from '../../stores/FacilityDropdownState';
-    import type { Field } from '$lib/types/facilityStatus';
-    import FieldCard from './FieldCard.svelte';
-    
-    export let fields: Field[];
+    import { dropdownState as facilityDropdownState } from '../../stores/FacilityDropdownState';
+    import { dropdownState, toggleDropdown, selectField, setDefaultField, toggleCreateField } from '../../stores/fieldDropdownState';
+    import type { Field } from '$lib/schemas/field';
+
+    let { fields } = $props<{ fields: Field[] }>();
+
+    const filteredFields = $derived(
+        $facilityDropdownState.selectedFacility
+            ? fields.filter((field: Field) => field.facility_id === $facilityDropdownState.selectedFacility?.facility_id)
+            : fields
+    );
 
     const sizeOrder: Record<string, number> = {
         '11v11': 1,
@@ -13,25 +18,30 @@
         '3v3': 4
     };
 
-    $: groupedFields = Object.entries(
-        fields.reduce((groups: Record<string, Field[]>, field) => {
-            const size = field.size;
-            if (!groups[size]) {
-                groups[size] = [];
-            }
-            groups[size].push(field);
-            return groups;
-        }, {})
-    ).sort(([sizeA], [sizeB]) => (sizeOrder[sizeA] || 99) - (sizeOrder[sizeB] || 99));
+    const groupedFields = $derived(
+        Object.entries(
+            filteredFields.reduce((groups: Record<string, Field[]>, field: Field) => {
+                const size = field.size;
+                if (!groups[size]) {
+                    groups[size] = [];
+                }
+                groups[size].push(field);
+                return groups;
+            }, {})
+        ).sort(([sizeA], [sizeB]) => sizeOrder[sizeA] - sizeOrder[sizeB]) as [string, Field[]][]
+    );
 
-    $: if (fields.length > 0) {
-        setDefaultField(fields);
-    }
+    $effect(() => {
+        if (filteredFields.length > 0) {
+            setDefaultField(filteredFields);
+        }
+    });
+
 
     function handleClickOutside(event: MouseEvent) {
         const target = event.target as HTMLElement;
         const isClickInsideDropdown = target.closest('.fields-dropdown');
-        const isClickInsideCreateCard = target.closest('.create-field-card');
+        const isClickInsideCreateCard = target.closest('.field-card');
         const isClickInsideInput = target.closest('input, select, button');
         
         if (!isClickInsideDropdown && !isClickInsideCreateCard && !isClickInsideInput) {
@@ -49,7 +59,7 @@
                 <h2 class="text-sm font-medium text-sage-700 pl-4">Fields</h2>
                 <button
                     class="p-2 ml-2"
-                    on:click={() => toggleDropdown('fieldsOpen')}
+                    onclick={() => toggleDropdown('fieldsOpen')}
                     aria-label="Toggle fields dropdown"
                 >
                     <svg
@@ -65,14 +75,14 @@
             </div>
             <button 
                 class="btn-primary text-sm py-1.5 m-2"
-                on:click={toggleCreateField}
+                onclick={toggleCreateField}
             >
                 Create Field
             </button>
         </div>
         {#if $dropdownState.fieldsOpen}
             <div class="dropdown-content border-t border-mint-100">
-                {#if fields && fields.length > 0}
+                {#if fields && filteredFields.length > 0}
                     <div class="p-1 space-y-3">
                         {#each groupedFields as [size, sizeFields]}
                             <div class="space-y-1">
@@ -80,7 +90,7 @@
                                 {#each sizeFields as field}
                                     <button
                                         class="dropdown-item {$dropdownState.selectedField?.field_id === field.field_id ? 'dropdown-item-selected' : ''}"
-                                        on:click={() => selectField(field)}
+                                        onclick={() => selectField(field)}
                                     >
                                         <span class="font-medium">{field.name}</span>
                                     </button>
@@ -90,7 +100,7 @@
                     </div>
                 {:else}
                     <div class="p-4 text-sage-500 text-center text-sm">
-                        <p>No fields available</p>
+                        <p>No fields available{$facilityDropdownState.selectedFacility ? ' for this facility' : ''}</p>
                         <p class="mt-1 text-xs">Click 'Create Field' to add one</p>
                     </div>
                 {/if}
@@ -98,13 +108,3 @@
         {/if}
     </div>
 </div>
-
-{#if $dropdownState.selectedField || $dropdownState.showCreateField}
-    <div class="fixed left-[calc(20rem+max(1rem,calc((100%-80rem)/2+1rem)))] top-32 right-[max(1rem,calc((100%-80rem)/2+1rem))] z-30">
-        <FieldCard 
-            field={$dropdownState.selectedField} 
-            facilityId={$facilityStatus?.selectedFacility?.facility_id} 
-            isCreateMode={$dropdownState.showCreateField} 
-        />
-    </div>
-{/if}

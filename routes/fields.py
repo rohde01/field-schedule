@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 import logging
 from datetime import time
 from dependencies.auth import get_current_user
-from dependencies.permissions import validate_facility_access, validate_field_access
+from dependencies.permissions import validate_facility_access, validate_field_access, require_club_access
 from models.users import User
 from database.facilities import Facility
 
@@ -109,11 +109,42 @@ async def get_facility_fields(
         for field in fields
     ]
 
+@router.get("/club/{club_id}")
+async def get_club_fields(
+    club_id: int,
+    _: bool = Depends(require_club_access),
+    current_user: User = Depends(get_current_user)
+) -> List[dict]:
+    fields = get_fields(club_id)  # Remove await since get_fields is synchronous
+    return [
+        {
+            "field_id": field.field_id,
+            "facility_id": field.facility_id,
+            "name": field.name,
+            "size": field.size,
+            "field_type": field.field_type,
+            "parent_field_id": field.parent_field_id,
+            "availability": field.availability,
+            "quarter_subfields": [
+                {"field_id": f.field_id, "facility_id": f.facility_id, "name": f.name} 
+                for f in field.quarter_subfields
+            ],
+            "half_subfields": [
+                {"field_id": f.field_id, "facility_id": f.facility_id, "name": f.name} 
+                for f in field.half_subfields
+            ]
+        }
+        for field in fields
+    ]
+
 @router.post("")
 async def create_new_field(
     field: FieldCreate,
     current_user: User = Depends(get_current_user)
 ) -> dict:
+    # Log incoming field data
+    logger.info(f"Creating new field with data: {field.model_dump()}")
+    
     # Validate facility access first
     facility = await validate_facility_access(field.facility_id, current_user)
     
