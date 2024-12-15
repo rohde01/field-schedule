@@ -1,8 +1,6 @@
 import type { PageServerLoad, Actions } from './$types';
 import { fail, redirect } from '@sveltejs/kit';
 import { user } from '$stores/user';
-import { facilityStatus } from '$stores/facilityStatus';
-import type { FacilityStatus } from '$lib/types/facilityStatus';
 
 export const load: PageServerLoad = async ({ locals }) => {
     if (locals.user) {
@@ -79,16 +77,9 @@ export const actions: Actions = {
             primary_club_id: userData.primary_club_id,
         };
 
-        const facilityStatusData: FacilityStatus = {
-            selectedFacility: null,
-            has_facilities: userData.has_facilities,
-            fields: []
-        };
 
         locals.user = userStore;
-        locals.facilityStatus = facilityStatusData;
         user.set(userStore);
-        facilityStatus.set(facilityStatusData);
         
         throw redirect(303, '/dashboard');
     }
