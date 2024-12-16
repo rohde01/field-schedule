@@ -109,15 +109,51 @@ def save_schedule(conn, solver, teams: List[Team], interval_vars: Dict[int, Any]
         conn.rollback()
         raise e
 
-
 @with_db_connection
-def get_schedule_entries(conn, schedule_id: int) -> List[tuple]:
-    cursor = conn.cursor()
-    query = """
-    SELECT se.team_id, se.field_id, se.start_time, se.end_time, se.week_day, 
-           se.parent_schedule_entry_id
-    FROM schedule_entries se
-    WHERE se.schedule_id = %s
+def get_schedule(conn, schedule_id: int):
     """
-    cursor.execute(query, (schedule_id,))
-    return cursor.fetchall()
+    Fetches a schedule and all its entries by schedule_id.
+    Returns a tuple of (schedule_info, schedule_entries).
+    """
+    cursor = conn.cursor()
+    
+    # Fetch schedule info
+    schedule_query = """
+    SELECT schedule_id, club_id, name
+    FROM schedules
+    WHERE schedule_id = %s;
+    """
+    cursor.execute(schedule_query, (schedule_id,))
+    schedule_row = cursor.fetchone()
+    
+    if not schedule_row:
+        return None
+        
+    entries_query = """
+    SELECT schedule_entry_id, team_id, field_id, 
+           parent_schedule_entry_id, start_time, 
+           end_time, week_day
+    FROM schedule_entries
+    WHERE schedule_id = %s
+    ORDER BY week_day, start_time;
+    """
+    cursor.execute(entries_query, (schedule_id,))
+    entries = cursor.fetchall()
+    
+    return {
+        'schedule_id': schedule_row[0],
+        'club_id': schedule_row[1],
+        'name': schedule_row[2],
+        'entries': [
+            {
+                'schedule_entry_id': e[0],
+                'team_id': e[1],
+                'field_id': e[2],
+                'parent_schedule_entry_id': e[3],
+                'start_time': e[4],
+                'end_time': e[5],
+                'week_day': e[6]
+            }
+            for e in entries
+        ]
+    }

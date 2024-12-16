@@ -2,12 +2,16 @@
 Filename: schedules.py in routes folder
 '''
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from main import generate_schedule
 from database.constraints import Constraint as ConstraintModel
-from database.schedules import get_schedule_entries
+from database.schedules import get_schedule
+from models.schedules import Schedule
+from dependencies.auth import get_current_user
+from dependencies.permissions import require_club_access
+from models.users import User
 
 router = APIRouter(prefix="/schedules", tags=["schedules"])
 
@@ -30,10 +34,13 @@ class GenerateScheduleRequest(BaseModel):
     club_id: int
     schedule_name: str = Field(default="Generated Schedule")
 
-@router.post("/generate_schedule")
-async def generate_schedule_route(request: GenerateScheduleRequest):
+@router.post("/generate", response_model=dict)
+async def generate_schedule_route(
+    request: GenerateScheduleRequest,
+    current_user: User = Depends(get_current_user),
+    _: bool = Depends(require_club_access(lambda r: r.club_id))
+):
     try:
-        # Convert constraints to ConstraintModel instances
         constraints_list = [ConstraintModel(**constraint.dict()) for constraint in request.constraints]
         schedule_id = generate_schedule(
             facility_id=request.facility_id,
@@ -48,21 +55,16 @@ async def generate_schedule_route(request: GenerateScheduleRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/{schedule_id}", response_model=Schedule)
+async def fetch_schedule(
+    schedule_id: int,
+    current_user: User = Depends(get_current_user)
+):
+    schedule_data = get_schedule(schedule_id)
+    if not schedule_data:
+        raise HTTPException(status_code=404, detail="Schedule not found")
+    
+    _ = await require_club_access(schedule_data['club_id'])(current_user)
+    
+    return schedule_data
 
-@router.get("/{schedule_id}/entries")
-async def get_entries(schedule_id: int) -> List[dict]:
-    try:
-        entries = get_schedule_entries(schedule_id)
-        return [
-            {
-                "team_id": entry[0],
-                "field_id": entry[1],
-                "start_time": str(entry[2]),
-                "end_time": str(entry[3]),
-                "week_day": entry[4],
-                "parent_schedule_entry_id": entry[5],
-            }
-            for entry in entries
-        ]
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
