@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from typing import List, Optional
 from main import generate_schedule
 from database.constraints import Constraint as ConstraintModel
-from database.schedules import get_schedule
+from database.schedules import get_club_schedules
 from models.schedules import Schedule
 from dependencies.auth import get_current_user
 from dependencies.permissions import require_club_access
@@ -37,9 +37,10 @@ class GenerateScheduleRequest(BaseModel):
 @router.post("/generate", response_model=dict)
 async def generate_schedule_route(
     request: GenerateScheduleRequest,
-    current_user: User = Depends(get_current_user),
-    _: bool = Depends(require_club_access(lambda r: r.club_id))
+    current_user: User = Depends(get_current_user)
 ):
+    await require_club_access(request.club_id)(current_user)
+    
     try:
         constraints_list = [ConstraintModel(**constraint.dict()) for constraint in request.constraints]
         schedule_id = generate_schedule(
@@ -55,16 +56,14 @@ async def generate_schedule_route(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/{schedule_id}", response_model=Schedule)
-async def fetch_schedule(
-    schedule_id: int,
+@router.get("/{club_id}/schedules", response_model=List[Schedule])
+async def fetch_club_schedules(
+    club_id: int,
     current_user: User = Depends(get_current_user)
 ):
-    schedule_data = get_schedule(schedule_id)
-    if not schedule_data:
-        raise HTTPException(status_code=404, detail="Schedule not found")
+    await require_club_access(club_id)(current_user)
     
-    _ = await require_club_access(schedule_data['club_id'])(current_user)
-    
-    return schedule_data
+    schedules = get_club_schedules(club_id)
+    return schedules
+
 

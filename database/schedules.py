@@ -110,50 +110,55 @@ def save_schedule(conn, solver, teams: List[Team], interval_vars: Dict[int, Any]
         raise e
 
 @with_db_connection
-def get_schedule(conn, schedule_id: int):
+def get_club_schedules(conn, club_id: int):
     """
-    Fetches a schedule and all its entries by schedule_id.
-    Returns a tuple of (schedule_info, schedule_entries).
+    Fetches all schedules and their entries for a given club_id.
+    Returns a list of schedules with their entries.
     """
     cursor = conn.cursor()
     
-    # Fetch schedule info
-    schedule_query = """
+    schedules_query = """
     SELECT schedule_id, club_id, name
     FROM schedules
-    WHERE schedule_id = %s;
+    WHERE club_id = %s;
     """
-    cursor.execute(schedule_query, (schedule_id,))
-    schedule_row = cursor.fetchone()
+    cursor.execute(schedules_query, (club_id,))
+    schedule_rows = cursor.fetchall()
     
-    if not schedule_row:
-        return None
-        
+    if not schedule_rows:
+        return []
+    
+    schedule_ids = [row[0] for row in schedule_rows]
+    
     entries_query = """
-    SELECT schedule_entry_id, team_id, field_id, 
+    SELECT schedule_id, schedule_entry_id, team_id, field_id, 
            parent_schedule_entry_id, start_time, 
            end_time, week_day
     FROM schedule_entries
-    WHERE schedule_id = %s
-    ORDER BY week_day, start_time;
+    WHERE schedule_id = ANY(%s)
+    ORDER BY schedule_id, week_day, start_time;
     """
-    cursor.execute(entries_query, (schedule_id,))
+    cursor.execute(entries_query, (schedule_ids,))
     entries = cursor.fetchall()
     
-    return {
-        'schedule_id': schedule_row[0],
-        'club_id': schedule_row[1],
-        'name': schedule_row[2],
-        'entries': [
-            {
-                'schedule_entry_id': e[0],
-                'team_id': e[1],
-                'field_id': e[2],
-                'parent_schedule_entry_id': e[3],
-                'start_time': e[4],
-                'end_time': e[5],
-                'week_day': e[6]
-            }
-            for e in entries
-        ]
-    }
+    entries_by_schedule = defaultdict(list)
+    for entry in entries:
+        entries_by_schedule[entry[0]].append({
+            'schedule_entry_id': entry[1],
+            'team_id': entry[2],
+            'field_id': entry[3],
+            'parent_schedule_entry_id': entry[4],
+            'start_time': entry[5],
+            'end_time': entry[6],
+            'week_day': entry[7]
+        })
+    
+    return [
+        {
+            'schedule_id': row[0],
+            'club_id': row[1],
+            'name': row[2],
+            'entries': entries_by_schedule[row[0]]
+        }
+        for row in schedule_rows
+    ]

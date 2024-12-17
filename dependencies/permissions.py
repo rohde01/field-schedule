@@ -9,14 +9,12 @@ from database.fields import get_field_facility_id
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def require_club_access(club_id_extractor):
+def require_club_access(club_id: int):
     """
     Factory function that returns a dependency to ensure the current user 
-    belongs to the specified club. Accepts either a club_id directly or
-    a function to extract club_id from a request object.
+    belongs to the specified club.
     """
     async def club_access_dependency(current_user: User = Depends(get_current_user)):
-        club_id = club_id_extractor if isinstance(club_id_extractor, int) else club_id_extractor(current_user)
         logger.info(f"Checking club access for user_id={current_user.user_id} club_id={club_id}")
         has_access = user_belongs_to_club(current_user.user_id, club_id)
         logger.info(f"Access check result: {has_access}")
