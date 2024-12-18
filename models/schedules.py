@@ -15,4 +15,5 @@ class Schedule(BaseModel):
     schedule_id: int
     club_id: int
     name: str
+    facility_id: Optional[int]
     entries: List[ScheduleEntry]

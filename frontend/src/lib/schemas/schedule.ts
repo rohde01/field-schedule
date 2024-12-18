@@ -20,6 +20,7 @@ export const scheduleSchema = z.object({
     schedule_id: z.number().int().positive(),
     club_id: z.number().int().positive(),
     name: z.string().min(1),
+    facility_id: z.number().int().positive().nullable(),
     entries: z.array(scheduleEntrySchema)
 });
 

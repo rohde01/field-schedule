@@ -118,7 +118,7 @@ def get_club_schedules(conn, club_id: int):
     cursor = conn.cursor()
     
     schedules_query = """
-    SELECT schedule_id, club_id, name
+    SELECT schedule_id, club_id, name, facility_id
     FROM schedules
     WHERE club_id = %s;
     """
@@ -158,6 +158,7 @@ def get_club_schedules(conn, club_id: int):
             'schedule_id': row[0],
             'club_id': row[1],
             'name': row[2],
+            'facility_id': row[3],
             'entries': entries_by_schedule[row[0]]
         }
         for row in schedule_rows
