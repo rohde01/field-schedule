@@ -54,7 +54,9 @@ export const fieldCreateSchema = z.object({
 const subFieldSchema = z.object({
     field_id: z.number().int().positive(),
     facility_id: z.number().int().positive(),
-    name: z.string()
+    name: z.string(),
+    is_active: z.boolean(),
+    parent_field_id: z.number().int().positive()
 });
 
 export const fieldSchema = z.object({
@@ -64,6 +66,7 @@ export const fieldSchema = z.object({
     size: fieldSizeEnum,
     field_type: fieldTypeEnum,
     parent_field_id: z.number().int().positive().nullable(),
+    is_active: z.boolean(),
     availability: z.record(dayOfWeekEnum, fieldAvailabilitySchema),
     quarter_subfields: z.array(subFieldSchema),
     half_subfields: z.array(subFieldSchema)

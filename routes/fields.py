@@ -99,11 +99,14 @@ async def get_facility_fields(
             "field_type": field.field_type,
             "parent_field_id": field.parent_field_id,
             "availability": field.availability,
+            "is_active": field.is_active,
             "quarter_subfields": [
-                {"field_id": f.field_id, "name": f.name} for f in field.quarter_subfields
+                {"field_id": f.field_id, "name": f.name, "is_active": f.is_active} 
+                for f in field.quarter_subfields
             ],
             "half_subfields": [
-                {"field_id": f.field_id, "name": f.name} for f in field.half_subfields
+                {"field_id": f.field_id, "name": f.name, "is_active": f.is_active} 
+                for f in field.half_subfields
             ]
         }
         for field in fields
@@ -125,12 +128,13 @@ async def get_club_fields(
             "field_type": field.field_type,
             "parent_field_id": field.parent_field_id,
             "availability": field.availability,
+            "is_active": field.is_active,
             "quarter_subfields": [
-                {"field_id": f.field_id, "facility_id": f.facility_id, "name": f.name} 
+                {"field_id": f.field_id, "facility_id": f.facility_id, "name": f.name, "is_active": f.is_active} 
                 for f in field.quarter_subfields
             ],
             "half_subfields": [
-                {"field_id": f.field_id, "facility_id": f.facility_id, "name": f.name} 
+                {"field_id": f.field_id, "facility_id": f.facility_id, "name": f.name, "is_active": f.is_active} 
                 for f in field.half_subfields
             ]
         }

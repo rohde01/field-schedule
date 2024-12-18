@@ -18,6 +18,7 @@ class Field:
     size: str
     field_type: str
     parent_field_id: Optional[int]
+    is_active: bool = True
     availability: Dict[str, FieldAvailability] = field(default_factory=dict)
     quarter_subfields: List['Field'] = field(default_factory=list)
     half_subfields: List['Field'] = field(default_factory=list)
@@ -28,7 +29,7 @@ def get_fields(conn, club_id: int) -> List[Field]:
     cursor = conn.cursor()
     fields_query = """
         SELECT f.field_id, f.facility_id, f.name, f.size, f.field_type, f.parent_field_id,
-            fa.day_of_week, fa.start_time, fa.end_time
+            fa.day_of_week, fa.start_time, fa.end_time, f.is_active
         FROM fields f
         LEFT JOIN field_availability fa ON f.field_id = fa.field_id
         JOIN facilities fac ON f.facility_id = fac.facility_id
@@ -49,6 +50,7 @@ def get_fields(conn, club_id: int) -> List[Field]:
                 size=row[3],
                 field_type=row[4],
                 parent_field_id=row[5],
+                is_active=row[9],
                 availability={}
             )
             parent_id = row[5]
