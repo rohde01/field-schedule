@@ -18,17 +18,6 @@
         }
     });
 
-    $effect(() => {
-        if (data.facilities) {
-            setFacilities(data.facilities);
-        }
-    });
-
-    $effect(() => {
-        if (data.fields) {
-            setFields(data.fields);
-        }
-    });
 
     let displayColumns: Column[] = $state([]);
 

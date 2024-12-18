@@ -1,7 +1,21 @@
 <script lang="ts">
     import '../app.css';
-    import type { LayoutData } from './$types';
-    export let data: LayoutData;
+    import { setFacilities } from '$stores/facilities';
+    import { setFields } from '$stores/fields';
+
+    let { data } = $props();
+
+    $effect(() => {
+        if (data.facilities) {
+            setFacilities(data.facilities);
+        }
+    });
+
+    $effect(() => {
+        if (data.fields) {
+            setFields(data.fields);
+        }
+    });
 </script>
 
 <div class="min-h-screen bg-sage-50 relative">

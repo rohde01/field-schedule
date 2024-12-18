@@ -2,10 +2,8 @@ import type { PageServerLoad, Actions } from './$types';
 import { error, fail } from '@sveltejs/kit';
 import { superValidate } from 'sveltekit-superforms/server';
 import { zod } from 'sveltekit-superforms/adapters';
-import type { Facility } from '$lib/schemas/facility';
 import { facilityCreateSchema } from '$lib/schemas/facility';
 import { deleteFieldSchema, fieldCreateSchema, type DeleteFieldResponse } from '$lib/schemas/field';
-import type { Field } from '$lib/schemas/field';
 
 export const load: PageServerLoad = async ({ locals, fetch }) => {
     const [facilityForm, deleteForm, createFieldForm] = await Promise.all([
@@ -46,49 +44,12 @@ export const load: PageServerLoad = async ({ locals, fetch }) => {
         };
     }
 
-    try {
-        const [facilitiesResponse, fieldsResponse] = await Promise.all([
-            fetch(`http://localhost:8000/facilities/club/${locals.user.primary_club_id}`, {
-                headers: {
-                    'Authorization': `Bearer ${locals.token}`
-                }
-            }),
-            fetch(`http://localhost:8000/fields/club/${locals.user.primary_club_id}`, {
-                headers: {
-                    'Authorization': `Bearer ${locals.token}`
-                }
-            })
-        ]);
-
-        if (!facilitiesResponse.ok) {
-            const errorText = await facilitiesResponse.text();
-            console.error('Failed to fetch facilities:', facilitiesResponse.status, errorText);
-            throw error(facilitiesResponse.status, 'Failed to fetch facilities');
-        }
-
-        if (!fieldsResponse.ok) {
-            const errorText = await fieldsResponse.text();
-            console.error('Failed to fetch fields:', fieldsResponse.status, errorText);
-            throw error(fieldsResponse.status, 'Failed to fetch fields');
-        }
-
-        const facilities: Facility[] = await facilitiesResponse.json();
-        const fields: Field[] = await fieldsResponse.json();
-        
-        console.log('Fetched facilities:', facilities);
-        console.log('Fetched fields:', fields);
-
         return {
             facilityForm,
             createFieldForm,
             deleteForm,
-            facilities,
-            fields,
         };
-    } catch (err) {
-        console.error('Error in load function:', err);
-        throw error(500, 'Internal Server Error');
-    }
+ 
 };
 
 export const actions: Actions = {
