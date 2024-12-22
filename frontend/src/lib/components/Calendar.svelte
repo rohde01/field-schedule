@@ -1,83 +1,88 @@
-<script>
+<script lang="ts">
     import Calendar from '@event-calendar/core';
+    import TimeLine from '@event-calendar/resource-timeline';
     import TimeGrid from '@event-calendar/resource-time-grid';
     import { fields } from '../../stores/fields';
-    
+    import type { Field } from '$lib/schemas/field';
+    import type { CalendarResource, CalendarEvent } from '$lib/types/event-calendar';
 
-    let plugins = [TimeGrid];
+    let plugins = [TimeLine, TimeGrid];
 
-    // Example events (can remain as is, or adjust as needed)
-    let events = [
-        {
-            id: '1',
-            resourceIds: ['1'],
-            title: 'Team A Practice',
-            start: '2024-12-18T10:00:00',
-            end: '2024-12-18T12:00:00',
-            backgroundColor: '#FF0000'
-        },
-        // ... more events ...
-    ];
-
-    let options = {
-        view: 'resourceTimeGridDay',
-        height: '100%',
-        nowIndicator: true,
-        slotMinWidth: 100,
-        resources: [], // Will be filled in dynamically
-        events: events,
-    };
-
-    // Subscribe to fields and rebuild resources whenever they change
-    const unsubscribe = fields.subscribe($fields => {
-        // Build the resources structure from $fields
-        const newResources = buildResources($fields);
-
-        // Update the options object
-        options = {
-            ...options,
-            resources: newResources
-        };
-    });
-
-    // Utility function to build the hierarchical resources
-    function buildResources(allFields) {
-        // Filter fields by facility_id first
+    function buildResources(allFields: Field[]): CalendarResource[] {
         const facilityFields = allFields.filter(field => field.facility_id === 1);
-        
-        // Then filter top-level fields from the facility-filtered set
+
+        // Identify top-level (full) fields
         const topLevelFields = facilityFields.filter(field => field.parent_field_id === null);
 
-        // Convert each top-level field into a resource object
+        // Convert each top-level field into a resource
         return topLevelFields.map(field => toResource(field));
     }
 
-    // Convert a single Field object into the hierarchical resource structure
-    function toResource(field) {
-        // half_subfields and quarter_subfields are arrays of subFieldSchema, which represent child fields
-        const halfChildren = field.half_subfields.map(half => ({
-            id: half.field_id.toString(),
-            title: half.name,
-            parentId: half.parent_field_id?.toString() ?? null,
-            children: [] // half_subfields are leaves in this model
-        }));
+    function toResource(field: Field): CalendarResource {
+        // For each half subfield, find its quarter subfields
+        const halfChildren = field.half_subfields.map(half => {
+            const quarterChildren = field.quarter_subfields
+                .filter(q => q.parent_field_id === half.field_id)
+                .map(q => ({
+                    id: q.field_id.toString(),
+                    title: q.name,
+                    parentId: q.parent_field_id?.toString() ?? null,
+                    children: []
+                }));
 
-        const quarterChildren = field.quarter_subfields.map(quarter => ({
-            id: quarter.field_id.toString(),
-            title: quarter.name,
-            parentId: quarter.parent_field_id?.toString() ?? null,
-            children: [] // quarter_subfields are also leaves
-        }));
+            return {
+                id: half.field_id.toString(),
+                title: half.name,
+                parentId: half.parent_field_id?.toString() ?? null,
+                children: quarterChildren
+            };
+        });
 
         return {
             id: field.field_id.toString(),
             title: field.name,
             parentId: field.parent_field_id?.toString() ?? null,
-            children: [...halfChildren, ...quarterChildren]
+            children: halfChildren
         };
     }
+
+    let events: CalendarEvent[] = [
+        {
+            title: 'Event 1',
+            start: '2024-12-20T09:00:00',
+            end: '2024-12-20T10:00:00',
+            resourceId: '1'
+        },
+        {
+            title: 'Event 2',
+            start: '2024-12-20T10:00:00',
+            end: '2024-12-20T11:00:00',
+            resourceId: '5'
+        }
+    ];
+
+    // Recompute resources whenever fields change
+    $: currentResources = buildResources($fields);
+
+    let options: {
+        view: string;
+        nowIndicator: boolean;
+        resources: CalendarResource[];
+        events: CalendarEvent[];
+    } = {
+        view: 'resourceTimelineDay',
+        nowIndicator: true,
+        resources: currentResources,
+        events
+    };
+
+    $: options = {
+        ...options,
+        resources: currentResources,
+        events
+    };
 </script>
 
-<div style="height: 900px;">
+<div>
     <Calendar {plugins} {options} />
 </div>

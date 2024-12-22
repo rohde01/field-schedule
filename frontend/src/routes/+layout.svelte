@@ -26,7 +26,7 @@
                     <a href="/" class="nav-link">Home</a>
                     {#if data.user}
                         <a href="/dashboard" class="nav-link">Dashboard</a>
-                        <a href="/club" class="nav-link">My Club</a>
+                        <a href="/schedules" class="nav-link">Schedules</a>
                         <a href="/teams" class="nav-link">Teams</a>
                         <a href="/fields" class="nav-link">Fields</a>
                     {/if}

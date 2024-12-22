@@ -101,11 +101,21 @@ async def get_facility_fields(
             "availability": field.availability,
             "is_active": field.is_active,
             "quarter_subfields": [
-                {"field_id": f.field_id, "name": f.name, "is_active": f.is_active} 
+                {
+                    "field_id": f.field_id,
+                    "name": f.name,
+                    "is_active": f.is_active,
+                    "parent_field_id": f.parent_field_id
+                } 
                 for f in field.quarter_subfields
             ],
             "half_subfields": [
-                {"field_id": f.field_id, "name": f.name, "is_active": f.is_active} 
+                {
+                    "field_id": f.field_id,
+                    "name": f.name,
+                    "is_active": f.is_active,
+                    "parent_field_id": f.parent_field_id
+                } 
                 for f in field.half_subfields
             ]
         }
@@ -130,11 +140,23 @@ async def get_club_fields(
             "availability": field.availability,
             "is_active": field.is_active,
             "quarter_subfields": [
-                {"field_id": f.field_id, "facility_id": f.facility_id, "name": f.name, "is_active": f.is_active} 
+                {
+                    "field_id": f.field_id,
+                    "facility_id": f.facility_id,
+                    "name": f.name,
+                    "is_active": f.is_active,
+                    "parent_field_id": f.parent_field_id
+                } 
                 for f in field.quarter_subfields
             ],
             "half_subfields": [
-                {"field_id": f.field_id, "facility_id": f.facility_id, "name": f.name, "is_active": f.is_active} 
+                {
+                    "field_id": f.field_id,
+                    "facility_id": f.facility_id,
+                    "name": f.name,
+                    "is_active": f.is_active,
+                    "parent_field_id": f.parent_field_id
+                } 
                 for f in field.half_subfields
             ]
         }
