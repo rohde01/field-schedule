@@ -3,13 +3,17 @@
     import TimeLine from '@event-calendar/resource-timeline';
     import TimeGrid from '@event-calendar/resource-time-grid';
     import { fields } from '../../stores/fields';
+    import { dropdownState } from '../../stores/ScheduleDropdownState';
     import type { Field } from '$lib/schemas/field';
     import type { CalendarResource, CalendarEvent } from '$lib/types/event-calendar';
+    import type { Schedule } from '$lib/schemas/schedule';
 
     let plugins = [TimeLine, TimeGrid];
 
-    function buildResources(allFields: Field[]): CalendarResource[] {
-        const facilityFields = allFields.filter(field => field.facility_id === 1);
+    function buildResources(allFields: Field[], selectedSchedule: Schedule | null): CalendarResource[] {
+        const facilityFields = selectedSchedule?.facility_id 
+            ? allFields.filter(field => field.facility_id === selectedSchedule.facility_id)
+            : [];
 
         // Identify top-level (full) fields
         const topLevelFields = facilityFields.filter(field => field.parent_field_id === null);
@@ -61,8 +65,8 @@
         }
     ];
 
-    // Recompute resources whenever fields change
-    $: currentResources = buildResources($fields);
+    // Recompute resources whenever fields or selected schedule changes
+    $: currentResources = buildResources($fields, $dropdownState.selectedSchedule);
 
     let options: {
         view: string;
