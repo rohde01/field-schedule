@@ -3,10 +3,11 @@
     import TimeLine from '@event-calendar/resource-timeline';
     import TimeGrid from '@event-calendar/resource-time-grid';
     import { fields } from '../../stores/fields';
+    import { schedules } from '../../stores/schedules';
     import { dropdownState } from '../../stores/ScheduleDropdownState';
     import type { Field } from '$lib/schemas/field';
     import type { CalendarResource, CalendarEvent } from '$lib/types/event-calendar';
-    import type { Schedule } from '$lib/schemas/schedule';
+    import type { Schedule, ScheduleEntry } from '$lib/schemas/schedule';
 
     let plugins = [TimeLine, TimeGrid];
 
@@ -50,20 +51,38 @@
         };
     }
 
-    let events: CalendarEvent[] = [
-        {
-            title: 'Event 1',
-            start: '2024-12-20T09:00:00',
-            end: '2024-12-20T10:00:00',
-            resourceId: '1'
-        },
-        {
-            title: 'Event 2',
-            start: '2024-12-20T10:00:00',
-            end: '2024-12-20T11:00:00',
-            resourceId: '5'
-        }
-    ];
+    // Hardcoded schedule_id for now - this should be made configurable later
+    const SCHEDULE_ID = 25;
+
+    function createEventFromScheduleEntry(entry: ScheduleEntry): CalendarEvent {
+        const now = new Date();
+        const currentDay = now.getDay();
+        const adjustedCurrentDay = currentDay === 0 ? 6 : currentDay - 1;
+        const daysUntilNext = ((entry.week_day - adjustedCurrentDay + 7) % 7);
+        const nextDate = new Date(now);
+        nextDate.setDate(now.getDate() + daysUntilNext);
+        
+        const dateStr = nextDate.toISOString().split('T')[0];
+        
+        return {
+            title: entry.team_id?.toString() ?? 'Unassigned',
+            start: `${dateStr}T${entry.start_time}`,
+            end: `${dateStr}T${entry.end_time}`,
+            resourceId: entry.field_id?.toString() ?? '',
+            id: entry.schedule_entry_id.toString()
+        };
+    }
+
+    // Convert schedule entries to calendar events
+    function getEventsFromSchedule(schedules: Schedule[]): CalendarEvent[] {
+        const schedule = schedules.find(s => s.schedule_id === SCHEDULE_ID);
+        if (!schedule) return [];
+        
+        return schedule.entries.map(createEventFromScheduleEntry);
+    }
+
+    // Recompute events whenever schedules change
+    $: events = getEventsFromSchedule($schedules);
 
     // Recompute resources whenever fields or selected schedule changes
     $: currentResources = buildResources($fields, $dropdownState.selectedSchedule);
@@ -73,11 +92,17 @@
         nowIndicator: boolean;
         resources: CalendarResource[];
         events: CalendarEvent[];
+        slotMinTime: string;
+        slotMaxTime: string;
+        slotDuration: string;
     } = {
         view: 'resourceTimelineDay',
         nowIndicator: true,
         resources: currentResources,
-        events
+        events,
+        slotMinTime: '12:00:00',
+        slotMaxTime: '23:00:00',
+        slotDuration: '00:60:00'
     };
 
     $: options = {
@@ -90,3 +115,9 @@
 <div>
     <Calendar {plugins} {options} />
 </div>
+
+<style>
+:global(.ec-sidebar-title) {
+    flex-basis: 49px !important;
+}
+</style>
