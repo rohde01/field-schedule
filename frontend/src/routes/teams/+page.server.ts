@@ -2,11 +2,9 @@ import { fail } from '@sveltejs/kit';
 import { superValidate } from 'sveltekit-superforms/server';
 import { zod } from 'sveltekit-superforms/adapters';
 import { teamSchema, deleteTeamSchema, type DeleteTeamResponse } from '$lib/schemas/team';
-import type { Team } from '$lib/schemas/team';
 import type { PageServerLoad, Actions } from './$types';
-import { error } from '@sveltejs/kit';
 
-export const load = (async ({ fetch, locals }) => {
+export const load = (async ({ locals }) => {
     const deleteForm = await superValidate(zod(deleteTeamSchema));
     const createForm = await superValidate(zod(teamSchema), {
         id: 'team-form',
@@ -33,24 +31,9 @@ export const load = (async ({ fetch, locals }) => {
         };
     }
 
-    const response = await fetch(`http://localhost:8000/teams?club_id=${locals.user.primary_club_id}`, {
-        headers: {
-            'Authorization': `Bearer ${locals.token}`
-        }
-    });
-
-    if (!response.ok) {
-        console.error('Failed to fetch teams:', response.status, await response.text());
-        throw error(response.status, 'Failed to fetch teams');
-    }
-
-    const teams: Team[] = await response.json();
-    console.log('Fetched teams:', teams);
-
     return {
         deleteForm,
         createForm,
-        teams
     };
 }) satisfies PageServerLoad;
 

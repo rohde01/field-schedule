@@ -2,6 +2,7 @@
     import '../app.css';
     import { setFacilities } from '$stores/facilities';
     import { setFields } from '$stores/fields';
+    import { setTeams } from '$stores/teams';
 
     let { data } = $props();
 
@@ -14,6 +15,12 @@
     $effect(() => {
         if (data.fields) {
             setFields(data.fields);
+        }
+    });
+
+    $effect(() => {
+        if (data.teams) {
+            setTeams(data.teams);
         }
     });
 </script>
