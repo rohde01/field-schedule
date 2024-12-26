@@ -3,6 +3,7 @@
     import { setFacilities } from '$stores/facilities';
     import { setFields } from '$stores/fields';
     import { setTeams } from '$stores/teams';
+    import { setConstraints } from '$stores/constraints';
 
     let { data } = $props();
 
@@ -21,6 +22,12 @@
     $effect(() => {
         if (data.teams) {
             setTeams(data.teams);
+        }
+    });
+
+    $effect(() => {
+        if (data.constraints) {
+            setConstraints(data.constraints);
         }
     });
 </script>

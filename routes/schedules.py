@@ -27,6 +27,18 @@ class ConstraintSchema(BaseModel):
     partial_ses_time: Optional[int] = None
     start_time: Optional[str] = None
 
+class ConstraintResponse(BaseModel):
+    team_id: int
+    required_size: Optional[str]
+    subfield_type: Optional[str]
+    required_cost: Optional[int]
+    sessions: int
+    length: int
+    partial_ses_space_size: Optional[str]
+    partial_ses_space_cost: Optional[int]
+    partial_ses_time: Optional[int]
+    start_time: Optional[str]
+
 class GenerateScheduleRequest(BaseModel):
     facility_id: int
     team_ids: List[int]
@@ -65,5 +77,37 @@ async def fetch_club_schedules(
     
     schedules = get_club_schedules(club_id)
     return schedules
+
+@router.get("/{club_id}/constraints", response_model=List[ConstraintResponse])
+async def fetch_club_constraints(
+    club_id: int,
+    current_user: User = Depends(get_current_user)
+):
+    print(f"Fetching constraints for club_id: {club_id}")
+    try:
+        await require_club_access(club_id)(current_user)
+        
+        from database.constraints import get_constraints
+        constraints = get_constraints(club_id)
+        
+        if not constraints:
+            return []
+            
+        response = []
+        for constraint in constraints:
+            constraint_dict = {
+                k: v for k, v in constraint.__dict__.items() if k != 'club_id'
+            }
+            if constraint_dict.get('start_time'):
+                constraint_dict['start_time'] = constraint_dict['start_time'].strftime('%H:%M:%S')
+            response.append(ConstraintResponse(**constraint_dict))
+            
+        return response
+    except Exception as e:
+        print(f"Error fetching constraints: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error fetching constraints: {str(e)}"
+        )
 
 

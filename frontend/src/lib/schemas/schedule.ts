@@ -27,21 +27,25 @@ export const scheduleSchema = z.object({
 export type ScheduleEntry = z.infer<typeof scheduleEntrySchema>;
 export type Schedule = z.infer<typeof scheduleSchema>;
 
+export const constraintSchema = z.object({
+    team_id: z.number().int().positive(),
+    required_size: z.string().nullable(),
+    subfield_type: z.string().nullable(),
+    required_cost: z.number().int().nullable(),
+    sessions: z.number().int().min(0),
+    length: z.number().int().min(0),
+    partial_ses_space_size: z.string().nullable(),
+    partial_ses_space_cost: z.number().int().nullable(),
+    partial_ses_time: z.number().int().nullable(),
+    start_time: z.string().regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/).nullable()
+});
+
+export type Constraint = z.infer<typeof constraintSchema>;
+
 export const generateScheduleRequestSchema = z.object({
     facility_id: z.number().int().positive(),
     team_ids: z.array(z.number().int().positive()),
-    constraints: z.array(z.object({
-        team_id: z.number().int().positive(),
-        required_size: z.string().nullable().optional(),
-        subfield_type: z.string().nullable().optional(),
-        required_cost: z.number().nullable().optional(),
-        sessions: z.number().int().min(1).default(1),
-        length: z.number().int().min(1).default(1),
-        partial_ses_space_size: z.string().nullable().optional(),
-        partial_ses_space_cost: z.number().nullable().optional(),
-        partial_ses_time: z.number().nullable().optional(),
-        start_time: z.string().nullable().optional()
-    })),
+    constraints: z.array(constraintSchema),
     club_id: z.number().int().positive(),
     schedule_name: z.string().default("Generated Schedule")
 });

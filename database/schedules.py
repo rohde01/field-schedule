@@ -98,7 +98,7 @@ def save_schedule(conn, solver, teams: List[Team], interval_vars: Dict[int, Any]
                         schedule_entry_id = cursor.fetchone()[0]
                         if parent_schedule_entry_id is None:
                             parent_schedule_entry_id = schedule_entry_id
-                            save_constraints(cursor, schedule_entry_id, team_id, constraint)
+                            save_constraints(cursor, schedule_entry_id, team_id, constraint, club_id)
 
 
         conn.commit()
