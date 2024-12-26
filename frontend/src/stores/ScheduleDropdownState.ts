@@ -1,15 +1,22 @@
 import type { Schedule } from '$lib/schemas/schedule';
 import { writable } from 'svelte/store';
 import { schedules } from './schedules';
+import type { Team } from '$lib/schemas/team';
 
 type ScheduleDropdownState = {
     isOpen: boolean;
     selectedSchedule: Schedule | null;
+    teamsOpen: boolean;
+    showCreateTeam: boolean;
+    selectedTeam: Team | null;
 };
 
 const initialState: ScheduleDropdownState = {
     isOpen: false,
-    selectedSchedule: null
+    selectedSchedule: null,
+    teamsOpen: false,
+    showCreateTeam: false,
+    selectedTeam: null
 };
 
 export const dropdownState = writable<ScheduleDropdownState>(initialState);

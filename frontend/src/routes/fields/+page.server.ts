@@ -5,7 +5,7 @@ import { zod } from 'sveltekit-superforms/adapters';
 import { facilityCreateSchema } from '$lib/schemas/facility';
 import { deleteFieldSchema, fieldCreateSchema, type DeleteFieldResponse } from '$lib/schemas/field';
 
-export const load: PageServerLoad = async ({ locals, fetch }) => {
+export const load: PageServerLoad = async ({ locals }) => {
     const [facilityForm, deleteForm, createFieldForm] = await Promise.all([
         superValidate(zod(facilityCreateSchema), {
             id: 'facility-form',

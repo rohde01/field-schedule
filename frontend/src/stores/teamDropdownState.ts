@@ -5,12 +5,14 @@ type TeamDropdownState = {
     teamsOpen: boolean;
     selectedTeam: Team | null;
     showCreateTeam: boolean;
+    showCreateSchedule: boolean;
 };
 
 const initialState: TeamDropdownState = {
     teamsOpen: true,
     selectedTeam: null,
     showCreateTeam: false,
+    showCreateSchedule: false
 };
 
 export const dropdownState = writable<TeamDropdownState>(initialState);
@@ -47,5 +49,13 @@ export function toggleCreateTeam() {
         ...state,
         showCreateTeam: !state.showCreateTeam,
         selectedTeam: null
+    }));
+}
+
+export function toggleCreateSchedule() {
+    dropdownState.update(state => ({
+        ...state,
+        showCreateSchedule: !state.showCreateSchedule,
+        selectedSchedule: null
     }));
 }
