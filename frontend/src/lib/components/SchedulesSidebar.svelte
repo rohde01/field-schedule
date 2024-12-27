@@ -4,6 +4,7 @@
     import type { Team } from '$lib/schemas/team';
     import type { SuperForm } from 'sveltekit-superforms';
     import type { GenerateScheduleRequest } from '$lib/schemas/schedule';
+    import { page } from '$app/stores';
     
     let { teams, form } = $props<{ 
         teams: Team[], 
@@ -78,6 +79,19 @@
             }
         }
     }
+
+    function handleCreateScheduleClick() {
+        if ($teamDropdownState.showCreateSchedule) {
+            form.set({
+                facility_id: 0,
+                team_ids: [],
+                constraints: [],
+                club_id: $page.data.user?.primary_club_id ?? 0,
+                schedule_name: 'Generated Schedule'
+            });
+        }
+        toggleCreateSchedule();
+    }
 </script>
 
 <div class="fixed left-[max(1rem,calc((100%-80rem)/2+1rem))] top-32 z-40 w-72 teams-dropdown">
@@ -103,9 +117,9 @@
             </div>
             <button 
                 class="btn-primary text-sm py-1.5 m-2"
-                onclick={toggleCreateSchedule}
+                onclick={handleCreateScheduleClick}
             >
-                Create Schedule
+                {$teamDropdownState.showCreateSchedule ? 'Cancel' : 'Create Schedule'}
             </button>
         </div>
         {#if $teamDropdownState.teamsOpen}

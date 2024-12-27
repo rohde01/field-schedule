@@ -28,16 +28,17 @@ export type ScheduleEntry = z.infer<typeof scheduleEntrySchema>;
 export type Schedule = z.infer<typeof scheduleSchema>;
 
 export const constraintSchema = z.object({
-    team_id: z.number().int().positive(),
-    required_size: z.string().nullable(),
-    subfield_type: z.string().nullable(),
-    required_cost: z.number().int().nullable(),
-    sessions: z.number().int().min(0),
-    length: z.number().int().min(0),
-    partial_ses_space_size: z.string().nullable(),
-    partial_ses_space_cost: z.number().int().nullable(),
-    partial_ses_time: z.number().int().nullable(),
-    start_time: z.string().regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/).nullable()
+    team_id: z.number().int().nonnegative(),
+    constraint_type: z.enum(['specific', 'flexible']),
+    sessions: z.number().int().min(1).max(7),
+    start_time: z.string().regex(timeStringRegex).nullable().optional(),
+    length: z.number().int().min(1).max(10),
+    required_size: z.enum(['11v11', '8v8', '5v5', '3v3']).nullable().optional(),
+    subfield_type: z.enum(['full', 'half', 'quarter']).nullable().optional(),
+    partial_ses_space_size: z.enum(['full', 'half', 'quarter']).nullable().optional(),
+    required_cost: z.enum(['1000', '500', '250', '125']).nullable().optional(),
+    partial_ses_space_cost: z.enum(['1000', '500', '250']).nullable().optional(),
+    partial_ses_time: z.number().int().min(1).max(10).nullable().optional()
 });
 
 export type Constraint = z.infer<typeof constraintSchema>;

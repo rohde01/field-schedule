@@ -16,13 +16,7 @@
     export let max: number | undefined = undefined;
     export let options: { value: string | number; label: string }[] = [];
 
-    const initialEditMode = (() => {
-        const keys = name.split(/[\[\].]+/).filter(Boolean);
-        const lastKey = keys[keys.length - 1];
-        return !(lastKey === 'start_time' || lastKey === 'end_time');
-    })();
-    
-    let isEditMode = writable(initialEditMode);
+    let isEditMode = writable(false);
     let fieldError = '';
 
     $: fieldValue = (() => {
@@ -69,6 +63,16 @@
         const lastKey = keys[keys.length - 1];
         return hide_label_in_view || lastKey === 'start_time' || lastKey === 'end_time';
     })();
+
+    $: {
+        if (
+            fieldValue === undefined ||
+            fieldValue === null ||
+            (typeof fieldValue === 'string' && fieldValue === '')
+        ) {
+            isEditMode.set(true);
+        }
+    }
 
     function updateFormValue(value: any) {
         form.update(f => {

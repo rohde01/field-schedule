@@ -4,6 +4,8 @@
     import Calendar from '$lib/components/Calendar.svelte';
     import SchedulesDropdown from '$lib/components/SchedulesDropdown.svelte';
     import SchedulesSidebar from '$lib/components/SchedulesSidebar.svelte';
+    import { SidebarDropdownState } from '$stores/ScheduleSidebarState';
+    import CreateConstraints from '$lib/components/CreateConstraints.svelte';
     import { teams, setTeams } from '$stores/teams';
     import SuperDebug from 'sveltekit-superforms';
     import { superForm } from 'sveltekit-superforms/client';
@@ -25,28 +27,29 @@
     
 </script>
 
-<style>
-    .container {
-        display: flex;
-        justify-content: space-between;
-        width: 100%;
-    }
-    .main-content {
-        flex: 3;
-        width: 100%;
-    }
-    .super-debug {
-        margin-left: 40px;
-        width: 75%;
-    }
-</style>
-
-<div class="container">
-    <div class="main-content">
+<div class="flex flex-col gap-4">
+    <div class="sidebar-container">
         <SchedulesDropdown />
         <SchedulesSidebar teams={$teams} {form} />
     </div>
-    <div class="super-debug">
-        <SuperDebug data={$form} />
+
+    {#if $SidebarDropdownState.selectedTeam || $SidebarDropdownState.showCreateSchedule}
+        <div class="detail-card-container">
+            {#if $SidebarDropdownState.showCreateSchedule}
+                <CreateConstraints {form} />
+            {:else if $SidebarDropdownState.selectedTeam}
+               not implemented
+            {/if}
+        </div>
+    {:else}
+        <div class="text-center p-8 text-sage-500">
+            Please select a team to view details
+        </div>
+    {/if}
+</div>
+
+<div class="mt-8">
+    <div class="debug-container">
+        <SuperDebug data={$form} collapsible={true} />
     </div>
 </div>
