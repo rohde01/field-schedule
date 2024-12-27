@@ -1,10 +1,14 @@
 <script lang="ts">
+    import { SidebarDropdownState as teamDropdownState, toggleDropdown, selectTeam, toggleCreateSchedule } from '../../stores/ScheduleSidebarState';
     import { dropdownState } from '../../stores/ScheduleDropdownState';
-    import { dropdownState as teamDropdownState, toggleDropdown, selectTeam, setDefaultTeam, toggleCreateTeam, toggleCreateSchedule } from '../../stores/teamDropdownState';
-    import { selectedTeamIds, toggleTeamSelection } from '../../stores/scheduleFormState';
     import type { Team } from '$lib/schemas/team';
+    import type { SuperForm } from 'sveltekit-superforms';
+    import type { GenerateScheduleRequest } from '$lib/schemas/schedule';
     
-    let { teams } = $props<{ teams: Team[] }>();
+    let { teams, form } = $props<{ 
+        teams: Team[], 
+        form: SuperForm<GenerateScheduleRequest>['form']
+    }>();
 
     const filteredTeams = $derived(
         $dropdownState.selectedSchedule
@@ -35,12 +39,6 @@
         ).sort(([yearA], [yearB]) => yearOrder(yearA, yearB)) as [string, Team[]][]
     );
 
-    $effect(() => {
-        if (filteredTeams.length > 0) {
-            setDefaultTeam(filteredTeams);
-        }
-    });
-
     function handleClickOutside(event: MouseEvent) {
         const target = event.target as HTMLElement;
         const isClickInsideDropdown = target.closest('.teams-dropdown');
@@ -48,15 +46,27 @@
         const isClickInsideInput = target.closest('input, select, button');
         
         if (!isClickInsideDropdown && !isClickInsideCreateCard && !isClickInsideInput) {
-            $dropdownState.teamsOpen = false;
-            $dropdownState.showCreateTeam = false;
+            $teamDropdownState.teamsOpen = false;
+            $teamDropdownState.showCreateSchedule = false;
         }
     }
 
     function handleTeamSelection(teamId: number | undefined, event: MouseEvent) {
         event.stopPropagation();
         if (typeof teamId === 'number') {
-            toggleTeamSelection(teamId);
+            const currentTeamIds = $form.team_ids || [];
+            const teamIds = new Set(currentTeamIds);
+            
+            if (teamIds.has(teamId)) {
+                teamIds.delete(teamId);
+            } else {
+                teamIds.add(teamId);
+            }
+            
+            form.set({
+                ...$form,
+                team_ids: Array.from(teamIds)
+            });
         }
     }
 
@@ -64,13 +74,11 @@
         if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault();
             if (typeof teamId === 'number') {
-                toggleTeamSelection(teamId);
+                handleTeamSelection(teamId, event as unknown as MouseEvent);
             }
         }
     }
 </script>
-
-
 
 <div class="fixed left-[max(1rem,calc((100%-80rem)/2+1rem))] top-32 z-40 w-72 teams-dropdown">
     <div class="bg-white rounded-2xl shadow-xl border border-mint-100 overflow-hidden">
@@ -84,7 +92,7 @@
                 >
                     <svg
                         class="w-5 h-5 transition-transform duration-200 text-sage-600"
-                        class:rotate-180={$dropdownState.teamsOpen}
+                        class:rotate-180={$teamDropdownState.teamsOpen}
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 20 20"
                         fill="currentColor"
@@ -109,7 +117,7 @@
                                 <h3 class="text-xs font-medium text-sage-600 px-2">{year}</h3>
                                 {#each yearTeams as team}
                                 <button
-                                    class="dropdown-item flex items-center justify-between {$dropdownState.selectedTeam?.team_id === team.team_id ? 'dropdown-item-selected' : ''}"
+                                    class="dropdown-item flex items-center justify-between {$teamDropdownState.selectedTeam?.team_id === team.team_id ? 'dropdown-item-selected' : ''}"
                                     onclick={() => selectTeam(team)}
                                 >
                                     <div>
@@ -119,14 +127,14 @@
                                     <div
                                         role="checkbox"
                                         tabindex="0"
-                                        aria-checked={$selectedTeamIds.includes(team.team_id ?? -1)}
+                                        aria-checked={$form.team_ids.includes(team.team_id ?? -1)}
                                         class="w-6 h-6 rounded-full border-2 border-sage-400 flex items-center justify-center hover:bg-sage-100 cursor-pointer"
                                         onclick={(e) => handleTeamSelection(team.team_id, e)}
                                         onkeydown={(e) => handleKeydown(team.team_id, e)}
-                                        class:bg-sage-500={$selectedTeamIds.includes(team.team_id ?? -1)}
-                                        class:border-sage-500={$selectedTeamIds.includes(team.team_id ?? -1)}
+                                        class:bg-sage-500={$form.team_ids.includes(team.team_id ?? -1)}
+                                        class:border-sage-500={$form.team_ids.includes(team.team_id ?? -1)}
                                     >
-                                        {#if $selectedTeamIds.includes(team.team_id ?? -1)}
+                                        {#if $form.team_ids.includes(team.team_id ?? -1)}
                                             <svg class="w-4 h-4 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                                                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a 1 1 0 01-1.414 0l-4-4a 1 1 0 011.414-1.414L8 12.586l7.293-7.293a 1 1 0 011.414 0z" clip-rule="evenodd" />
                                             </svg>
