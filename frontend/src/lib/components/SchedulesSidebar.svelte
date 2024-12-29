@@ -1,6 +1,7 @@
 <script lang="ts">
     import { SidebarDropdownState as teamDropdownState, toggleDropdown, selectTeam, toggleCreateSchedule } from '../../stores/ScheduleSidebarState';
     import { dropdownState } from '../../stores/ScheduleDropdownState';
+    import { facilities } from '$stores/facilities';
     import type { Team } from '$lib/schemas/team';
     import type { SuperForm } from 'sveltekit-superforms';
     import type { GenerateScheduleRequest } from '$lib/schemas/schedule';
@@ -10,6 +11,8 @@
         teams: Team[], 
         form: SuperForm<GenerateScheduleRequest>['form']
     }>();
+
+    let showFacilityMenu = $state(false);
 
     const filteredTeams = $derived(
         $dropdownState.selectedSchedule
@@ -89,8 +92,16 @@
                 club_id: $page.data.user?.primary_club_id ?? 0,
                 schedule_name: 'Generated Schedule'
             });
+            showFacilityMenu = false;
+        } else {
+            showFacilityMenu = true;
         }
         toggleCreateSchedule();
+    }
+
+    function handleFacilitySelect(facilityId: number) {
+        $form.facility_id = facilityId;
+        showFacilityMenu = false;
     }
 </script>
 
@@ -169,3 +180,23 @@
         {/if}
     </div>
 </div>
+
+{#if showFacilityMenu}
+    <div class="fixed left-[calc(max(1rem,calc((100%-80rem)/2+1rem))+19rem)] top-32 z-50 w-72">
+        <div class="bg-white rounded-2xl shadow-xl border border-mint-100 overflow-hidden">
+            <div class="p-4">
+                <h2 class="text-sm font-medium text-sage-700 mb-2">Select Facility</h2>
+                <div class="space-y-2 max-h-64 overflow-y-auto">
+                    {#each $facilities as facility}
+                        <button
+                            class="w-full text-left px-4 py-2 text-sm text-sage-700 hover:bg-mint-50 rounded-lg"
+                            onclick={() => handleFacilitySelect(facility.facility_id)}
+                        >
+                            {facility.name}
+                        </button>
+                    {/each}
+                </div>
+            </div>
+        </div>
+    </div>
+{/if}
