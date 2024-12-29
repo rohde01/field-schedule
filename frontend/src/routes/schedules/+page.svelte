@@ -9,10 +9,25 @@
     import { teams, setTeams } from '$stores/teams';
     import SuperDebug from 'sveltekit-superforms';
     import { superForm } from 'sveltekit-superforms/client';
+    import CreateSchedule from '$lib/components/CreateSchedule.svelte';
 
     let { data }: { data: PageData } = $props();
     const { form: rawForm } = data;
-    const { form, enhance } = superForm(rawForm);
+
+    const { form, enhance, errors, message } = superForm(rawForm, {
+        dataType: 'json',
+        taintedMessage: null,
+        id: 'schedule-form',
+        onError: (err) => {
+            console.error('Form submission error:', err);
+        },
+        onUpdate: ({ form }) => {
+            console.log('Form data being submitted:', form.data);
+        },
+        onResult: ({ result }) => {
+            console.log('Form submission result:', result);
+        }
+    });
 
     $effect(() => {
         if (data.schedules) {
@@ -36,7 +51,8 @@
     {#if $SidebarDropdownState.selectedTeam || $SidebarDropdownState.showCreateSchedule}
         <div class="detail-card-container">
             {#if $SidebarDropdownState.showCreateSchedule}
-                <CreateConstraints {form} />
+                <CreateConstraints {form} {errors} />
+                <CreateSchedule {form} {enhance} />
             {:else if $SidebarDropdownState.selectedTeam}
                not implemented
             {/if}

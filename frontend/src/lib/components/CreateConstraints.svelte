@@ -1,52 +1,47 @@
 <script lang="ts">
-    import type { SuperForm } from 'sveltekit-superforms';
-    import type { SuperValidated } from 'sveltekit-superforms';
+    import type { SuperForm, SuperValidated, ValidationErrors } from 'sveltekit-superforms';
     import type { z } from 'zod';
     import { page } from '$app/stores';
     import EditableField from './EditableField.svelte';
     import type { GenerateScheduleRequest, Constraint } from '$lib/schemas/schedule';
     import { SidebarDropdownState } from '../../stores/ScheduleSidebarState';
-    import type { ValidationErrors } from 'sveltekit-superforms';
+    import type { Writable } from 'svelte/store';
 
-    let { form } = $props<{ 
-        form: SuperForm<GenerateScheduleRequest>['form']
+    let { form, errors } = $props<{ 
+        form: Writable<GenerateScheduleRequest>,
+        errors: Writable<ValidationErrors<GenerateScheduleRequest>>
     }>();
 
     const selectedTeam = $derived($SidebarDropdownState.selectedTeam);
-    const errors = $derived($page.form?.errors ?? {});
 
     function addConstraint(type: 'specific' | 'flexible') {
-        form.update(($form: GenerateScheduleRequest) => {
-            const constraints = ($form.constraints || []);
-            const newConstraint: Constraint = {
-                team_id: selectedTeam?.team_id || 0,
-                required_size: null,
-                subfield_type: null,
-                required_cost: null,
-                sessions: 1,
-                length: 1,
-                partial_ses_space_size: null,
-                partial_ses_space_cost: null,
-                partial_ses_time: null,
-                start_time: null,
-                constraint_type: type
-            };
-            return {
-                ...$form,
-                constraints: [...constraints, newConstraint]
-            };
-        });
+        const newConstraint: Constraint = {
+            team_id: selectedTeam?.team_id || 0,
+            required_size: null,
+            subfield_type: null,
+            required_cost: null,
+            sessions: 1,
+            length: 1,
+            partial_ses_space_size: null,
+            partial_ses_space_cost: null,
+            partial_ses_time: null,
+            start_time: null,
+            constraint_type: type
+        };
+
+        $form = {
+            ...$form,
+            constraints: [...($form.constraints || []), newConstraint]
+        };
     }
 
     function removeConstraint(index: number) {
-        form.update(($form: GenerateScheduleRequest) => {
-            const constraints = [...($form.constraints || [])];
-            constraints.splice(index, 1);
-            return {
-                ...$form,
-                constraints
-            };
-        });
+        const constraints = [...($form.constraints || [])];
+        constraints.splice(index, 1);
+        $form = {
+            ...$form,
+            constraints
+        };
     }
 </script>
 
@@ -70,7 +65,7 @@
                             {#if constraint.constraint_type === 'specific'}
                                 <EditableField
                                     {form}
-                                    {errors}
+                                    errors={$errors}
                                     name="constraints[{index}].sessions"
                                     label="Sessions (1-7)"
                                     type="number"
@@ -80,7 +75,7 @@
                                 />
                                 <EditableField
                                     {form}
-                                    {errors}
+                                    errors={$errors}
                                     name="constraints[{index}].start_time"
                                     label="Start Time (optional)"
                                     type="text"
@@ -88,7 +83,7 @@
                                 />
                                 <EditableField
                                     {form}
-                                    {errors}
+                                    errors={$errors}
                                     name="constraints[{index}].length"
                                     label="Length (# x 15 min)"
                                     type="number"
@@ -98,7 +93,7 @@
                                 />
                                 <EditableField
                                     {form}
-                                    {errors}
+                                    errors={$errors}
                                     name="constraints[{index}].required_size"
                                     label="Required Size"
                                     type="select"
@@ -112,7 +107,7 @@
                                 />
                                 <EditableField
                                     {form}
-                                    {errors}
+                                    errors={$errors}
                                     name="constraints[{index}].subfield_type"
                                     label="Subfield Type"
                                     type="select"
@@ -125,7 +120,7 @@
                                 />
                                 <EditableField
                                     {form}
-                                    {errors}
+                                    errors={$errors}
                                     name="constraints[{index}].partial_ses_space_size"
                                     label="Partial Space Size (optional)"
                                     type="select"
@@ -137,7 +132,7 @@
                                 />
                                 <EditableField
                                     {form}
-                                    {errors}
+                                    errors={$errors}
                                     name="constraints[{index}].partial_ses_time"
                                     label="Partial Time (1-10)"
                                     type="number"
@@ -147,7 +142,7 @@
                             {:else if constraint.constraint_type === 'flexible'}
                                 <EditableField
                                     {form}
-                                    {errors}
+                                    errors={$errors}
                                     name="constraints[{index}].sessions"
                                     label="Sessions (1-7)"
                                     type="number"
@@ -157,7 +152,7 @@
                                 />
                                 <EditableField
                                     {form}
-                                    {errors}
+                                    errors={$errors}
                                     name="constraints[{index}].start_time"
                                     label="Start Time (optional)"
                                     type="text"
@@ -165,7 +160,7 @@
                                 />
                                 <EditableField
                                     {form}
-                                    {errors}
+                                    errors={$errors}
                                     name="constraints[{index}].length"
                                     label="Length (# x 15 min)"
                                     type="number"
@@ -175,7 +170,7 @@
                                 />
                                 <EditableField
                                     {form}
-                                    {errors}
+                                    errors={$errors}
                                     name="constraints[{index}].required_cost"
                                     label="Required Cost"
                                     type="select"
@@ -189,7 +184,7 @@
                                 />
                                 <EditableField
                                     {form}
-                                    {errors}
+                                    errors={$errors}
                                     name="constraints[{index}].partial_ses_space_cost"
                                     label="Partial Space Cost (optional)"
                                     type="select"
@@ -201,7 +196,7 @@
                                 />
                                 <EditableField
                                     {form}
-                                    {errors}
+                                    errors={$errors}
                                     name="constraints[{index}].partial_ses_time"
                                     label="Partial Time (1-10)"
                                     type="number"
@@ -216,32 +211,15 @@
             
             {#if !$form.constraints?.filter((c: Constraint) => c.team_id === selectedTeam.team_id).length 
                 || $form.constraints?.filter((c: Constraint) => c.team_id === selectedTeam.team_id).length < 7}
-               <div class="relative inline-block group">
-                 <button
-                   class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors flex items-center"
-                 >
-                   Add Constraint
-                   <span class="ml-1">▼</span>
-                 </button>
-                 <div 
-                   class="absolute bg-white border top-full right-0 w-32 hidden group-hover:block z-10"
-                 >
-                   <button 
-                     class="block w-full text-right px-2 py-1 hover:bg-gray-100"
-                     onclick={() => addConstraint('specific')}
-                   >
-                     Specific
-                   </button>
-                   <button 
-                     class="block w-full text-right px-2 py-1 hover:bg-gray-100"
-                     onclick={() => addConstraint('flexible')}
-                   >
-                     Flexible
-                   </button>
-                 </div>
-               </div>
-             {/if}
-             
+                <div class="relative inline-block group">
+                    <button 
+                        class="bg-mint-500 hover:bg-mint-600 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                        onclick={() => addConstraint('flexible')}
+                    >
+                        Add Constraint
+                    </button>
+                </div>
+            {/if}
         </div>
     {:else}
         <p class="text-gray-500">Select a team to add constraints</p>

@@ -1,6 +1,5 @@
 import { z } from 'zod';
-
-const timeStringRegex = /^([0-1][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/;
+const timeStringRegex = /^([0-1]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/;
 
 export const scheduleEntrySchema = z.object({
     schedule_entry_id: z.number().int().positive(),
@@ -8,10 +7,10 @@ export const scheduleEntrySchema = z.object({
     field_id: z.number().int().positive().nullable(),
     parent_schedule_entry_id: z.number().int().positive().nullable(),
     start_time: z.string().regex(timeStringRegex, { 
-        message: "Time must be in HH:MM:SS format" 
+        message: "Time must be in HH:MM or HH:MM:SS format" 
     }),
     end_time: z.string().regex(timeStringRegex, { 
-        message: "Time must be in HH:MM:SS format" 
+        message: "Time must be in HH:MM or HH:MM:SS format" 
     }),
     week_day: z.number().int().min(0).max(6)
 });
@@ -27,11 +26,18 @@ export const scheduleSchema = z.object({
 export type ScheduleEntry = z.infer<typeof scheduleEntrySchema>;
 export type Schedule = z.infer<typeof scheduleSchema>;
 
+// Constraint schema
 export const constraintSchema = z.object({
     team_id: z.number().int().nonnegative(),
     constraint_type: z.enum(['specific', 'flexible']),
     sessions: z.number().int().min(1).max(7),
-    start_time: z.string().regex(timeStringRegex).nullable().optional(),
+    start_time: z
+      .string()
+      .regex(timeStringRegex, {
+        message: 'Time must be in HH:MM or HH:MM:SS format'
+      })
+      .nullable()
+      .optional(),
     length: z.number().int().min(1).max(10),
     required_size: z.enum(['11v11', '8v8', '5v5', '3v3']).nullable().optional(),
     subfield_type: z.enum(['full', 'half', 'quarter']).nullable().optional(),
