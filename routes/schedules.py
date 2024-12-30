@@ -17,6 +17,7 @@ router = APIRouter(prefix="/schedules", tags=["schedules"])
 
 class ConstraintSchema(BaseModel):
     team_id: int
+    club_id: Optional[int] = None
     required_size: Optional[str] = None
     subfield_type: Optional[str] = None
     required_cost: Optional[int] = None
@@ -54,7 +55,12 @@ async def generate_schedule_route(
     await require_club_access(request.club_id)(current_user)
     
     try:
-        constraints_list = [ConstraintModel(**constraint.dict()) for constraint in request.constraints]
+        constraints_list = [
+            ConstraintModel(
+                **{**constraint.dict(), "club_id": request.club_id}
+            ) 
+            for constraint in request.constraints
+        ]
         schedule_id = generate_schedule(
             facility_id=request.facility_id,
             team_ids=request.team_ids,

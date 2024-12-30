@@ -40,7 +40,7 @@ async def get_club_facilities(
         
         if not facilities:
             logger.warning(f"No facilities found for club_id={club_id}")
-            raise HTTPException(status_code=404, detail="No facilities found for this club")
+            return []
         
         return [
             {

@@ -16,6 +16,12 @@ class Constraint:
     partial_ses_time: Optional[int] = None
     start_time: Optional[str] = None
 
+    def __init__(self, team_id: int, club_id: int, **kwargs):
+        self.team_id = team_id
+        self.club_id = club_id
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
 @with_db_connection
 def get_constraints(conn, club_id: int) -> List[Constraint]:
     """Returns a list of Constraint instances for a specific club from the database."""
@@ -49,8 +55,7 @@ def get_constraints(conn, club_id: int) -> List[Constraint]:
     cursor.close()
     return constraints
 
-@with_db_connection
-def save_constraints(conn, cursor: Any, schedule_entry_id: int, team_id: int, constraint: Constraint) -> None:
+def save_constraints(cursor: Any, schedule_entry_id: int, team_id: int, constraint: Constraint, club_id: int) -> None:
     """Saves a constraint to the constraints table."""
     insert_constraint_query = """
     INSERT INTO constraints (

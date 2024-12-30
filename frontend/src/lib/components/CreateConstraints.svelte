@@ -1,7 +1,5 @@
 <script lang="ts">
     import type { SuperForm, SuperValidated, ValidationErrors } from 'sveltekit-superforms';
-    import type { z } from 'zod';
-    import { page } from '$app/stores';
     import EditableField from './EditableField.svelte';
     import type { GenerateScheduleRequest, Constraint } from '$lib/schemas/schedule';
     import { SidebarDropdownState } from '../../stores/ScheduleSidebarState';
@@ -29,19 +27,21 @@
             constraint_type: type
         };
 
-        $form = {
-            ...$form,
-            constraints: [...($form.constraints || []), newConstraint]
-        };
+        form.update((f: GenerateScheduleRequest) => ({
+            ...f,
+            constraints: [...(f.constraints || []), newConstraint]
+        }));
     }
 
     function removeConstraint(index: number) {
-        const constraints = [...($form.constraints || [])];
-        constraints.splice(index, 1);
-        $form = {
-            ...$form,
-            constraints
-        };
+        form.update((f: GenerateScheduleRequest) => {
+            const constraints = [...(f.constraints || [])];
+            constraints.splice(index, 1);
+            return {
+                ...f,
+                constraints
+            };
+        });
     }
 </script>
 

@@ -18,7 +18,7 @@ from database.fields import Field
 @with_db_connection
 def save_schedule(conn, solver, teams: List[Team], interval_vars: Dict[int, Any],
                  field_name_to_id: Dict[str, int], fields: List[Field],
-                 club_id: int = 1, schedule_name: str = "Generated Schedule",
+                 club_id: int = 1, facility_id: int = 1, schedule_name: str = "Generated Schedule",
                  constraints_list: Optional[List[Constraint]] = None) -> int:
 
     """
@@ -34,11 +34,11 @@ def save_schedule(conn, solver, teams: List[Team], interval_vars: Dict[int, Any]
     try:
         cursor = conn.cursor()
         insert_schedule_query = """
-        INSERT INTO schedules (club_id, name)
-        VALUES (%s, %s)
+        INSERT INTO schedules (club_id, name, facility_id)
+        VALUES (%s, %s, %s)
         RETURNING schedule_id;
         """
-        cursor.execute(insert_schedule_query, (club_id, schedule_name))
+        cursor.execute(insert_schedule_query, (club_id, schedule_name, facility_id))
         schedule_id = cursor.fetchone()[0]
 
         team_constraints = defaultdict(list)

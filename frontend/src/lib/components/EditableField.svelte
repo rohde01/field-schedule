@@ -74,42 +74,54 @@
         }
     }
 
+    type PointerType = Record<string, any> | any[];
+
     function updateFormValue(value: any) {
         form.update(f => {
             const keys = name.split(/[\[\].]+/).filter(Boolean);
-            let current: any = f;
+            let current = { ...f };
+            let pointer: PointerType = current;
             
+            // Handle all but the last key by creating/traversing the object structure
             for (let i = 0; i < keys.length - 1; i++) {
                 const key = keys[i];
                 const index = parseInt(key);
                 
                 if (isNaN(index)) {
-                    if (typeof current !== 'object') current = {};
-                    if (!current[key]) current[key] = {};
-                    current = current[key];
-                } else {
-                    if (!Array.isArray(current)) current = [];
-                    while (current.length <= index) {
-                        current.push({});
+                    // Handle object property
+                    if (typeof pointer !== 'object' || Array.isArray(pointer)) {
+                        pointer = {};
                     }
-                    current = current[index];
+                    if (!pointer[key]) {
+                        (pointer as Record<string, any>)[key] = {};
+                    }
+                    pointer = (pointer as Record<string, any>)[key];
+                } else {
+                    // Handle array index
+                    if (!Array.isArray(pointer)) {
+                        pointer = [];
+                    }
+                    if (!(index in pointer)) {
+                        (pointer as any[])[index] = {};
+                    }
+                    pointer = (pointer as any[])[index];
                 }
             }
             
+            // Handle the last key
             const lastKey = keys[keys.length - 1];
             const lastIndex = parseInt(lastKey);
+            
             if (isNaN(lastIndex)) {
-                if (typeof current !== 'object') current = {};
-                current[lastKey] = value;
+                (pointer as Record<string, any>)[lastKey] = value;
             } else {
-                if (!Array.isArray(current)) current = [];
-                while (current.length <= lastIndex) {
-                    current.push(null);
+                if (!Array.isArray(pointer)) {
+                    pointer = [];
                 }
-                current[lastIndex] = value;
+                (pointer as any[])[lastIndex] = value;
             }
             
-            return f;
+            return current;
         });
     }
 
@@ -151,8 +163,8 @@
         {#if type === 'select'}
             <select 
                 id={name}
-                name={name}
-                value={$form[name]}
+                {name}
+                value={fieldValue ?? ''}
                 on:change={(e) => {
                     const target = e.target as HTMLSelectElement;
                     updateFormValue(target.value);
@@ -189,10 +201,13 @@
                 {type}
                 id={name}
                 {name}
-                value={$form[name] ?? ''}
+                value={fieldValue ?? ''}
                 on:input={(e) => {
                     const target = e.target as HTMLInputElement;
-                    updateFormValue(target.value);
+                    const value = type === 'number' ? 
+                        target.value === '' ? null : Number(target.value) : 
+                        target.value;
+                    updateFormValue(value);
                 }}
                 on:blur={handleBlur}
                 on:keydown={handleKeydown}
@@ -229,8 +244,8 @@
         <!-- Hidden input to ensure the value is included in the form submission even in view mode -->
         <input 
             type="hidden" 
-            name={name} 
-            bind:value={$form[name]}
+            {name}
+            value={fieldValue ?? ''}
         />
     {/if}
 </div>

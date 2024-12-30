@@ -10,7 +10,7 @@ from typing import List, Dict, Any, Optional
 from ortools.sat.python import cp_model
 from collections import defaultdict
 from database.teams import get_teams_by_ids
-from database.fields import get_fields
+from database.fields import get_fields_by_facility
 from database.constraints import get_constraints
 from database.schedules import save_schedule
 from utils import (
@@ -83,7 +83,7 @@ def generate_schedule(facility_id: int, team_ids: List[int], club_id: int, sched
         raise ValueError("No teams found for the given team IDs")
 
     # Fetch fields
-    fields = get_fields(facility_id)
+    fields = get_fields_by_facility(facility_id)
     if not fields:
         raise ValueError("No fields found for the given facility ID")
 
@@ -130,10 +130,17 @@ def generate_schedule(facility_id: int, team_ids: List[int], club_id: int, sched
 
     if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
         # Save the schedule
-        schedule_id = save_schedule(solver, teams, interval_vars, field_name_to_id, fields, club_id=club_id,
-        schedule_name=schedule_name,
-        constraints_list=constraints_list
-)
+        schedule_id = save_schedule(
+            solver, 
+            teams, 
+            interval_vars, 
+            field_name_to_id, 
+            fields, 
+            club_id=club_id,
+            facility_id=facility_id,  # Add facility_id here
+            schedule_name=schedule_name,
+            constraints_list=constraints_list
+        )
         profiler.disable()
         stats = pstats.Stats(profiler).sort_stats('cumtime')
         stats.print_stats(10)
