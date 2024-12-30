@@ -69,3 +69,7 @@
         <SuperDebug data={$form} collapsible={true} />
     </div>
 </div>
+
+<div class="mt-8">
+    <Calendar />
+</div>

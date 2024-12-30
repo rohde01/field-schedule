@@ -39,16 +39,12 @@
         }));
     }
 
-    // Hardcoded schedule_id for now - this should be made configurable later
-    const SCHEDULE_ID = 25;
-
-    function getScheduleEntries(schedules: Schedule[]): ScheduleEntry[] {
-        const schedule = schedules.find(s => s.schedule_id === SCHEDULE_ID);
-        return schedule?.entries ?? [];
+    function getScheduleEntries(schedules: Schedule[], selectedSchedule: Schedule | null): ScheduleEntry[] {
+        if (!selectedSchedule) return [];
+        return selectedSchedule.entries ?? [];
     }
 
-    // Recompute events whenever schedules change
-    $: events = getScheduleEntries($schedules).map(entry => {
+    $: events = getScheduleEntries($schedules, $dropdownState.selectedSchedule).map(entry => {
         const today = new Date();
         const targetDate = new Date(today);
         targetDate.setDate(today.getDate() + ((entry.week_day + 7 - today.getDay()) % 7) + 1);
@@ -66,7 +62,8 @@
     // Recompute resources whenever fields or selected schedule changes
     $: currentResources = buildResources($fields, $dropdownState.selectedSchedule);
 
-    let options = {
+    // Make options fully reactive by moving it into a reactive statement
+    $: options = {
         view: 'resourceTimelineDay',
         nowIndicator: true,
         resources: currentResources,
@@ -74,12 +71,6 @@
         slotMinTime: '09:00:00',
         slotMaxTime: '23:59:00',
         slotDuration: '00:60:00'
-    };
-
-    $: options = {
-        ...options,
-        resources: currentResources,
-        events
     };
 </script>
 

@@ -57,19 +57,21 @@ export const actions: Actions = {
         const form = await superValidate(request, zod(facilityCreateSchema));
         console.log('Form validation result:', form);
         
-        if (!form.valid) {
-            return fail(400, { form });
-        }
-
         const clubId = locals.user?.primary_club_id;
-        if (!clubId) {
+        if (!clubId || clubId <= 0) {
+            console.log('Invalid club_id:', clubId);
             return fail(400, { 
                 form,
-                error: 'No club ID found for user'
+                error: 'Invalid club ID'
             });
         }
 
         form.data.club_id = clubId;
+        
+        const validatedForm = await superValidate(form.data, zod(facilityCreateSchema));
+        if (!validatedForm.valid) {
+            return fail(400, { form: validatedForm });
+        }
 
         try {
             const response = await fetch('http://localhost:8000/facilities', {
@@ -78,7 +80,7 @@ export const actions: Actions = {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${locals.token}`
                 },
-                body: JSON.stringify(form.data)
+                body: JSON.stringify(validatedForm.data)
             });
 
             const responseData = await response.json();

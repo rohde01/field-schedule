@@ -33,10 +33,25 @@
         }));
     }
 
-    function removeConstraint(index: number) {
+    function getActualIndex(visibleIndex: number): number {
+        if (!$form.constraints) return -1;
+        let count = -1;
+        return $form.constraints.findIndex((c: Constraint) => {
+            if (c.team_id === selectedTeam?.team_id) {
+                count++;
+                return count === visibleIndex;
+            }
+            return false;
+        });
+    }
+
+    function removeConstraint(visibleIndex: number) {
+        const actualIndex = getActualIndex(visibleIndex);
+        if (actualIndex === -1) return;
+
         form.update((f: GenerateScheduleRequest) => {
             const constraints = [...(f.constraints || [])];
-            constraints.splice(index, 1);
+            constraints.splice(actualIndex, 1);
             return {
                 ...f,
                 constraints
@@ -50,23 +65,24 @@
         <div class="mb-4">
             <h3 class="text-lg font-semibold mb-2">Team Constraints</h3>
             {#if $form.constraints}
-                {#each $form.constraints.filter((c: Constraint) => c.team_id === selectedTeam.team_id) as constraint, index}
+                {#each $form.constraints.filter((c: Constraint) => c.team_id === selectedTeam.team_id) as constraint, visibleIndex}
                     <div class="bg-gray-50 p-4 rounded-lg mb-4">
                         <div class="flex justify-between items-center mb-4">
-                            <h4 class="font-medium">Constraint {index + 1}</h4>
+                            <h4 class="font-medium">Constraint {visibleIndex + 1}</h4>
                             <button 
                                 class="text-red-500 hover:text-red-700"
-                                onclick={() => removeConstraint(index)}
+                                onclick={() => removeConstraint(visibleIndex)}
                             >
                                 Remove
                             </button>
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             {#if constraint.constraint_type === 'specific'}
+                                {@const actualIndex = getActualIndex(visibleIndex)}
                                 <EditableField
                                     {form}
                                     errors={$errors}
-                                    name="constraints[{index}].sessions"
+                                    name="constraints[{actualIndex}].sessions"
                                     label="Sessions (1-7)"
                                     type="number"
                                     min={1}
@@ -76,7 +92,7 @@
                                 <EditableField
                                     {form}
                                     errors={$errors}
-                                    name="constraints[{index}].start_time"
+                                    name="constraints[{actualIndex}].start_time"
                                     label="Start Time (optional)"
                                     type="text"
                                     placeholder="HH:MM:SS"
@@ -84,7 +100,7 @@
                                 <EditableField
                                     {form}
                                     errors={$errors}
-                                    name="constraints[{index}].length"
+                                    name="constraints[{actualIndex}].length"
                                     label="Length (# x 15 min)"
                                     type="number"
                                     min={1}
@@ -94,7 +110,7 @@
                                 <EditableField
                                     {form}
                                     errors={$errors}
-                                    name="constraints[{index}].required_size"
+                                    name="constraints[{actualIndex}].required_size"
                                     label="Required Size"
                                     type="select"
                                     options={[
@@ -108,7 +124,7 @@
                                 <EditableField
                                     {form}
                                     errors={$errors}
-                                    name="constraints[{index}].subfield_type"
+                                    name="constraints[{actualIndex}].subfield_type"
                                     label="Subfield Type"
                                     type="select"
                                     options={[
@@ -121,7 +137,7 @@
                                 <EditableField
                                     {form}
                                     errors={$errors}
-                                    name="constraints[{index}].partial_ses_space_size"
+                                    name="constraints[{actualIndex}].partial_ses_space_size"
                                     label="Partial Space Size (optional)"
                                     type="select"
                                     options={[
@@ -133,17 +149,18 @@
                                 <EditableField
                                     {form}
                                     errors={$errors}
-                                    name="constraints[{index}].partial_ses_time"
+                                    name="constraints[{actualIndex}].partial_ses_time"
                                     label="Partial Time (1-10)"
                                     type="number"
                                     min={1}
                                     max={10}
                                 />
                             {:else if constraint.constraint_type === 'flexible'}
+                                {@const actualIndex = getActualIndex(visibleIndex)}
                                 <EditableField
                                     {form}
                                     errors={$errors}
-                                    name="constraints[{index}].sessions"
+                                    name="constraints[{actualIndex}].sessions"
                                     label="Sessions (1-7)"
                                     type="number"
                                     min={1}
@@ -153,7 +170,7 @@
                                 <EditableField
                                     {form}
                                     errors={$errors}
-                                    name="constraints[{index}].start_time"
+                                    name="constraints[{actualIndex}].start_time"
                                     label="Start Time (optional)"
                                     type="text"
                                     placeholder="HH:MM:SS"
@@ -161,7 +178,7 @@
                                 <EditableField
                                     {form}
                                     errors={$errors}
-                                    name="constraints[{index}].length"
+                                    name="constraints[{actualIndex}].length"
                                     label="Length (# x 15 min)"
                                     type="number"
                                     min={1}
@@ -171,7 +188,7 @@
                                 <EditableField
                                     {form}
                                     errors={$errors}
-                                    name="constraints[{index}].required_cost"
+                                    name="constraints[{actualIndex}].required_cost"
                                     label="Required Cost"
                                     type="select"
                                     options={[
@@ -185,7 +202,7 @@
                                 <EditableField
                                     {form}
                                     errors={$errors}
-                                    name="constraints[{index}].partial_ses_space_cost"
+                                    name="constraints[{actualIndex}].partial_ses_space_cost"
                                     label="Partial Space Cost (optional)"
                                     type="select"
                                     options={[
@@ -197,7 +214,7 @@
                                 <EditableField
                                     {form}
                                     errors={$errors}
-                                    name="constraints[{index}].partial_ses_time"
+                                    name="constraints[{actualIndex}].partial_ses_time"
                                     label="Partial Time (1-10)"
                                     type="number"
                                     min={1}

@@ -137,7 +137,7 @@ def generate_schedule(facility_id: int, team_ids: List[int], club_id: int, sched
             field_name_to_id, 
             fields, 
             club_id=club_id,
-            facility_id=facility_id,  # Add facility_id here
+            facility_id=facility_id,
             schedule_name=schedule_name,
             constraints_list=constraints_list
         )

@@ -144,6 +144,12 @@
                                     class="p-3 space-y-3 bg-mint-50/50 rounded-xl border border-mint-100"
                                     use:enhance
                                 >
+                                    <input 
+                                        type="hidden" 
+                                        name="club_id" 
+                                        bind:value={$form.club_id}
+                                    >
+                                    
                                     <div class="space-y-2">
                                         <p class="text-sm text-sage-600">Give your new facility a unique name</p>
                                         <input
