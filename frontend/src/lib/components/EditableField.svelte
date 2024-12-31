@@ -78,6 +78,7 @@
     $: hide_label_in_view = (() => {
         const keys = name.split(/[\[\].]+/).filter(Boolean);
         const lastKey = keys[keys.length - 1];
+        if (!fieldValue) return false;
         return hide_label_in_view || lastKey === 'start_time' || lastKey === 'end_time';
     })();
 
@@ -184,7 +185,8 @@
                 value={fieldValue ?? ''}
                 on:change={(e) => {
                     const target = e.target as HTMLSelectElement;
-                    updateFormValue(target.value);
+                    const selectedOption = options.find(opt => String(opt.value) === target.value);
+                    updateFormValue(selectedOption?.value ?? null);
                 }}
                 on:blur={handleBlur}
                 class="form-input-sm"
@@ -194,7 +196,7 @@
                     <option value="">Select {label}</option>
                 {/if}
                 {#each options as option}
-                    <option value={option.value}>{option.label}</option>
+                    <option value={String(option.value)}>{option.label}</option>
                 {/each}
             </select>
         {:else if type === 'checkbox'}
@@ -251,11 +253,11 @@
             tabindex="0"
         >
             {#if type === 'select'}
-                {selectedOption?.label ?? fieldValue ?? ''}
+                {selectedOption?.label ?? fieldValue ?? '+'}
             {:else if type === 'checkbox'}
                 {fieldValue ? 'Yes' : 'No'}
             {:else}
-                {fieldValue ?? ''}
+                {fieldValue ? fieldValue : '+'}
             {/if}
         </div>
         <!-- Hidden input to ensure the value is included in the form submission even in view mode -->

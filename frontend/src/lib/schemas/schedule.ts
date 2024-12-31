@@ -42,17 +42,71 @@ export const constraintSchema = z.object({
     required_size: z.enum(['11v11', '8v8', '5v5', '3v3']).nullable().optional(),
     subfield_type: z.enum(['full', 'half', 'quarter']).nullable().optional(),
     partial_ses_space_size: z.enum(['full', 'half', 'quarter']).nullable().optional(),
-    required_cost: z.enum(['1000', '500', '250', '125']).nullable().optional(),
-    partial_ses_space_cost: z.enum(['1000', '500', '250']).nullable().optional(),
+    required_cost: z.number()
+      .refine((val) => [1000, 500, 250, 125].includes(val), {
+        message: 'Cost must be one of: 1000, 500, 250, or 125'
+      })
+      .nullable()
+      .optional(),
+    partial_ses_space_cost: z.number()
+      .refine((val) => [1000, 500, 250, 125].includes(val), {
+        message: 'Cost must be one of: 1000, 500, 250, or 125'
+      })
+      .nullable()
+      .optional(),
     partial_ses_time: z.number().int().min(1).max(10).nullable().optional()
+}).superRefine((data, ctx) => {
+    if (data.constraint_type === 'specific') {
+        if (!data.required_size) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ['required_size'],
+                message: 'Required size is required for specific constraint type.'
+            });
+        }
+        if (!data.subfield_type) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ['subfield_type'],
+                message: 'Subfield type is required for specific constraint type.'
+            });
+        }
+        // Validate partial session fields for specific type
+        if ((data.partial_ses_space_size === null) !== (data.partial_ses_time === null)) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'For specific constraint type, partial_ses_space_size and partial_ses_time must both be either null or filled.',
+                path: ['partial_ses_space_size']
+            });
+        }
+    }
+    if (data.constraint_type === 'flexible') {
+        if (!data.required_cost) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ['required_cost'],
+                message: 'Required cost is required for flexible constraint type.'
+            });
+        }
+        // Validate partial session fields for flexible type
+        if ((data.partial_ses_space_cost === null) !== (data.partial_ses_time === null)) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'For flexible constraint type, partial_ses_space_cost and partial_ses_time must both be either null or filled.',
+                path: ['partial_ses_space_cost']
+            });
+        }
+    }
 });
 
 export type Constraint = z.infer<typeof constraintSchema>;
 
 export const generateScheduleRequestSchema = z.object({
     facility_id: z.number().int().positive(),
-    team_ids: z.array(z.number().int().positive()),
-    constraints: z.array(constraintSchema),
+    team_ids: z.array(z.number().int().positive()).min(1, {
+        message: "You must tick off at least one team from the sidebar to go in the schedule"
+    }),
+    constraints: z.array(constraintSchema).optional(),
     club_id: z.number().int().positive(),
     schedule_name: z.string().default("Generated Schedule")
 });

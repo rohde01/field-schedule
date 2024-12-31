@@ -83,10 +83,17 @@
                                     {form}
                                     errors={$errors}
                                     name="constraints[{actualIndex}].sessions"
-                                    label="Sessions (1-7)"
-                                    type="number"
-                                    min={1}
-                                    max={7}
+                                    label="Sessions"
+                                    type="select"
+                                    options={[
+                                        { value: 1, label: '1' },
+                                        { value: 2, label: '2' },
+                                        { value: 3, label: '3' },
+                                        { value: 4, label: '4' },
+                                        { value: 5, label: '5' },
+                                        { value: 6, label: '6' },
+                                        { value: 7, label: '7' }
+                                    ]}
                                     required
                                 />
                                 <EditableField
@@ -162,9 +169,16 @@
                                     errors={$errors}
                                     name="constraints[{actualIndex}].sessions"
                                     label="Sessions (1-7)"
-                                    type="number"
-                                    min={1}
-                                    max={7}
+                                    type="select"
+                                    options={[
+                                        { value: 1, label: '1' },
+                                        { value: 2, label: '2' },
+                                        { value: 3, label: '3' },
+                                        { value: 4, label: '4' },
+                                        { value: 5, label: '5' },
+                                        { value: 6, label: '6' },
+                                        { value: 7, label: '7' }
+                                    ]}
                                     required
                                 />
                                 <EditableField
@@ -192,10 +206,10 @@
                                     label="Required Cost"
                                     type="select"
                                     options={[
-                                        { value: '1000', label: '1000' },
-                                        { value: '500', label: '500' },
-                                        { value: '250', label: '250' },
-                                        { value: '125', label: '125' }
+                                        { value: 1000, label: '1000' },
+                                        { value: 500, label: '500' },
+                                        { value: 250, label: '250' },
+                                        { value: 125, label: '125' }
                                     ]}
                                     required
                                 />
@@ -206,9 +220,9 @@
                                     label="Partial Space Cost (optional)"
                                     type="select"
                                     options={[
-                                        { value: '1000', label: '1000' },
-                                        { value: '500', label: '500' },
-                                        { value: '250', label: '250' }
+                                        { value: 1000, label: '1000' },
+                                        { value: 500, label: '500' },
+                                        { value: 250, label: '250' }
                                     ]}
                                 />
                                 <EditableField
