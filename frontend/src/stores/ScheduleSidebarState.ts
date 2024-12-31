@@ -1,5 +1,6 @@
 import { writable } from 'svelte/store';
 import type { Team } from '$lib/schemas/team';
+import { dropdownState } from './ScheduleDropdownState';
 
 type SidebarDropdownState = {
     teamsOpen: boolean;
@@ -34,6 +35,9 @@ export function toggleCreateSchedule() {
     SidebarDropdownState.update(state => ({
         ...state,
         showCreateSchedule: !state.showCreateSchedule,
+    }));
+    dropdownState.update(state => ({
+        ...state,
         selectedSchedule: null
     }));
 }

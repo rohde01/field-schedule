@@ -2,6 +2,7 @@ import type { Schedule } from '$lib/schemas/schedule';
 import { writable } from 'svelte/store';
 import { schedules } from './schedules';
 import type { Team } from '$lib/schemas/team';
+import { SidebarDropdownState } from './ScheduleSidebarState';
 
 type ScheduleDropdownState = {
     isOpen: boolean;
@@ -39,5 +40,10 @@ export function selectSchedule(schedule: Schedule) {
     dropdownState.update(state => ({
         ...state,
         selectedSchedule: schedule,
+    }));
+    
+    SidebarDropdownState.update(state => ({
+        ...state,
+        showCreateSchedule: false
     }));
 }
