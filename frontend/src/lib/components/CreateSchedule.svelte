@@ -1,10 +1,12 @@
 <script lang="ts">
     import type { GenerateScheduleRequest } from '$lib/schemas/schedule';
     import type { Writable } from 'svelte/store';
+    import type { SuperForm, ValidationErrors } from 'sveltekit-superforms';
 
-    let { form, enhance } = $props<{ 
+    let { form, enhance, errors } = $props<{ 
         form: Writable<GenerateScheduleRequest>,
-        enhance: Function
+        enhance: Function,
+        errors: Writable<ValidationErrors<GenerateScheduleRequest>>
     }>();
 
     let formElement: HTMLFormElement;

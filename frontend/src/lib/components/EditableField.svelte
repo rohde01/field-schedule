@@ -37,25 +37,42 @@
     $: {
         const keys = name.split(/[\[\].]+/).filter(Boolean);
         const lastKey = keys[keys.length - 1];
+        const isAvailabilityTime = keys.includes('availabilities');
         const isEmpty = 
             fieldValue === undefined || 
             fieldValue === null || 
             (typeof fieldValue === 'string' && fieldValue === '');
         
-        if ((lastKey === 'start_time' || lastKey === 'end_time') && isEmpty) {
+        if (isAvailabilityTime && (lastKey === 'start_time' || lastKey === 'end_time') && isEmpty) {
             const defaultValue = lastKey === 'start_time' ? '16:00' : '22:00';
             updateFormValue(defaultValue);
         }
     }
 
-    $: {
-        const error = errors[name];
-        fieldError = error 
-            ? Array.isArray(error) && error.length > 0 
-                ? error[0] 
-                : typeof error === 'string' ? error : ''
+    $: fieldError = (() => {
+        const keys = name.split(/[\[\].]+/).filter(Boolean);
+        let currentErrors: ValidationErrors<any> | undefined = errors;
+        
+        for (const key of keys) {
+            if (!currentErrors || typeof currentErrors !== 'object') return '';
+            
+            const index = parseInt(key);
+            if (isNaN(index)) {
+                currentErrors = currentErrors[key] as ValidationErrors<any>;
+            } else {
+                currentErrors = (currentErrors as unknown as any[])[index];
+            }
+        }
+        
+        return currentErrors 
+            ? Array.isArray(currentErrors) 
+                ? currentErrors.join(', ') 
+                : typeof currentErrors === 'string' 
+                    ? currentErrors 
+                    : ''
             : '';
-    }
+    })();
+
     $: selectedOption = options.find(opt => String(opt.value) === String(fieldValue ?? ''));
 
     $: hide_label_in_view = (() => {
@@ -219,7 +236,7 @@
             />
         {/if}
         {#if fieldError}
-            <p class="text-sm text-red-600 mt-1">{fieldError}</p>
+            <p class="text-sm text-red-600 mt-1" role="alert">{fieldError}</p>
         {/if}
     {:else}
         <!-- Different view mode styles -->
@@ -247,5 +264,8 @@
             {name}
             value={fieldValue ?? ''}
         />
+        {#if fieldError}
+            <p class="text-sm text-red-600 mt-1" role="alert">{fieldError}</p>
+        {/if}
     {/if}
 </div>

@@ -56,7 +56,7 @@
         <div class="main-content">
             {#if $SidebarDropdownState.showCreateSchedule}
                 <CreateConstraints {form} {errors} />
-                <CreateSchedule {form} {enhance} />
+                <CreateSchedule {form} {enhance} {errors} />
             {:else if $SidebarDropdownState.selectedTeam}
                not implemented
             {/if}
@@ -68,8 +68,8 @@
     {/if}
 </div>
 
-<!-- <div class="mt-8">
+<div class="mt-8">
     <div class="debug-container">
         <SuperDebug data={$form} collapsible={true} />
     </div>
-</div> -->
+</div> 
