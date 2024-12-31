@@ -147,18 +147,36 @@
     @apply bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded;
   }
 
-  /* Button Styles */
   .btn-add {
-    @apply text-xs px-2 py-1 bg-white text-mint-600 rounded-lg hover:bg-mint-50 transition-colors border border-mint-200;
+    @apply text-sm px-2.5 py-1.5 bg-white text-mint-600 rounded-lg hover:bg-mint-50 transition-colors border border-mint-200;
   }
 
   .btn-remove {
     @apply text-xs px-1.5 py-0.5 text-gray-500 hover:text-red-600 transition-colors;
   }
 
-  /* Common card styles */
-  .detail-card-container {
-    @apply fixed left-[calc(20rem+max(1rem,calc((100%-80rem)/2+1rem)))] top-32 right-[max(1rem,calc((100%-80rem)/2+1rem))] z-30;
+  .modal-overlay {
+    @apply fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center;
+  }
+
+  .modal-container {
+    @apply bg-white rounded-lg p-6 max-w-sm mx-4;
+  }
+
+  .modal-title {
+    @apply text-lg font-semibold mb-2;
+  }
+
+  .modal-description {
+    @apply text-sage-600 mb-4;
+  }
+
+  .modal-actions {
+    @apply flex justify-end space-x-3;
+  }
+
+  .btn-danger {
+    @apply btn bg-red-500 text-white hover:bg-red-600 focus:ring-red-500;
   }
 
   .detail-card {
@@ -185,32 +203,29 @@
     @apply text-sage-800;
   }
 
-  .sidebar-container {
-    @apply fixed left-[max(1rem,calc((100%-80rem)/2+1rem))] top-32 z-40 w-72;
+  .page-container {
+    @apply flex gap-8 min-h-[calc(100vh-10rem)];
   }
 
-  .modal-overlay {
-    @apply fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center;
+  .sidebar {
+    @apply w-72 relative flex flex-col;
   }
 
-  .modal-container {
-    @apply bg-white rounded-lg p-6 max-w-sm mx-4;
+  .sidebar-content {
+    @apply flex-1;
   }
 
-  .modal-title {
-    @apply text-lg font-semibold mb-2;
+  .sidebar-footer {
+    @apply w-full;
   }
 
-  .modal-description {
-    @apply text-sage-600 mb-4;
+  .main-content {
+    @apply flex-1;
   }
 
-  .modal-actions {
-    @apply flex justify-end space-x-3;
-  }
-
-  .btn-danger {
-    @apply btn bg-red-500 text-white hover:bg-red-600 focus:ring-red-500;
+  .facility-menu,
+  .name-input {
+    @apply absolute left-full top-0 ml-4 w-72 z-50;
   }
 
   .debug-container {

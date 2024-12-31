@@ -10,12 +10,9 @@
         dropdownState.update(state => ({ ...state, isOpen: false }));
     }
 
-    function handleCreateClick() {
-        alert('Schedule creation not implemented yet');
-    }
 </script>
 
-<div class="fixed bottom-12 left-[max(1rem,calc((100%-80rem)/2+1rem))] z-[9999]" bind:this={dropdownContainer}>
+<div class="schedules-dropdown">
     <div 
         class="relative"
         class:w-72={$dropdownState.isOpen}
@@ -43,7 +40,7 @@
         </button>
 
         {#if $dropdownState.isOpen}
-            <div class="dropdown-panel absolute z-[9999] w-full bg-white shadow-lg rounded-lg mt-2 py-2 border border-gray-200">
+            <div class="dropdown-panel">
                 <div class="dropdown-content">
                     {#each $schedules as schedule}
                         <button
@@ -56,27 +53,6 @@
                             <span class="font-medium">{schedule.name}</span>
                         </button>
                     {/each}
-                </div>
-                
-                <div class="dropdown-divider">
-                    <button
-                        type="button"
-                        class="dropdown-action-button"
-                        onclick={(e) => {
-                            e.stopPropagation();
-                            handleCreateClick();
-                        }}
-                    >
-                        <svg
-                            class="w-4 h-4 mr-2"
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                        >
-                            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
-                        </svg>
-                        Create New Schedule
-                    </button>
                 </div>
             </div>
         {/if}

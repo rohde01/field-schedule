@@ -69,16 +69,18 @@
 
 </script>
 
-<div class="flex flex-col gap-4">
-    <div class="flex flex-col gap-4">
-        <div class="sidebar-container">
-            <FacilitiesDropdown form={data.facilityForm}/>
+<div class="page-container">
+    <div class="sidebar">
+        <div class="sidebar-content">
             <FieldsDropdown fields={$fields}/>
+        </div>
+        <div class="sidebar-footer">
+            <FacilitiesDropdown form={data.facilityForm}/>
         </div>
     </div>
 
     {#if $dropdownState.selectedField || $dropdownState.showCreateField}
-        <div class="detail-card-container">
+        <div class="main-content">
             {#if $dropdownState.showCreateField}
                 <CreateField form={data.createFieldForm} />
             {:else if $dropdownState.selectedField}
@@ -98,9 +100,8 @@
             {/if}
         </div>
     {:else}
-        <div class="text-center p-8 text-sage-500">
-            Please select a field to view details
+        <div class="main-content text-center p-8 text-sage-500">
+            Select a field to view details or create a new field.
         </div>
     {/if}
 </div>
-

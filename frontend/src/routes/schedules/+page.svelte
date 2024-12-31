@@ -42,14 +42,18 @@
     
 </script>
 
-<div class="flex flex-col gap-4">
-    <div class="sidebar-container">
-        <SchedulesDropdown />
-        <SchedulesSidebar teams={$teams} {form} />
+<div class="page-container">
+    <div class="sidebar">
+        <div class="sidebar-content">
+            <SchedulesSidebar teams={$teams} {form} />
+        </div>
+        <div class="sidebar-footer">
+            <SchedulesDropdown />
+        </div>
     </div>
 
     {#if $SidebarDropdownState.selectedTeam || $SidebarDropdownState.showCreateSchedule}
-        <div class="detail-card-container">
+        <div class="main-content">
             {#if $SidebarDropdownState.showCreateSchedule}
                 <CreateConstraints {form} {errors} />
                 <CreateSchedule {form} {enhance} />
@@ -58,18 +62,14 @@
             {/if}
         </div>
     {:else}
-        <div class="text-center p-8 text-sage-500">
+        <div class="main-content text-center p-8 text-sage-500">
             Please select a team to view details
         </div>
     {/if}
 </div>
 
-<div class="mt-8">
+<!-- <div class="mt-8">
     <div class="debug-container">
         <SuperDebug data={$form} collapsible={true} />
     </div>
-</div>
-
-<div class="mt-8">
-    <Calendar />
-</div>
+</div> -->

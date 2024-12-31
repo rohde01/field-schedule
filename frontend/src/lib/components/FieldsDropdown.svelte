@@ -52,8 +52,8 @@
 </script>
 
 
-<div class="fixed left-[max(1rem,calc((100%-80rem)/2+1rem))] top-32 z-40 w-72 fields-dropdown">
-    <div class="bg-white rounded-2xl shadow-xl border border-mint-100 overflow-hidden">
+<div class="fields-dropdown">
+    <div class="bg-white rounded-2xl shadow-xl border border-mint-100 overflow-hidden w-full">
         <div class="flex items-center">
             <div class="flex-1 flex items-center">
                 <h2 class="text-sm font-medium text-sage-700 pl-4">Fields</h2>

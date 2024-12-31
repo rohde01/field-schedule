@@ -69,7 +69,7 @@
     });
 </script>
 
-<div class="fixed bottom-12 left-[max(1rem,calc((100%-80rem)/2+1rem))] z-50" bind:this={dropdownContainer}>
+<div class="facilities-dropdown">
     <div 
         class="relative"
         class:w-72={$dropdownState.isOpen}
@@ -86,7 +86,7 @@
                 {$dropdownState.selectedFacility?.name || 'Select Facility'}
             </span>
             <svg
-                class="w-5 h-5 transition-transform duration-200 ml-3"
+                class="w-5 h-5 transition-transform duration-200"
                 class:rotate-180={$dropdownState.isOpen}
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 20 20"

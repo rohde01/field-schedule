@@ -228,13 +228,43 @@
             
             {#if !$form.constraints?.filter((c: Constraint) => c.team_id === selectedTeam.team_id).length 
                 || $form.constraints?.filter((c: Constraint) => c.team_id === selectedTeam.team_id).length < 7}
-                <div class="relative inline-block group">
+                <div class="relative inline-block">
                     <button 
-                        class="bg-mint-500 hover:bg-mint-600 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-                        onclick={() => addConstraint('flexible')}
+                        class="btn-add"
+                        onclick={() => {
+                            const dropdown = document.getElementById('constraintTypeDropdown');
+                            if (dropdown) {
+                                dropdown.classList.toggle('hidden');
+                            }
+                        }}
                     >
                         Add Constraint
                     </button>
+                    <div 
+                        id="constraintTypeDropdown"
+                        class="hidden absolute left-0 top-full mt-2 w-48 bg-white rounded-xl shadow-xl border border-mint-100 z-10"
+                    >
+                        <div class="dropdown-content">
+                            <button
+                                class="dropdown-item"
+                                onclick={() => {
+                                    addConstraint('specific');
+                                    document.getElementById('constraintTypeDropdown')?.classList.add('hidden');
+                                }}
+                            >
+                                Specific
+                            </button>
+                            <button
+                                class="dropdown-item"
+                                onclick={() => {
+                                    addConstraint('flexible');
+                                    document.getElementById('constraintTypeDropdown')?.classList.add('hidden');
+                                }}
+                            >
+                                Flexible
+                            </button>
+                        </div>
+                    </div>
                 </div>
             {/if}
         </div>

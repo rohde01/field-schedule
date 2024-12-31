@@ -44,7 +44,7 @@
 
 
 
-<div class="fixed left-[max(1rem,calc((100%-80rem)/2+1rem))] top-32 z-40 w-72 teams-dropdown">
+<div class="teams-dropdown">
     <div class="bg-white rounded-2xl shadow-xl border border-mint-100 overflow-hidden">
         <div class="flex items-center">
             <div class="flex-1 flex items-center">

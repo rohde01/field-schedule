@@ -13,6 +13,9 @@
     }>();
 
     let showFacilityMenu = $state(false);
+    let showNameInput = $state(false);
+    let scheduleName = $state('');
+    let isCreating = $state(false);
 
     const filteredTeams = $derived(
         $dropdownState.selectedSchedule
@@ -84,7 +87,7 @@
     }
 
     function handleCreateScheduleClick() {
-        if ($teamDropdownState.showCreateSchedule) {
+        if (isCreating) {
             form.set({
                 facility_id: 0,
                 team_ids: [],
@@ -93,19 +96,30 @@
                 schedule_name: 'Generated Schedule'
             });
             showFacilityMenu = false;
+            showNameInput = false;
+            isCreating = false;
+            $teamDropdownState.showCreateSchedule = false;
         } else {
             showFacilityMenu = true;
+            isCreating = true;
         }
-        toggleCreateSchedule();
     }
 
     function handleFacilitySelect(facilityId: number) {
         $form.facility_id = facilityId;
         showFacilityMenu = false;
+        showNameInput = true;
+        scheduleName = 'Generated Schedule';
+    }
+
+    function handleNameSubmit() {
+        $form.schedule_name = scheduleName;
+        showNameInput = false;
+        toggleCreateSchedule();
     }
 </script>
 
-<div class="fixed left-[max(1rem,calc((100%-80rem)/2+1rem))] top-32 z-40 w-72 teams-dropdown">
+<div class="schedules-sidebar">
     <div class="bg-white rounded-2xl shadow-xl border border-mint-100 overflow-hidden">
         <div class="flex items-center">
             <div class="flex-1 flex items-center">
@@ -130,7 +144,7 @@
                 class="btn-primary text-sm py-1.5 m-2"
                 onclick={handleCreateScheduleClick}
             >
-                {$teamDropdownState.showCreateSchedule ? 'Cancel' : 'Create Schedule'}
+                {isCreating ? 'Cancel' : 'Create Schedule'}
             </button>
         </div>
         {#if $teamDropdownState.teamsOpen}
@@ -182,10 +196,10 @@
 </div>
 
 {#if showFacilityMenu}
-    <div class="fixed left-[calc(max(1rem,calc((100%-80rem)/2+1rem))+19rem)] top-32 z-50 w-72">
+    <div class="facility-menu">
         <div class="bg-white rounded-2xl shadow-xl border border-mint-100 overflow-hidden">
             <div class="p-4">
-                <h2 class="text-sm font-medium text-sage-700 mb-2">Select Facility</h2>
+                <h2 class="text-sm font-medium text-sage-700 mb-2">Select a facility to use in the schedule</h2>
                 <div class="space-y-2 max-h-64 overflow-y-auto">
                     {#each $facilities as facility}
                         <button
@@ -195,6 +209,30 @@
                             {facility.name}
                         </button>
                     {/each}
+                </div>
+            </div>
+        </div>
+    </div>
+{/if}
+
+{#if showNameInput}
+    <div class="name-input">
+        <div class="bg-white rounded-2xl shadow-xl border border-mint-100 overflow-hidden">
+            <div class="p-4">
+                <h2 class="text-sm font-medium text-sage-700 mb-2">Enter a name for the schedule</h2>
+                <div class="space-y-2">
+                    <input
+                        type="text"
+                        bind:value={scheduleName}
+                        class="w-full px-3 py-2 border border-mint-200 rounded-lg text-sm"
+                        placeholder="Schedule name"
+                    />
+                    <button
+                        class="w-full btn-primary text-sm py-2"
+                        onclick={handleNameSubmit}
+                    >
+                        Continue
+                    </button>
                 </div>
             </div>
         </div>

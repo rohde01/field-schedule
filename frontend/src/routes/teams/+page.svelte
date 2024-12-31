@@ -41,13 +41,15 @@
     }
 </script>
 
-<div class="flex flex-col gap-4">
-    <div class="sidebar-container">
-        <TeamsDropdown teams={$teams} />
+<div class="page-container">
+    <div class="sidebar">
+        <div class="sidebar-content">
+            <TeamsDropdown teams={$teams} />
+        </div>
     </div>
 
     {#if $dropdownState.selectedTeam || $dropdownState.showCreateTeam}
-        <div class="detail-card-container">
+        <div class="main-content">
             {#if $dropdownState.showCreateTeam}
                 <CreateTeam form={data.createForm} />
             {:else if $dropdownState.selectedTeam}
@@ -66,7 +68,7 @@
             {/if}
         </div>
     {:else}
-        <div class="text-center p-8 text-sage-500">
+        <div class="main-content text-center p-8 text-sage-500">
             Please select a team to view details
         </div>
     {/if}

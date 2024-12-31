@@ -34,7 +34,7 @@
 
 <div class="min-h-screen bg-sage-50 relative">
     <nav class="bg-white border-b border-sage-200 relative z-10">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-[90%] mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center space-x-4">
                     <a href="/" class="nav-link">Home</a>
@@ -58,8 +58,7 @@
             </div>
         </div>
     </nav>
-
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
+    <div class="max-w-[90%] mx-auto px-4 sm:px-6 lg:px-8 mt-8">
         <slot />
-    </main>
+    </div>
 </div>
