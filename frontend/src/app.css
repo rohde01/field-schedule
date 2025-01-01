@@ -231,4 +231,25 @@
   .debug-container {
     @apply fixed bottom-0 left-[calc(20rem+max(1rem,calc((100%-80rem)/2+1rem)))] right-[max(1rem,calc((100%-80rem)/2+1rem))] bg-white border-t border-sage-200 p-4 max-h-[50vh] overflow-auto z-30;
   }
+
+  /* Schedule Grid Component Classes */
+  .schedule-grid {
+    @apply grid bg-white shadow-sm border border-sage-200;
+  }
+
+  .schedule-header {
+    @apply bg-sage-50 font-semibold border-b border-r border-sage-200 flex items-center justify-center p-2;
+  }
+
+  .schedule-time {
+    @apply bg-sage-50/50 font-medium border-r border-b border-sage-200 flex items-center justify-center p-2;
+  }
+
+  .schedule-cell {
+    @apply border-r border-b border-sage-200 relative cursor-pointer min-h-[2.5rem] hover:bg-sage-50;
+  }
+
+  .schedule-event {
+    @apply bg-mint-500 text-white rounded px-2 py-1 m-0.5 text-sm z-10 shadow-sm;
+  }
 }
