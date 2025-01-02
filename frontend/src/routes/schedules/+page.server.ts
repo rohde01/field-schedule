@@ -30,7 +30,6 @@ export const load = (async ({ fetch, locals }: RequestEvent) => {
         });
         if (!response.ok) throw new Error('Failed to fetch schedules');
         const schedules: Schedule[] = await response.json();
-        console.log('Fetched schedules:', schedules);
         
         return {
             schedules,
@@ -43,13 +42,9 @@ export const load = (async ({ fetch, locals }: RequestEvent) => {
 
 export const actions = {
     createSchedule: async ({ request, fetch, locals }: RequestEvent) => {
-        // Use superValidate with the request directly to handle JSON data
         const form = await superValidate(request, zod(generateScheduleRequestSchema));
-
-        console.log('Form validation result:', form);
         
         if (!form.valid) {
-            console.log('Form validation failed:', form.errors);
             return fail(400, { form });
         }
 
@@ -65,15 +60,15 @@ export const actions = {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                console.error('Failed to create schedule:', response.status, errorData);
                 return fail(response.status, { 
-                    form, 
-                    error: errorData.detail || 'Failed to create schedule'
+                    form,
+                    errors: {
+                        _errors: [errorData.detail || 'Failed to create schedule']
+                    }
                 });
             }
 
             const data = await response.json();
-            console.log('API Response:', response.status, data);
 
             return { 
                 form,
@@ -81,10 +76,11 @@ export const actions = {
                 schedule_id: data.schedule_id
             };
         } catch (err) {
-            console.error('API call failed:', err);
             return fail(500, { 
-                form, 
-                error: 'Failed to create schedule' 
+                form,
+                errors: {
+                    _errors: ['An unexpected error occurred while creating the schedule']
+                }
             });
         }
     }

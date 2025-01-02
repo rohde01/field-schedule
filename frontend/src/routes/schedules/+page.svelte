@@ -1,10 +1,10 @@
 <script lang="ts">
     import type { PageData } from './$types';
-    import { setSchedules, schedules } from '$stores/schedules';
+    import { schedules } from '$stores/schedules';
     import SchedulesDropdown from '$lib/components/SchedulesDropdown.svelte';
     import SchedulesSidebar from '$lib/components/SchedulesSidebar.svelte';
     import { SidebarDropdownState } from '$stores/ScheduleSidebarState';
-    import { dropdownState, selectSchedule, selectAndShowSchedule } from '$stores/ScheduleDropdownState';
+    import { dropdownState, selectSchedule } from '$stores/ScheduleDropdownState';
     import CreateConstraints from '$lib/components/CreateConstraints.svelte';
     import { teams, setTeams } from '$stores/teams';
     import SuperDebug from 'sveltekit-superforms';
@@ -35,30 +35,66 @@
         dataType: 'json',
         taintedMessage: null,
         id: 'schedule-form',
-        onError: (err) => {
-            console.error('Form submission error:', err);
+        onError: ({ result }) => {
+            if ('error' in result) {
+                errorMessage = typeof result.error === 'string' 
+                    ? result.error 
+                    : result.error instanceof Error 
+                        ? result.error.message 
+                        : 'message' in result.error
+                            ? result.error.message
+                            : 'An unexpected error occurred';
+                showErrorModal = true;
+            }
         },
         onUpdate: ({ form }) => {
         },
         onResult: ({ result }) => {
-            if (result.type === 'success' && result.data && 'schedule_id' in result.data) {
+            if (result.type === 'failure') {
+                const failureResult = result as { data: { errors?: { _errors?: string[] } } };
+                if (failureResult.data?.errors?._errors?.length) {
+                    errorMessage = failureResult.data.errors._errors[0];
+                    showErrorModal = true;
+                }
+            }
+            else if (result.type === 'success' && result.data && 'schedule_id' in result.data) {
                 pendingScheduleId = result.data.schedule_id;
             }
         }
     });
 
-    $effect(() => {
-        if (data.schedules) {
-            setSchedules(data.schedules);
-        }
+    let showErrorModal = $state(false);
+    let errorMessage = $state('');
 
-        if (data.teams) {
-            setTeams(data.teams);
+    $effect(() => {
+        const errorMessages = $errors?._errors;
+        if (Array.isArray(errorMessages) && errorMessages.length > 0) {
+            errorMessage = errorMessages[0];
+            showErrorModal = true;
         }
     });
 
-    
+    function closeErrorModal() {
+        showErrorModal = false;
+    }
 </script>
+
+{#if showErrorModal}
+    <div class="modal-overlay">
+        <div class="modal-container">
+            <h3 class="modal-title">Schedule Creation Error</h3>
+            <p class="modal-description">{errorMessage}</p>
+            <div class="modal-actions">
+                <button 
+                    class="btn btn-secondary"
+                    onclick={closeErrorModal}
+                >
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+{/if}
 
 <div class="page-container">
     <div class="sidebar">

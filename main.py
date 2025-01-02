@@ -149,4 +149,4 @@ def generate_schedule(facility_id: int, team_ids: List[int], club_id: int, sched
         profiler.disable()
         stats = pstats.Stats(profiler).sort_stats('cumtime')
         stats.print_stats(10)
-        raise ValueError('No feasible solution found.')
+        raise ValueError('')
