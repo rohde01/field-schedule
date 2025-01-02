@@ -1,28 +1,14 @@
 <script lang="ts">
     import { dropdownState } from '../../stores/ScheduleDropdownState';
     import type { Field } from '$lib/schemas/field';
-    import type { Schedule } from '$lib/schemas/schedule';
+    import type { Schedule, ScheduleEntry } from '$lib/schemas/schedule';
     import { fields } from '$stores/fields';
     import { derived } from 'svelte/store';
-    import { sampleEvents } from '$lib/utils/test_data';
-
-    // Types & Schemas
-
-    interface Event {
-      id: number;
-      title: string;
-      field_id: number;
-      start_time: string;
-      end_time: string;
-      week_day: number;
-    }
 
     function buildResources(allFields: Field[], selectedSchedule: Schedule | null): Field[] {
         if (!selectedSchedule) return [];
         return allFields.filter(field => field.facility_id === selectedSchedule.facility_id);
     }
-
-    let events: Event[] = sampleEvents;
 
     // Create a derived store for active fields based on selected schedule
     const activeFields = derived([fields, dropdownState], ([$fields, $dropdownState]) => {
@@ -85,11 +71,13 @@
           for (const half of field.half_subfields) {
             const quarterFields = getQuarterFieldsForHalf(field, half.field_id);
 
+            // Add mapping for the half field itself
+            map.set(half.field_id, {
+              colIndex: currentColIndex,
+              colSpan: quarterFields.length || 1
+            });
+
             if (quarterFields.length === 0) {
-              map.set(half.field_id, {
-                colIndex: currentColIndex,
-                colSpan: 1
-              });
               currentColIndex += 1;
             } else {
               for (const q of quarterFields) {
@@ -169,11 +157,21 @@
 
     $: fieldToGridColMap = buildFieldToGridColumnMap($activeFields);
 
-    function rowForTime(time: string): number {
-      return timeslots.indexOf(time) + 2;  // +2 for header row offset
+    function normalizeTime(time: string): string {
+      return time.slice(0, 5); // keep "HH:MM" only
     }
 
-    $: filteredEvents = events.filter(event => event.week_day === currentWeekDay);
+    function rowForTime(time: string): number {
+      return timeslots.indexOf(normalizeTime(time)) + 2;  // +2 for header row offset
+    }
+
+    const activeEvents = derived(dropdownState, ($dropdownState): ScheduleEntry[] => {
+      const selectedSchedule = $dropdownState.selectedSchedule;
+      if (!selectedSchedule) return [];
+      return selectedSchedule.entries;
+    });
+
+    $: filteredEvents = $activeEvents.filter((event: ScheduleEntry) => event.week_day === currentWeekDay);
 </script>
 
 <div class="schedule-container">
@@ -220,8 +218,8 @@
 
         <!-- EVENTS -->
         {#each filteredEvents as event}
-            {#if fieldToGridColMap.has(event.field_id)}
-                {@const mapping = fieldToGridColMap.get(event.field_id)!}
+            {#if fieldToGridColMap.has(event.field_id!)}
+                {@const mapping = fieldToGridColMap.get(event.field_id!)!}
                 <div
                     class="schedule-event"
                     style="
@@ -231,10 +229,9 @@
                         grid-column-end: span {mapping.colSpan};
                     "
                 >
-                    {event.title}
+                    Team {event.team_id}
                 </div>
             {/if}
         {/each}
     </div>
 </div>
-
