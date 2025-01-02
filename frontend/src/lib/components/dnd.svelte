@@ -3,6 +3,7 @@
     import type { Field } from '$lib/schemas/field';
     import type { Schedule, ScheduleEntry } from '$lib/schemas/schedule';
     import { fields } from '$stores/fields';
+    import { teams } from '$stores/teams';
     import { derived } from 'svelte/store';
 
     function buildResources(allFields: Field[], selectedSchedule: Schedule | null): Field[] {
@@ -171,6 +172,15 @@
       return selectedSchedule.entries;
     });
 
+    // Create a lookup for team names
+    const teamNameLookup = derived(teams, ($teams) => {
+        const lookup = new Map<number, string>();
+        for (const team of $teams) {
+            lookup.set(team.team_id!, team.name);
+        }
+        return lookup;
+    });
+
     $: filteredEvents = $activeEvents.filter((event: ScheduleEntry) => event.week_day === currentWeekDay);
 </script>
 
@@ -218,7 +228,7 @@
 
         <!-- EVENTS -->
         {#each filteredEvents as event}
-            {#if fieldToGridColMap.has(event.field_id!)}
+            {#if fieldToGridColMap.has(event.field_id!) && event.team_id !== null}
                 {@const mapping = fieldToGridColMap.get(event.field_id!)!}
                 <div
                     class="schedule-event"
@@ -229,7 +239,7 @@
                         grid-column-end: span {mapping.colSpan};
                     "
                 >
-                    Team {event.team_id}
+                    {$teamNameLookup.get(event.team_id) ?? `Team ${event.team_id}`}
                 </div>
             {/if}
         {/each}
