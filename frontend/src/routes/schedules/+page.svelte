@@ -1,10 +1,10 @@
 <script lang="ts">
     import type { PageData } from './$types';
-    import { schedules } from '$stores/schedules';
+    import { setSchedules, schedules } from '$stores/schedules';
     import SchedulesDropdown from '$lib/components/SchedulesDropdown.svelte';
     import SchedulesSidebar from '$lib/components/SchedulesSidebar.svelte';
     import { SidebarDropdownState } from '$stores/ScheduleSidebarState';
-    import { dropdownState, selectSchedule } from '$stores/ScheduleDropdownState';
+    import { dropdownState, selectSchedule, selectAndShowSchedule } from '$stores/ScheduleDropdownState';
     import CreateConstraints from '$lib/components/CreateConstraints.svelte';
     import { teams, setTeams } from '$stores/teams';
     import SuperDebug from 'sveltekit-superforms';
@@ -16,6 +16,16 @@
     const { form: rawForm } = data;
 
     let pendingScheduleId: number | null = null;
+
+    $effect(() => {
+        if (data.schedules) {
+            setSchedules(data.schedules);
+        }
+
+        if (data.teams) {
+            setTeams(data.teams);
+        }
+    });
 
     $effect(() => {
         const currentSchedules = $schedules; 
