@@ -1,15 +1,16 @@
 <script lang="ts">
     import type { PageData } from './$types';
     import { setSchedules } from '$stores/schedules';
-    import Calendar from '$lib/components/Calendar.svelte';
     import SchedulesDropdown from '$lib/components/SchedulesDropdown.svelte';
     import SchedulesSidebar from '$lib/components/SchedulesSidebar.svelte';
     import { SidebarDropdownState } from '$stores/ScheduleSidebarState';
+    import { dropdownState } from '$stores/ScheduleDropdownState';
     import CreateConstraints from '$lib/components/CreateConstraints.svelte';
     import { teams, setTeams } from '$stores/teams';
     import SuperDebug from 'sveltekit-superforms';
     import { superForm } from 'sveltekit-superforms/client';
     import CreateSchedule from '$lib/components/CreateSchedule.svelte';
+    import Dnd from '$lib/components/dnd.svelte'
 
     let { data }: { data: PageData } = $props();
     const { form: rawForm } = data;
@@ -52,13 +53,15 @@
         </div>
     </div>
 
-    {#if $SidebarDropdownState.selectedTeam || $SidebarDropdownState.showCreateSchedule}
+    {#if $SidebarDropdownState.selectedTeam || $SidebarDropdownState.showCreateSchedule || $dropdownState.selectedSchedule}
         <div class="main-content">
             {#if $SidebarDropdownState.showCreateSchedule}
                 <CreateConstraints {form} {errors} />
                 <CreateSchedule {form} {enhance} {errors} />
-            {:else if $SidebarDropdownState.selectedTeam}
-               not implemented
+            {:else if $dropdownState.selectedSchedule}
+                <Dnd />
+            {:else}
+                not implemented
             {/if}
         </div>
     {:else}

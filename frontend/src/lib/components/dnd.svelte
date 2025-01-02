@@ -2,8 +2,6 @@
     import { dropdownState } from '../../stores/ScheduleDropdownState';
     import type { Field } from '$lib/schemas/field';
     import type { Schedule } from '$lib/schemas/schedule';
-    import type { z } from 'zod';
-    import { schedules } from '$stores/schedules';
     import { fields } from '$stores/fields';
     import { derived } from 'svelte/store';
 
@@ -15,6 +13,7 @@
       field_id: number;
       start_time: string;
       end_time: string;
+      week_day: number;
     }
 
     function buildResources(allFields: Field[], selectedSchedule: Schedule | null): Field[] {
@@ -109,6 +108,16 @@
 
     // Grid layout setup
     const timeslots: string[] = generateTimeSlots("16:00", "20:30", 30);
+    const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    let currentWeekDay = 0;
+
+    function nextDay() {
+        currentWeekDay = (currentWeekDay + 1) % 7;
+    }
+
+    function previousDay() {
+        currentWeekDay = (currentWeekDay - 1 + 7) % 7;
+    }
 
     interface HeaderCell {
       label: string;
@@ -117,7 +126,8 @@
     }
     let headerCells: HeaderCell[] = [];
 
-    {
+    $: {
+      headerCells = [];
       let colIndex = 2;  // col 1 is "Time"
 
       for (const field of $activeFields) {
@@ -161,71 +171,60 @@
     function rowForTime(time: string): number {
       return timeslots.indexOf(time) + 2;  // +2 for header row offset
     }
+
+    $: filteredEvents = events.filter(event => event.week_day === currentWeekDay);
 </script>
 
-<div 
-  class="schedule-grid"
-  style="
-    --total-columns: {totalColumns};
-    --total-rows: {timeslots.length};
-  "
->
-  <!-- HEADER ROW -->
-  <div
-    class="schedule-header"
-    style="grid-row: 1; grid-column: 1;"
-  >
-    Time
-  </div>
-
-  {#each headerCells as cell}
-    <div
-      class="schedule-header"
-      style="
-        grid-row: 1;
-        grid-column: {cell.colIndex} / span {cell.colSpan};
-      "
-    >
-      {cell.label}
-    </div>
-  {/each}
-
-  <!-- TIMESLOT ROWS (just the time label + empty cells) -->
-  {#each timeslots as time, rowIndex}
-    <!-- Leftmost cell: the timeslot label -->
-    <div
-      class="schedule-time"
-      style="grid-row: {rowIndex + 2}; grid-column: 1;"
-    >
-      {time}
+<div class="schedule-container">
+    <div class="weekday-navigation">
+        <button on:click={previousDay} class="nav-button">‹</button>
+        <span class="current-day">{weekDays[currentWeekDay]}</span>
+        <button on:click={nextDay} class="nav-button">›</button>
     </div>
 
-    <!-- For each header cell, place an empty cell at [rowIndex, columnIndex]. 
-         We do not put events in these cells; events are placed separately below. -->
-    {#each headerCells as cell}
-      <div
-        class="schedule-cell"
+    <div 
+        class="schedule-grid grid grid-cols-1 grid-rows-1 gap-0"
         style="
-          grid-row: {rowIndex + 2};
-          grid-column: {cell.colIndex} / span {cell.colSpan};
+            grid-template-columns: auto repeat({totalColumns - 1}, 1fr);
+            grid-template-rows: auto repeat({timeslots.length}, minmax(2.5rem, auto));
         "
-      ></div>
-    {/each}
-  {/each}
+    >
+        <!-- HEADER ROW -->
+        <div class="schedule-header col-start-1 row-start-1">Time</div>
 
-  <!-- EVENTS: each one spans multiple rows from start_time to end_time -->
-  {#each events as event}
-    {#if fieldToGridColMap.has(event.field_id)}
-      {@const mapping = fieldToGridColMap.get(event.field_id)!}
-        <div
-          class="schedule-event"
-          style="
-            grid-row: {rowForTime(event.start_time)} / {rowForTime(event.end_time)};
-            grid-column: {mapping.colIndex} / span {mapping.colSpan};
-          "
-        >
-          {event.title}
-        </div>
-    {/if}
-  {/each}
+        {#each headerCells as cell}
+            <div
+                class="schedule-header col-start-{cell.colIndex} col-span-{cell.colSpan} row-start-1"
+            >
+                {cell.label}
+            </div>
+        {/each}
+
+        <!-- TIMESLOT ROWS -->
+        {#each timeslots as time, rowIndex}
+            <div
+                class="schedule-time col-start-1 row-start-{rowIndex + 2}"
+            >
+                {time}
+            </div>
+
+            {#each headerCells as cell}
+                <div
+                    class="schedule-cell col-start-{cell.colIndex} col-span-{cell.colSpan} row-start-{rowIndex + 2}"
+                ></div>
+            {/each}
+        {/each}
+
+        <!-- EVENTS -->
+        {#each filteredEvents as event}
+            {#if fieldToGridColMap.has(event.field_id)}
+                {@const mapping = fieldToGridColMap.get(event.field_id)!}
+                    <div
+                        class="schedule-event col-start-{mapping.colIndex} col-span-{mapping.colSpan} row-start-{rowForTime(event.start_time)} row-span-{rowForTime(event.end_time) - rowForTime(event.start_time) + 1}"
+                    >
+                        {event.title}
+                    </div>
+            {/if}
+        {/each}
+    </div>
 </div>
