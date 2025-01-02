@@ -97,7 +97,7 @@
     }
 
     // Grid layout setup
-    const timeslots: string[] = generateTimeSlots("16:00", "20:30", 30);
+    const timeslots: string[] = generateTimeSlots("16:00", "20:30", 15);
     const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     let currentWeekDay = 0;
 
@@ -181,6 +181,21 @@
         return lookup;
     });
 
+    // Field name lookup function
+    function getFieldName(fieldId: number): string {
+        const field = $activeFields.find(f => f.field_id === fieldId);
+        if (field) return field.name;
+        
+        for (const mainField of $activeFields) {
+            const half = mainField.half_subfields.find(h => h.field_id === fieldId);
+            if (half) return half.name;
+            
+            const quarter = mainField.quarter_subfields.find(q => q.field_id === fieldId);
+            if (quarter) return quarter.name;
+        }
+        return `Field ${fieldId}`;
+    }
+
     $: filteredEvents = $activeEvents.filter((event: ScheduleEntry) => event.week_day === currentWeekDay);
 </script>
 
@@ -239,7 +254,15 @@
                         grid-column-end: span {mapping.colSpan};
                     "
                 >
-                    {$teamNameLookup.get(event.team_id) ?? `Team ${event.team_id}`}
+                    <div class="event-team">
+                        {$teamNameLookup.get(event.team_id) ?? `Team ${event.team_id}`}
+                    </div>
+                    <div class="event-field">
+                        📍 {getFieldName(event.field_id!)}
+                    </div>
+                    <div class="event-time">
+                        🕐 {normalizeTime(event.start_time)} - {normalizeTime(event.end_time)}
+                    </div>
                 </div>
             {/if}
         {/each}

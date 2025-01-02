@@ -250,8 +250,7 @@
   }
 
   .schedule-grid {
-    @apply w-full border border-sage-200 rounded-lg overflow-hidden;
-    position: relative;
+    @apply w-full border border-sage-200 rounded-lg overflow-hidden relative;
     display: grid;
     grid-template-columns: auto repeat(var(--total-columns) - 1, 1fr);
     grid-template-rows: auto repeat(var(--total-rows) - 1, minmax(2.5rem, auto));
@@ -266,32 +265,31 @@
   }
 
   .schedule-cell {
-    @apply bg-white px-4 py-2 border-b border-r border-sage-200;
-    position: relative;
+    @apply bg-white px-4 py-2 border-b border-r border-sage-200 relative;
   }
 
   .schedule-event {
-    @apply bg-mint-100 text-mint-800 p-2 rounded m-1 text-sm font-medium;
-    position: absolute;
-    inset: 0;
+    @apply bg-mint-100 text-mint-800 p-2 rounded m-1 text-sm font-medium flex flex-col gap-1 absolute inset-0 z-10;
     margin: 2px;
-    z-index: 10;
   }
 
   .schedule-header-time {
-    grid-column: 1;
-    grid-row: 1;
+    @apply col-start-1 row-start-1;
   }
 
   .schedule-header-cell {
-    grid-row: 1;
+    @apply row-start-1;
   }
 
   .schedule-time-cell {
-    grid-column: 1;
+    @apply col-start-1;
   }
 
-  .schedule-content-cell {
-    position: relative;
+  .event-team {
+    @apply font-bold text-[1.15em];
+  }
+
+  .event-field, .event-time {
+    @apply flex items-center gap-1 text-[1.12em] text-gray-600;
   }
 }
