@@ -14,28 +14,38 @@ const initialState: SidebarDropdownState = {
     showCreateSchedule: false
 };
 
-export const SidebarDropdownState = writable<SidebarDropdownState>(initialState);
+const store = writable<SidebarDropdownState>(initialState);
+export const SidebarDropdownState = store;
 
 export function toggleDropdown(key: keyof Pick<SidebarDropdownState, 'teamsOpen'>) {
-    SidebarDropdownState.update(state => ({
-        ...state,
-        [key]: !state[key]
-    }));
+    SidebarDropdownState.update(state => {
+        const newState = {
+            ...state,
+            [key]: !state[key]
+        };
+        return newState;
+    });
 }
 
 export function selectTeam(team: Team) {
-    SidebarDropdownState.update(state => ({
-        ...state,
-        selectedTeam: team,
-        showCreateTeam: false
-    }));
+    SidebarDropdownState.update(state => {
+        const newState = {
+            ...state,
+            selectedTeam: team,
+            showCreateTeam: false
+        };
+        return newState;
+    });
 }
 
 export function toggleCreateSchedule() {
-    SidebarDropdownState.update(state => ({
-        ...state,
-        showCreateSchedule: !state.showCreateSchedule,
-    }));
+    SidebarDropdownState.update(state => {
+        const newState = {
+            ...state,
+            showCreateSchedule: !state.showCreateSchedule,
+        };
+        return newState;
+    });
     dropdownState.update(state => ({
         ...state,
         selectedSchedule: null

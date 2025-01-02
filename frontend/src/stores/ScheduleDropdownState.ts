@@ -1,33 +1,18 @@
 import type { Schedule } from '$lib/schemas/schedule';
 import { writable } from 'svelte/store';
-import { schedules } from './schedules';
-import type { Team } from '$lib/schemas/team';
-import { SidebarDropdownState } from './ScheduleSidebarState';
+import { SidebarDropdownState as SidebarState } from './ScheduleSidebarState';
 
 type ScheduleDropdownState = {
     isOpen: boolean;
     selectedSchedule: Schedule | null;
-    teamsOpen: boolean;
-    showCreateTeam: boolean;
-    selectedTeam: Team | null;
 };
 
 const initialState: ScheduleDropdownState = {
     isOpen: false,
     selectedSchedule: null,
-    teamsOpen: false,
-    showCreateTeam: false,
-    selectedTeam: null
 };
 
 export const dropdownState = writable<ScheduleDropdownState>(initialState);
-
-
-dropdownState.subscribe(state => {
-    if (state.selectedSchedule) {
-        console.log('Selected schedule changed:', state.selectedSchedule);
-    }
-});
 
 export function toggleDropdown(key: keyof Pick<ScheduleDropdownState, 'isOpen'>) {
     dropdownState.update(state => ({
@@ -36,13 +21,32 @@ export function toggleDropdown(key: keyof Pick<ScheduleDropdownState, 'isOpen'>)
     }));
 }
 
-export function selectSchedule(schedule: Schedule) {
+export function selectSchedule(schedule: Schedule | null) {
+    dropdownState.update(state => {
+        const newState = {
+            ...state,
+            selectedSchedule: schedule
+        };
+        return newState;
+    });
+    
+    SidebarState.update(state => {
+        const newState = {
+            ...state,
+            showCreateSchedule: false
+        };
+        return newState;
+    });
+}
+
+export function selectAndShowSchedule(schedule: Schedule | null) {
     dropdownState.update(state => ({
         ...state,
         selectedSchedule: schedule,
+        isOpen: false
     }));
     
-    SidebarDropdownState.update(state => ({
+    SidebarState.update(state => ({
         ...state,
         showCreateSchedule: false
     }));

@@ -95,10 +95,11 @@
                 club_id: $page.data.user?.primary_club_id ?? 0,
                 schedule_name: 'Generated Schedule'
             });
-            showFacilityMenu = false;
-            showNameInput = false;
             isCreating = false;
-            $teamDropdownState.showCreateSchedule = false;
+            teamDropdownState.update(state => ({
+                ...state,
+                showCreateSchedule: false
+            }));
         } else {
             showFacilityMenu = true;
             isCreating = true;

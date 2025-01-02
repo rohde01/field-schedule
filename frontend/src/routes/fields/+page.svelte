@@ -1,6 +1,5 @@
 <script lang="ts">
-    import { setFacilities } from '$stores/facilities';
-    import { setFields, fields } from '$stores/fields';
+    import { fields } from '$stores/fields';
     import FacilitiesDropdown from '$lib/components/FacilityDropdown.svelte';
     import FieldsDropdown from '$lib/components/FieldsDropdown.svelte';
     import DisplayCard, { type Column } from '$lib/components/DisplayCard.svelte';
