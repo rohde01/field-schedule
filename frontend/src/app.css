@@ -233,39 +233,65 @@
   }
 
   /* Schedule Grid Component Classes */
-  .schedule-grid {
-    @apply grid bg-white shadow-sm border border-sage-200 gap-1;
-  }
-
-  .schedule-header {
-    @apply font-semibold text-sage-700 p-2 text-center bg-sage-50;
-  }
-
-  .schedule-time {
-    @apply text-sage-600 p-2 text-right;
-  }
-
-  .schedule-cell {
-    @apply border border-sage-100 bg-white;
-  }
-
-  .schedule-event {
-    @apply bg-mint-500 text-white p-1 rounded overflow-hidden break-words;
+  .schedule-container {
+    @apply w-full p-4;
   }
 
   .weekday-navigation {
-    @apply flex items-center justify-end gap-2 mb-4;
+    @apply flex items-center justify-center space-x-4 mb-4;
   }
 
   .nav-button {
-    @apply text-mint-500 hover:text-mint-600 border-none rounded px-2 cursor-pointer text-xl transition-colors duration-200;
+    @apply px-3 py-1 text-2xl text-sage-700 hover:text-mint-600 rounded-md hover:bg-sage-50 transition-colors duration-200;
   }
 
   .current-day {
-    @apply text-base font-medium text-sage-700 min-w-[80px] text-center;
+    @apply text-lg font-medium text-sage-800;
   }
 
-  .schedule-container {
-    @apply p-4;
+  .schedule-grid {
+    @apply w-full border border-sage-200 rounded-lg overflow-hidden;
+    position: relative;
+    display: grid;
+    grid-template-columns: auto repeat(var(--total-columns) - 1, 1fr);
+    grid-template-rows: auto repeat(var(--total-rows) - 1, minmax(2.5rem, auto));
+  }
+
+  .schedule-header {
+    @apply bg-sage-50 px-4 py-2 font-medium text-sage-700 border-b border-r border-sage-200 text-center;
+  }
+
+  .schedule-time {
+    @apply bg-sage-50 px-4 py-2 font-medium text-sage-700 border-b border-r border-sage-200;
+  }
+
+  .schedule-cell {
+    @apply bg-white px-4 py-2 border-b border-r border-sage-200;
+    position: relative;
+  }
+
+  .schedule-event {
+    @apply bg-mint-100 text-mint-800 p-2 rounded m-1 text-sm font-medium;
+    position: absolute;
+    inset: 0;
+    margin: 2px;
+    z-index: 10;
+  }
+
+  .schedule-header-time {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .schedule-header-cell {
+    grid-row: 1;
+  }
+
+  .schedule-time-cell {
+    grid-column: 1;
+  }
+
+  .schedule-content-cell {
+    position: relative;
   }
 }

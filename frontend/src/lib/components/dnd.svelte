@@ -4,6 +4,7 @@
     import type { Schedule } from '$lib/schemas/schedule';
     import { fields } from '$stores/fields';
     import { derived } from 'svelte/store';
+    import { sampleEvents } from '$lib/utils/test_data';
 
     // Types & Schemas
 
@@ -21,7 +22,7 @@
         return allFields.filter(field => field.facility_id === selectedSchedule.facility_id);
     }
 
-    let events: Event[] = [];
+    let events: Event[] = sampleEvents;
 
     // Create a derived store for active fields based on selected schedule
     const activeFields = derived([fields, dropdownState], ([$fields, $dropdownState]) => {
@@ -183,18 +184,18 @@
     </div>
 
     <div 
-        class="schedule-grid grid grid-cols-1 grid-rows-1 gap-0"
-        style="
-            grid-template-columns: auto repeat({totalColumns - 1}, 1fr);
-            grid-template-rows: auto repeat({timeslots.length}, minmax(2.5rem, auto));
-        "
+        class="schedule-grid"
+        style="--total-columns: {totalColumns}; --total-rows: {timeslots.length + 1};"
     >
         <!-- HEADER ROW -->
-        <div class="schedule-header col-start-1 row-start-1">Time</div>
+        <div class="schedule-header schedule-header-time">
+            Time
+        </div>
 
         {#each headerCells as cell}
             <div
-                class="schedule-header col-start-{cell.colIndex} col-span-{cell.colSpan} row-start-1"
+                class="schedule-header"
+                style="grid-column: {cell.colIndex} / span {cell.colSpan}; grid-row: 1;"
             >
                 {cell.label}
             </div>
@@ -203,14 +204,16 @@
         <!-- TIMESLOT ROWS -->
         {#each timeslots as time, rowIndex}
             <div
-                class="schedule-time col-start-1 row-start-{rowIndex + 2}"
+                class="schedule-time"
+                style="grid-column: 1; grid-row: {rowIndex + 2};"
             >
                 {time}
             </div>
 
             {#each headerCells as cell}
                 <div
-                    class="schedule-cell col-start-{cell.colIndex} col-span-{cell.colSpan} row-start-{rowIndex + 2}"
+                    class="schedule-cell"
+                    style="grid-column: {cell.colIndex} / span {cell.colSpan}; grid-row: {rowIndex + 2};"
                 ></div>
             {/each}
         {/each}
@@ -219,12 +222,19 @@
         {#each filteredEvents as event}
             {#if fieldToGridColMap.has(event.field_id)}
                 {@const mapping = fieldToGridColMap.get(event.field_id)!}
-                    <div
-                        class="schedule-event col-start-{mapping.colIndex} col-span-{mapping.colSpan} row-start-{rowForTime(event.start_time)} row-span-{rowForTime(event.end_time) - rowForTime(event.start_time) + 1}"
-                    >
-                        {event.title}
-                    </div>
+                <div
+                    class="schedule-event"
+                    style="
+                        grid-row-start: {rowForTime(event.start_time)};
+                        grid-row-end: {rowForTime(event.end_time) + 1};
+                        grid-column-start: {mapping.colIndex};
+                        grid-column-end: span {mapping.colSpan};
+                    "
+                >
+                    {event.title}
+                </div>
             {/if}
         {/each}
     </div>
 </div>
+
