@@ -1,11 +1,14 @@
 <script lang="ts">
-    import { fieldSchema } from '$lib/schemas/field';
+    import { dropdownState } from '../../stores/ScheduleDropdownState';
+    import type { Field } from '$lib/schemas/field';
+    import type { Schedule } from '$lib/schemas/schedule';
     import type { z } from 'zod';
-    import { sampleFields, sampleEvents } from '$lib/utils/test_data';
-  
+    import { schedules } from '$stores/schedules';
+    import { fields } from '$stores/fields';
+    import { derived } from 'svelte/store';
+
     // Types & Schemas
-    type InferredField = z.infer<typeof fieldSchema>;
-  
+
     interface Event {
       id: number;
       title: string;
@@ -13,11 +16,20 @@
       start_time: string;
       end_time: string;
     }
-  
-    // Use sample data from test_data.ts
-    export let fields: InferredField[] = sampleFields;
-    let events: Event[] = sampleEvents;
-  
+
+    function buildResources(allFields: Field[], selectedSchedule: Schedule | null): Field[] {
+        if (!selectedSchedule) return [];
+        return allFields.filter(field => field.facility_id === selectedSchedule.facility_id);
+    }
+
+    let events: Event[] = [];
+
+    // Create a derived store for active fields based on selected schedule
+    const activeFields = derived([fields, dropdownState], ([$fields, $dropdownState]) => {
+        const selectedSchedule = $dropdownState.selectedSchedule;
+        return buildResources($fields, selectedSchedule);
+    });
+
     function generateTimeSlots(
       start: string,
       end: string,
@@ -26,27 +38,27 @@
       const slots: string[] = [];
       let [startH, startM] = start.split(":").map(Number);
       const [endH, endM] = end.split(":").map(Number);
-  
+
       let currentMinutes = startH * 60 + startM;
       const endTotalMinutes = endH * 60 + endM;
-  
+
       while (currentMinutes <= endTotalMinutes) {
         const hh = Math.floor(currentMinutes / 60).toString().padStart(2, "0");
         const mm = (currentMinutes % 60).toString().padStart(2, "0");
         slots.push(`${hh}:${mm}`);
         currentMinutes += intervalMinutes;
       }
-  
+
       return slots;
     }
-  
-    function getQuarterFieldsForHalf(field: InferredField, halfFieldId: number) {
+
+    function getQuarterFieldsForHalf(field: Field, halfFieldId: number) {
       return field.quarter_subfields.filter(
         (q) => q.parent_field_id === halfFieldId
       );
     }
-  
-    function getFieldColumns(field: InferredField): number {
+
+    function getFieldColumns(field: Field): number {
       if (!field.half_subfields.length) {
         return 1;
       }
@@ -55,24 +67,24 @@
         return acc + (quarterCount || 1);
       }, 0);
     }
-  
-    function buildFieldToGridColumnMap(fields: InferredField[]) {
+
+    function buildFieldToGridColumnMap(fields: Field[]) {
       const map = new Map<number, { colIndex: number; colSpan: number }>();
       let currentColIndex = 2;  // col 1 is reserved for Time
-      
+
       for (const field of fields) {
         const totalColumnsForField = getFieldColumns(field);
         map.set(field.field_id, {
           colIndex: currentColIndex,
           colSpan: totalColumnsForField
         });
-  
+
         if (!field.half_subfields.length) {
           currentColIndex += 1;
         } else {
           for (const half of field.half_subfields) {
             const quarterFields = getQuarterFieldsForHalf(field, half.field_id);
-  
+
             if (quarterFields.length === 0) {
               map.set(half.field_id, {
                 colIndex: currentColIndex,
@@ -91,24 +103,24 @@
           }
         }
       }
-  
+
       return map;
     }
-  
+
     // Grid layout setup
     const timeslots: string[] = generateTimeSlots("16:00", "20:30", 30);
-  
+
     interface HeaderCell {
       label: string;
       colIndex: number;
       colSpan: number;
     }
     let headerCells: HeaderCell[] = [];
-    
+
     {
       let colIndex = 2;  // col 1 is "Time"
-  
-      for (const field of fields) {
+
+      for (const field of $activeFields) {
         if (!field.half_subfields.length) {
           headerCells.push({
             label: field.name,
@@ -140,80 +152,80 @@
         }
       }
     }
-  
+
     // Total columns = 1 (Time label) + sum of all field columns
-    const totalColumns = 1 + fields.reduce((acc, f) => acc + getFieldColumns(f), 0);
-  
-    const fieldToGridColMap = buildFieldToGridColumnMap(fields);
-  
+    $: totalColumns = 1 + $activeFields.reduce((acc: number, f: Field) => acc + getFieldColumns(f), 0);
+
+    $: fieldToGridColMap = buildFieldToGridColumnMap($activeFields);
+
     function rowForTime(time: string): number {
       return timeslots.indexOf(time) + 2;  // +2 for header row offset
     }
-  </script>
-  
-  <div 
-    class="schedule-grid"
-    style="
-      --total-columns: {totalColumns};
-      --total-rows: {timeslots.length};
-    "
+</script>
+
+<div 
+  class="schedule-grid"
+  style="
+    --total-columns: {totalColumns};
+    --total-rows: {timeslots.length};
+  "
+>
+  <!-- HEADER ROW -->
+  <div
+    class="schedule-header"
+    style="grid-row: 1; grid-column: 1;"
   >
-    <!-- HEADER ROW -->
+    Time
+  </div>
+
+  {#each headerCells as cell}
     <div
       class="schedule-header"
-      style="grid-row: 1; grid-column: 1;"
+      style="
+        grid-row: 1;
+        grid-column: {cell.colIndex} / span {cell.colSpan};
+      "
     >
-      Time
+      {cell.label}
+    </div>
+  {/each}
+
+  <!-- TIMESLOT ROWS (just the time label + empty cells) -->
+  {#each timeslots as time, rowIndex}
+    <!-- Leftmost cell: the timeslot label -->
+    <div
+      class="schedule-time"
+      style="grid-row: {rowIndex + 2}; grid-column: 1;"
+    >
+      {time}
     </div>
 
+    <!-- For each header cell, place an empty cell at [rowIndex, columnIndex]. 
+         We do not put events in these cells; events are placed separately below. -->
     {#each headerCells as cell}
       <div
-        class="schedule-header"
+        class="schedule-cell"
         style="
-          grid-row: 1;
+          grid-row: {rowIndex + 2};
           grid-column: {cell.colIndex} / span {cell.colSpan};
         "
-      >
-        {cell.label}
-      </div>
+      ></div>
     {/each}
+  {/each}
 
-    <!-- TIMESLOT ROWS (just the time label + empty cells) -->
-    {#each timeslots as time, rowIndex}
-      <!-- Leftmost cell: the timeslot label -->
-      <div
-        class="schedule-time"
-        style="grid-row: {rowIndex + 2}; grid-column: 1;"
-      >
-        {time}
-      </div>
-
-      <!-- For each header cell, place an empty cell at [rowIndex, columnIndex]. 
-           We do not put events in these cells; events are placed separately below. -->
-      {#each headerCells as cell}
+  <!-- EVENTS: each one spans multiple rows from start_time to end_time -->
+  {#each events as event}
+    {#if fieldToGridColMap.has(event.field_id)}
+      {@const mapping = fieldToGridColMap.get(event.field_id)!}
         <div
-          class="schedule-cell"
+          class="schedule-event"
           style="
-            grid-row: {rowIndex + 2};
-            grid-column: {cell.colIndex} / span {cell.colSpan};
+            grid-row: {rowForTime(event.start_time)} / {rowForTime(event.end_time)};
+            grid-column: {mapping.colIndex} / span {mapping.colSpan};
           "
-        ></div>
-      {/each}
-    {/each}
-
-    <!-- EVENTS: each one spans multiple rows from start_time to end_time -->
-    {#each events as event}
-      {#if fieldToGridColMap.has(event.field_id)}
-        {@const mapping = fieldToGridColMap.get(event.field_id)!}
-          <div
-            class="schedule-event"
-            style="
-              grid-row: {rowForTime(event.start_time)} / {rowForTime(event.end_time)};
-              grid-column: {mapping.colIndex} / span {mapping.colSpan};
-            "
-          >
-            {event.title}
-          </div>
-      {/if}
-    {/each}
-  </div>
+        >
+          {event.title}
+        </div>
+    {/if}
+  {/each}
+</div>
