@@ -251,8 +251,8 @@
 
   .schedule-grid {
     @apply w-full border border-sage-200 rounded-lg overflow-hidden relative;
-    display: grid;
-    grid-template-columns: auto repeat(var(--total-columns) - 1, 1fr);
+    display: grid !important;
+    grid-template-columns: 50px 1fr 1fr !important;
     grid-template-rows: auto repeat(var(--total-rows) - 1, minmax(2.5rem, auto));
   }
 
@@ -260,8 +260,14 @@
     @apply bg-sage-50 px-4 py-2 font-medium text-sage-700 border-b border-r border-sage-200 text-center;
   }
 
-  .schedule-time {
-    @apply bg-sage-50 px-4 py-2 font-medium text-sage-700 border-b border-r border-sage-200;
+  .schedule-time, .schedule-header-time {
+    @apply bg-sage-50 py-2 font-medium text-sage-700 border-b border-r border-sage-200;
+    width: 50px !important;
+    min-width: 50px !important;
+    max-width: 50px !important;
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+    text-align: center;
   }
 
   .schedule-cell {

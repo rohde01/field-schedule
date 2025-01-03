@@ -8,7 +8,27 @@
 
     function buildResources(allFields: Field[], selectedSchedule: Schedule | null): Field[] {
         if (!selectedSchedule) return [];
-        return allFields.filter(field => field.facility_id === selectedSchedule.facility_id);
+        
+        return allFields.filter(field => {
+            if (field.facility_id !== selectedSchedule.facility_id) return false;
+            if (field.is_active) return true;
+
+            const scheduleFieldIds = new Set(selectedSchedule.entries.map(entry => entry.field_id));
+
+            if (scheduleFieldIds.has(field.field_id)) return true;
+            
+            const hasHalfFieldInSchedule = field.half_subfields.some(half => 
+                scheduleFieldIds.has(half.field_id)
+            );
+            if (hasHalfFieldInSchedule) return true;
+
+            const hasQuarterFieldInSchedule = field.quarter_subfields.some(quarter => 
+                scheduleFieldIds.has(quarter.field_id)
+            );
+            if (hasQuarterFieldInSchedule) return true;
+            
+            return false;
+        });
     }
 
     // Create a derived store for active fields based on selected schedule
@@ -163,7 +183,13 @@
     }
 
     function rowForTime(time: string): number {
-      return timeslots.indexOf(normalizeTime(time)) + 2;  // +2 for header row offset
+      return timeslots.indexOf(normalizeTime(time)) + 2;
+    }
+
+    function getEventEndRow(endTime: string): number {
+      const endTimeNormalized = normalizeTime(endTime);
+      const lastOccupiedSlot = timeslots.findIndex(slot => slot >= endTimeNormalized) - 1;
+      return lastOccupiedSlot + 2; 
     }
 
     const activeEvents = derived(dropdownState, ($dropdownState): ScheduleEntry[] => {
@@ -249,7 +275,7 @@
                     class="schedule-event"
                     style="
                         grid-row-start: {rowForTime(event.start_time)};
-                        grid-row-end: {rowForTime(event.end_time) + 1};
+                        grid-row-end: {getEventEndRow(event.end_time) + 1};
                         grid-column-start: {mapping.colIndex};
                         grid-column-end: span {mapping.colSpan};
                     "
