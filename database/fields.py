@@ -236,7 +236,7 @@ def get_fields_by_facility(conn, facility_id: int) -> List[Field]:
             fa.day_of_week, fa.start_time, fa.end_time, f.is_active
         FROM fields f
         LEFT JOIN field_availability fa ON f.field_id = fa.field_id
-        WHERE f.facility_id = %s
+        WHERE f.facility_id = %s AND f.is_active = true
         """
     cursor.execute(fields_query, (facility_id,))
     rows = cursor.fetchall()

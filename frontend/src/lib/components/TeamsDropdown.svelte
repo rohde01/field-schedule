@@ -12,7 +12,7 @@
 
     const groupedTeams = $derived(
         Object.entries(
-            teams.reduce((groups: Record<string, Team[]>, team: Team) => {
+            teams.filter((team: Team) => team.is_active).reduce((groups: Record<string, Team[]>, team: Team) => {
                 const year = team.year;
                 if (!groups[year]) {
                     groups[year] = [];

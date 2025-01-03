@@ -4,7 +4,7 @@
     import SchedulesDropdown from '$lib/components/SchedulesDropdown.svelte';
     import SchedulesSidebar from '$lib/components/SchedulesSidebar.svelte';
     import { SidebarDropdownState } from '$stores/ScheduleSidebarState';
-    import { dropdownState, selectSchedule, selectAndShowSchedule } from '$stores/ScheduleDropdownState';
+    import { dropdownState, selectSchedule } from '$stores/ScheduleDropdownState';
     import CreateConstraints from '$lib/components/CreateConstraints.svelte';
     import { teams, setTeams } from '$stores/teams';
     import SuperDebug from 'sveltekit-superforms';

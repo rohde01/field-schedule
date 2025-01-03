@@ -24,7 +24,9 @@
                     entry => entry.team_id === team.team_id
                 )
             )
-            : teams
+            : $teamDropdownState.showCreateSchedule
+                ? teams.filter((team: Team) => team.is_active)
+                : teams
     );
 
     const yearOrder = (a: string, b: string) => {
@@ -120,6 +122,12 @@
     }
 </script>
 
+<style>
+    .team-inactive {
+        @apply text-red-600;
+    }
+</style>
+
 <div class="schedules-sidebar">
     <div class="bg-white rounded-2xl shadow-xl border border-mint-100 overflow-hidden">
         <div class="flex items-center">
@@ -150,7 +158,7 @@
         </div>
         {#if $teamDropdownState.teamsOpen}
             <div class="dropdown-content border-t border-mint-100">
-                {#if filteredTeams && filteredTeams.length > 0}
+                {#if ($teamDropdownState.showCreateSchedule || $dropdownState.selectedSchedule) && filteredTeams && filteredTeams.length > 0}
                     <div class="p-1 space-y-3">
                         {#each groupedTeams as [year, yearTeams]}
                             <div class="space-y-1">
@@ -161,7 +169,7 @@
                                     onclick={() => selectTeam(team)}
                                 >
                                     <div>
-                                        <span class="font-medium">{team.name}</span>
+                                        <span class="font-medium {!team.is_active ? 'team-inactive' : ''}">{team.name} {!team.is_active ? '(Deleted)' : ''}</span>
                                         <span class="text-xs text-sage-500">{team.gender}</span>
                                     </div>
                                     <div
@@ -187,8 +195,8 @@
                     </div>
                 {:else}
                     <div class="p-4 text-sage-500 text-center text-sm">
-                        <p>No teams in this schedule</p>
-                        <p class="mt-1 text-xs">Select a different schedule or go to the teams page to create one</p>
+                        <p>No teams to display</p>
+                        <p class="mt-1 text-xs">Select a schedule or create a new one</p>
                     </div>
                 {/if}
             </div>

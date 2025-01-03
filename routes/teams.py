@@ -87,7 +87,7 @@ async def create_team_route(
 @router.get("", response_model=List[Team])
 async def get_teams_route(
     club_id: int,
-    include_inactive: bool = False,
+    include_inactive: bool = True,
     current_user: User = Depends(get_current_user)
 ):
     await require_club_access(club_id)(current_user)

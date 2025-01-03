@@ -17,7 +17,7 @@ class Team:
     weekly_trainings: int
 
 @with_db_connection
-def get_teams(conn, club_id: int, include_inactive: bool = False) -> List[Team]:
+def get_teams(conn, club_id: int, include_inactive: bool = True) -> List[Team]:
     cursor = conn.cursor()
     query = """
     SELECT team_id, name, year, club_id, gender, is_academy, 
