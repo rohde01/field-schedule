@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from typing import List, Optional
 from main import generate_schedule
 from database.constraints import Constraint as ConstraintModel
-from database.schedules import get_club_schedules
+from database.schedules import get_club_schedules, delete_schedule, get_schedule_club_id
 from models.schedules import Schedule
 from dependencies.auth import get_current_user
 from dependencies.permissions import require_club_access
@@ -116,4 +116,30 @@ async def fetch_club_constraints(
             detail=f"Error fetching constraints: {str(e)}"
         )
 
-
+@router.delete("/delete/{schedule_id}", response_model=dict)
+async def delete_schedule_route(
+    schedule_id: int,
+    current_user: User = Depends(get_current_user)
+) -> dict:
+    try:
+        club_id = get_schedule_club_id(schedule_id)
+        
+        if club_id is None:
+            raise HTTPException(status_code=404, detail="Schedule not found")
+            
+        await require_club_access(club_id)(current_user)
+        
+        success = delete_schedule(schedule_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Schedule not found")
+            
+        return {
+            "success": True,
+            "message": "Schedule deleted successfully",
+            "action": "delete",
+            "schedule_id": schedule_id
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))

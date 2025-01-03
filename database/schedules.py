@@ -163,3 +163,29 @@ def get_club_schedules(conn, club_id: int):
         }
         for row in schedule_rows
     ]
+
+@with_db_connection
+def delete_schedule(conn, schedule_id: int):
+    """
+    Deletes a schedule from the schedules table. Entries and constraints are automatically deleted on cascade.
+    """
+    cursor = conn.cursor()
+    
+    delete_query = """
+    DELETE FROM schedules
+    WHERE schedule_id = %s
+    RETURNING schedule_id;
+    """
+    cursor.execute(delete_query, (schedule_id,))
+    success = cursor.fetchone() is not None
+    conn.commit()
+    return success
+
+@with_db_connection
+def get_schedule_club_id(conn, schedule_id: int) -> Optional[int]:
+    """Gets the club_id for a given schedule_id"""
+    cursor = conn.cursor()
+    query = "SELECT club_id FROM schedules WHERE schedule_id = %s"
+    cursor.execute(query, (schedule_id,))
+    result = cursor.fetchone()
+    return result[0] if result else None
