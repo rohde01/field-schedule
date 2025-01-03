@@ -101,7 +101,6 @@ def user_belongs_to_club(conn, user_id: int, club_id: int) -> bool:
     """
     Check if a given user is associated with a specified club.
     """
-    logger.info(f"Checking if user_id={user_id} belongs to club_id={club_id}")
     with conn.cursor() as cur:
         cur.execute("""
             SELECT 1 
@@ -109,5 +108,4 @@ def user_belongs_to_club(conn, user_id: int, club_id: int) -> bool:
             WHERE user_id = %s AND club_id = %s
         """, (user_id, club_id))
         result = cur.fetchone() is not None
-        logger.info(f"User {user_id} {'belongs' if result else 'does not belong'} to club {club_id}")
         return result

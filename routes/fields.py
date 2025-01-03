@@ -168,8 +168,6 @@ async def create_new_field(
     field: FieldCreate,
     current_user: User = Depends(get_current_user)
 ) -> dict:
-    # Log incoming field data
-    logger.info(f"Creating new field with data: {field.model_dump()}")
     
     # Validate facility access first
     facility = await validate_facility_access(field.facility_id, current_user)
@@ -184,10 +182,7 @@ async def create_new_field(
         )
         
         if field.availabilities:
-            try:
-                add_field_availabilities(new_field.field_id, field.availabilities)
-            except ValueError as e:
-                logger.error(f"Error adding availabilities: {str(e)}")
+            add_field_availabilities(new_field.field_id, field.availabilities)
         
         # Create half fields if any
         if field.half_fields:

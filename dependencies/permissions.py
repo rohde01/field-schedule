@@ -15,17 +15,13 @@ def require_club_access(club_id: int):
     belongs to the specified club.
     """
     async def club_access_dependency(current_user: User = Depends(get_current_user)):
-        logger.info(f"Checking club access for user_id={current_user.user_id} club_id={club_id}")
         has_access = user_belongs_to_club(current_user.user_id, club_id)
-        logger.info(f"Access check result: {has_access}")
         
         if not has_access:
-            logger.warning(f"Access denied for user_id={current_user.user_id} to club_id={club_id}")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You do not have access to this club."
             )
-        logger.info(f"Access granted for user_id={current_user.user_id} to club_id={club_id}")
         return True
     return club_access_dependency
 

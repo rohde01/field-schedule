@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Depends, status
 from pydantic import BaseModel
 from typing import Optional
 from database import users
-from dependencies.auth import create_access_token, get_current_user
+from dependencies.auth import create_access_token, get_current_user, refresh_access_token, Token, OAuth2PasswordBearer
 from datetime import timedelta
 from fastapi.security import OAuth2PasswordRequestForm
 from database import clubs
@@ -109,3 +109,22 @@ async def update_user(user_id: int, user: UserUpdate, current_user: User = Depen
         last_name=updated_user_data.get("last_name"),
         role=updated_user_data.get("role", "member")
     )
+
+@router.post("/refresh", response_model=Token)
+async def refresh_token(token: str = Depends(OAuth2PasswordBearer(tokenUrl="users/login"))):
+    """Refresh access token using refresh token."""
+    try:
+        new_token = refresh_access_token(token)
+        if not new_token:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Could not validate refresh token",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        return new_token
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate refresh token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )

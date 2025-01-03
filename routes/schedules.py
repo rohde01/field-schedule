@@ -12,6 +12,7 @@ from models.schedules import Schedule
 from dependencies.auth import get_current_user
 from dependencies.permissions import require_club_access
 from models.users import User
+from database.constraints import get_constraints
 
 router = APIRouter(prefix="/schedules", tags=["schedules"])
 
@@ -93,7 +94,6 @@ async def fetch_club_constraints(
     try:
         await require_club_access(club_id)(current_user)
         
-        from database.constraints import get_constraints
         constraints = get_constraints(club_id)
         
         if not constraints:

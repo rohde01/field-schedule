@@ -31,15 +31,10 @@ async def get_club_facilities(
     # First, validate club access
     await require_club_access(club_id)(current_user)
     
-    logger.info(f"Fetching facilities for club_id={club_id}")
-    logger.info(f"Request made by user_id={current_user.user_id}")
-    
     try:
         facilities = get_facilities(club_id)
-        logger.info(f"Found {len(facilities)} facilities for club_id={club_id}")
         
         if not facilities:
-            logger.warning(f"No facilities found for club_id={club_id}")
             return []
         
         return [
@@ -51,7 +46,6 @@ async def get_club_facilities(
             for facility in facilities
         ]
     except Exception as e:
-        logger.error(f"Error fetching facilities: {str(e)}")
         raise HTTPException(status_code=500, detail="Error fetching facilities")
 
 @router.post("")
@@ -80,7 +74,6 @@ async def create_new_facility(
     except FacilityError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Unexpected error creating facility: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/{facility_id}")
