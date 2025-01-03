@@ -64,7 +64,7 @@
                     Next we should map out your clubs training facilities 🏟️
                 </p>
                 <a 
-                    href="/facilities" 
+                    href="/fields" 
                     class="btn-primary w-full text-lg py-3 text-center block mb-4"
                 >
                     Take me there

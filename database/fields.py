@@ -113,7 +113,7 @@ def create_field(conn, facility_id: int, name: str, size: str, field_type: str, 
         )
     except psycopg2.IntegrityError as e:
         conn.rollback()
-        if "fields_facility_id_name_key" in str(e):
+        if "fields_facility_id_name_active_idx" in str(e) or "fields_facility_id_name_key" in str(e):
             raise ValueError("A field with this name already exists in this facility")
         if "fields_parent_field_id_fkey" in str(e):
             raise ValueError("Invalid parent field ID")

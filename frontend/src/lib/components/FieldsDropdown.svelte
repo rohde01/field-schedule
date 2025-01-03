@@ -7,8 +7,11 @@
 
     const filteredFields = $derived(
         $facilityDropdownState.selectedFacility
-            ? fields.filter((field: Field) => field.facility_id === $facilityDropdownState.selectedFacility?.facility_id)
-            : fields
+            ? fields.filter((field: Field) => 
+                field.facility_id === $facilityDropdownState.selectedFacility?.facility_id && 
+                field.is_active
+              )
+            : fields.filter((field: Field) => field.is_active)
     );
 
     const sizeOrder: Record<string, number> = {

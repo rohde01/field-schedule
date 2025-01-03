@@ -153,7 +153,7 @@
                     <EditableField
                         {form}
                         errors={$errors}
-                        name="field_size"
+                        name="size"
                         label="Field Size"
                         type="select"
                         options={fieldSizeOptions}
