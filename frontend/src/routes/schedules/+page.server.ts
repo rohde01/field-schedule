@@ -1,10 +1,9 @@
-import type { PageServerLoad } from './$types';
+import type { PageServerLoad, Actions } from './$types';
 import { error, fail } from '@sveltejs/kit';
 import { superValidate } from 'sveltekit-superforms/server';
 import { zod } from 'sveltekit-superforms/adapters';
 import type { RequestEvent } from '@sveltejs/kit';
-
-import { generateScheduleRequestSchema, type Schedule } from '$lib/schemas/schedule';
+import { generateScheduleRequestSchema, deleteScheduleSchema, type Schedule, type DeleteScheduleResponse } from '$lib/schemas/schedule';
 
 export const load = (async ({ fetch, locals }: RequestEvent) => {
     const createScheduleForm = await superValidate(zod(generateScheduleRequestSchema), {
@@ -16,6 +15,10 @@ export const load = (async ({ fetch, locals }: RequestEvent) => {
             club_id: locals.user?.primary_club_id ?? 0,
             schedule_name: 'Generated Schedule'
         }
+    });
+
+    const deleteScheduleForm = await superValidate(zod(deleteScheduleSchema), {
+        id: 'delete-schedule-form'
     });
 
     if (!locals.user) {
@@ -33,7 +36,8 @@ export const load = (async ({ fetch, locals }: RequestEvent) => {
         
         return {
             schedules,
-            form: createScheduleForm
+            form: createScheduleForm,
+            deleteForm: deleteScheduleForm
         };
     } catch (e) {
         throw error(500, 'Error loading schedules');
@@ -83,5 +87,46 @@ export const actions = {
                 }
             });
         }
+    },
+
+    deleteSchedule: async ({ request, fetch, locals }: RequestEvent) => {
+        const form = await superValidate(request, zod(deleteScheduleSchema));
+
+        if (!form.valid) {
+            return fail(400, { form });
+        }
+
+        try {
+            const response = await fetch(`http://localhost:8000/schedules/delete/${form.data.schedule_id}`, {
+                method: 'DELETE', 
+                headers: {
+                    'Authorization': `Bearer ${locals.token}`
+                }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                return fail(response.status, { 
+                    form,
+                    error: errorData.detail || 'Failed to delete schedule'
+                });
+            }
+
+            const result: DeleteScheduleResponse = await response.json();
+
+            return { 
+                form,
+                success: true,
+                message: result.message,
+                action: result.action
+            };
+        } catch (err) {
+            return fail(500, { 
+                form,
+                error: 'Failed to delete schedule' 
+            });
+        }
     }
-};
+} satisfies Actions;
+
+

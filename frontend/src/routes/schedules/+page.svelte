@@ -15,6 +15,19 @@
     let { data }: { data: PageData } = $props();
     const { form: rawForm } = data;
 
+    const deleteForm = superForm(data.deleteForm, {
+        onResult: ({ result }) => {
+            if (result.type === 'success' && result.data?.schedule_id) {
+                handleScheduleDelete(result.data.schedule_id);
+            }
+        }
+    });
+
+    const handleScheduleDelete = (scheduleId: number) => {
+        schedules.update(t => t.filter(item => item.schedule_id !== scheduleId));
+        dropdownState.update(state => ({ ...state, selectedschedule: null }));
+    };
+
     let pendingScheduleId: number | null = null;
 
     $effect(() => {
@@ -112,7 +125,7 @@
             <SchedulesSidebar teams={$teams} {form} />
         </div>
         <div class="sidebar-footer">
-            <SchedulesDropdown />
+            <SchedulesDropdown deleteForm={deleteForm} />
         </div>
     </div>
 

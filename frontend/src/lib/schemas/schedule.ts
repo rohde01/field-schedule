@@ -148,4 +148,13 @@ export const generateScheduleRequestSchema = z.object({
     schedule_name: z.string().default("Generated Schedule")
 });
 
+export const deleteScheduleSchema = z.object({
+    schedule_id: z.number().int().positive()
+});
+
+export type DeleteScheduleResponse = {
+    message: string;
+    action: string;
+};
+
 export type GenerateScheduleRequest = z.infer<typeof generateScheduleRequestSchema>;
