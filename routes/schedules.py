@@ -30,6 +30,8 @@ class ConstraintSchema(BaseModel):
     start_time: Optional[str] = None
 
 class ConstraintResponse(BaseModel):
+    constraint_id: int
+    schedule_entry_id: Optional[int]
     team_id: int
     required_size: Optional[str]
     subfield_type: Optional[str]

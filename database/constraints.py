@@ -6,6 +6,8 @@ from database.index import with_db_connection
 class Constraint:
     team_id: int
     club_id: int
+    constraint_id: int = 0
+    schedule_entry_id: Optional[int] = None
     required_size: Optional[str] = None
     subfield_type: Optional[str] = None
     required_cost: Optional[int] = None
@@ -27,8 +29,8 @@ def get_constraints(conn, club_id: int) -> List[Constraint]:
     """Returns a list of Constraint instances for a specific club from the database."""
     cursor = conn.cursor()
     select_query = """
-    SELECT team_id, club_id, required_size, subfield_type, required_cost,
-           sessions, length, partial_ses_space_size, partial_ses_space_cost,
+    SELECT constraint_id, schedule_entry_id, team_id, club_id, required_size, subfield_type, 
+           required_cost, sessions, length, partial_ses_space_size, partial_ses_space_cost,
            partial_ses_time, start_time
     FROM constraints
     WHERE club_id = %s
@@ -39,17 +41,19 @@ def get_constraints(conn, club_id: int) -> List[Constraint]:
     constraints = []
     for row in rows:
         constraint_data = {
-            'team_id': row[0],
-            'club_id': row[1],
-            'required_size': row[2],
-            'subfield_type': row[3],
-            'required_cost': row[4],
-            'sessions': row[5],
-            'length': row[6],
-            'partial_ses_space_size': row[7],
-            'partial_ses_space_cost': row[8],
-            'partial_ses_time': row[9],
-            'start_time': row[10]
+            'constraint_id': row[0],
+            'schedule_entry_id': row[1],
+            'team_id': row[2],
+            'club_id': row[3],
+            'required_size': row[4],
+            'subfield_type': row[5],
+            'required_cost': row[6],
+            'sessions': row[7],
+            'length': row[8],
+            'partial_ses_space_size': row[9],
+            'partial_ses_space_cost': row[10],
+            'partial_ses_time': row[11],
+            'start_time': row[12]
         }
         constraints.append(Constraint(**constraint_data))
     cursor.close()
