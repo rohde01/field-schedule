@@ -325,27 +325,36 @@ def _get_allowed_assignments(constraint: Constraint, time_slots: Dict[str, List[
     return allowed_assignments, allowed_start_times
 
 def _get_possible_combos(constraint: Constraint, size_to_combos: Dict[Any, Any], cost_to_combos: Dict[int, List[Any]]) -> Tuple[List[Any], List[Any]]:
-    """Determines possible field combinations based on constraint type."""
-    if constraint.required_cost:
-        required_cost = constraint.required_cost
-        possible_combos_part1 = cost_to_combos.get(required_cost, [])
+    """
+    Determines possible field combinations based on constraint type.
+    For a session with total length=6 and partial_ses_time=2:
+    - possible_combos_part1 will be used for 4 timeslots (main requirements)
+    - possible_combos_part2 will be used for 2 timeslots (partial requirements)
+    Returns (main_combos, partial_combos)
+    """
+    # Get combos for the main requirements (used for majority of timeslots)
+    if constraint.required_cost is not None:
+        possible_combos_part1 = cost_to_combos.get(constraint.required_cost, [])
     else:
         key_part1 = (constraint.required_size, constraint.subfield_type)
         possible_combos_part1 = size_to_combos.get(key_part1, [])
 
+    # Get combos for partial session time (subset of total length)
     if constraint.partial_ses_time:
         if constraint.partial_ses_space_cost is not None:
-            required_cost_part2 = constraint.partial_ses_space_cost
-            possible_combos_part2 = cost_to_combos.get(required_cost_part2, [])
+            possible_combos_part2 = cost_to_combos.get(constraint.partial_ses_space_cost, [])
         elif constraint.partial_ses_space_size is not None:
             key_part2 = (constraint.required_size, constraint.partial_ses_space_size)
             possible_combos_part2 = size_to_combos.get(key_part2, [])
         else:
             possible_combos_part2 = possible_combos_part1
     else:
-        possible_combos_part2 = possible_combos_part1
+        possible_combos_part2 = []
 
-    return possible_combos_part1, possible_combos_part2
+    if constraint.partial_ses_time:
+        return possible_combos_part2, possible_combos_part1
+    else:
+        return possible_combos_part1, possible_combos_part2
 
 def minutes_to_time_string(total_minutes: int) -> str:
     """Converts total minutes to a time string 'HH:MM'."""
