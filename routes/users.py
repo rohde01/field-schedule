@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Depends, status
 from pydantic import BaseModel
 from typing import Optional
 from database import users
-from dependencies.auth import create_access_token, get_current_user, refresh_access_token, Token, OAuth2PasswordBearer
+from dependencies.auth import create_tokens, get_current_user, Token, OAuth2PasswordBearer, refresh_access_token
 from datetime import timedelta
 from fastapi.security import OAuth2PasswordRequestForm
 from database import clubs
@@ -29,6 +29,9 @@ class UserUpdate(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     role: Optional[str] = None
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
 
 @router.post("/")
 async def create_user(user: UserCreate):
@@ -58,12 +61,14 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     user_data = users.authenticate_user(form_data.username, form_data.password)
     if not user_data:
         raise HTTPException(status_code=400, detail="Incorrect username or password")
-    access_token = create_access_token(data={"sub": user_data["username"]})
+    
+    tokens = create_tokens({"sub": user_data["username"]})
     primary_club_id = users.get_user_primary_club(user_data["user_id"])
     has_facilities = clubs.club_has_facilities(primary_club_id) if primary_club_id else False
     
     return {
-        "access_token": access_token,
+        "access_token": tokens.access_token,
+        "refresh_token": tokens.refresh_token,
         "token_type": "bearer",
         "user": User(
             user_id=user_data["user_id"],
@@ -110,21 +115,25 @@ async def update_user(user_id: int, user: UserUpdate, current_user: User = Depen
         role=updated_user_data.get("role", "member")
     )
 
-@router.post("/refresh", response_model=Token)
-async def refresh_token(token: str = Depends(OAuth2PasswordBearer(tokenUrl="users/login"))):
-    """Refresh access token using refresh token."""
+@router.post("/refresh")
+async def refresh_token(request: RefreshRequest):
+    """Endpoint to refresh access token using refresh token."""
     try:
-        new_token = refresh_access_token(token)
-        if not new_token:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Could not validate refresh token",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-        return new_token
+        tokens = await refresh_access_token(request.refresh_token)
+        return {
+            "access_token": tokens.access_token,
+            "refresh_token": tokens.refresh_token,
+            "token_type": "bearer"
+        }
+    except HTTPException as e:
+        raise e
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate refresh token",
-            headers={"WWW-Authenticate": "Bearer"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred while refreshing the token"
         )
+
+@router.post("/logout")
+async def logout(current_user: User = Depends(get_current_user)):
+    """Simple logout endpoint that returns success message. enhance this to invalidate tokens in the future"""
+    return {"message": "Successfully logged out"}

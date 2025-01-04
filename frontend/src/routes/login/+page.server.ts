@@ -25,58 +25,64 @@ export const actions: Actions = {
         const response = await fetch('http://localhost:8000/users/login', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Accept': 'application/json'
             },
             body: new URLSearchParams({
                 username: username.toString(),
-                password: password.toString()
+                password: password.toString(),
+                grant_type: 'password'
             })
         });
 
-        const responseData = await response.json();
-        console.log('Login response data:', responseData);
-
         if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Login failed:', errorText);
             return fail(response.status, {
                 error: 'Invalid username or password',
                 username: username.toString()
             });
         }
 
+        let responseData;
+        try {
+            responseData = await response.json();
+        } catch (error) {
+            console.error('Failed to parse response:', error);
+            return fail(500, {
+                error: 'Server returned invalid response',
+                username: username.toString()
+            });
+        }
+
+        console.log('Login response data:', responseData);
+
+        // Set access token cookie
         cookies.set('token', responseData.access_token, {
             path: '/',
             httpOnly: true,
             sameSite: 'strict',
             secure: process.env.NODE_ENV === 'production',
-            maxAge: 60 * 60 * 24 // 1 day
+            maxAge: 60 * 30 // 30 minutes
         });
 
-        // Fetch user data after successful login
-        const userResponse = await fetch('http://localhost:8000/users/me', {
-            headers: { 
-                Authorization: `Bearer ${responseData.access_token}`
-            }
+        // Set refresh token cookie
+        cookies.set('refresh_token', responseData.refresh_token, {
+            path: '/',
+            httpOnly: true,
+            sameSite: 'strict',
+            secure: process.env.NODE_ENV === 'production',
+            maxAge: 60 * 60 * 24 * 7 // 7 days
         });
-        
-        if (!userResponse.ok) {
-            return fail(userResponse.status, {
-                error: 'Failed to fetch user data',
-                username: username.toString()
-            });
-        }
 
-        const userData = await userResponse.json();
-        console.log('User data:', userData);
-
-        const userStore = {
-            id: userData.user_id,
-            firstName: userData.first_name,
-            lastName: userData.last_name,
-            email: userData.email,
-            role: userData.role,
-            primary_club_id: userData.primary_club_id,
+             const userStore = {
+            id: responseData.user.user_id,
+            firstName: responseData.user.first_name,
+            lastName: responseData.user.last_name,
+            email: responseData.user.email,
+            role: responseData.user.role,
+            primary_club_id: responseData.primary_club_id,
         };
-
 
         locals.user = userStore;
         user.set(userStore);

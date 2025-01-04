@@ -39,11 +39,11 @@ def create_refresh_token(data: dict) -> str:
     to_encode.update({"exp": expire, "type": "refresh"})
     return jwt.encode(to_encode, REFRESH_SECRET_KEY, algorithm=ALGORITHM)
 
-def create_tokens(user_data: dict) -> Token:
+def create_tokens(data: dict, expires_delta: Optional[timedelta] = None) -> Token:
     """Create both access and refresh tokens."""
     return Token(
-        access_token=create_access_token(user_data),
-        refresh_token=create_refresh_token(user_data)
+        access_token=create_access_token(data, expires_delta),
+        refresh_token=create_refresh_token(data)
     )
 
 def verify_token(token: str, secret_key: str = SECRET_KEY) -> Tuple[bool, dict]:
@@ -96,20 +96,34 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
 async def refresh_access_token(refresh_token: str) -> Token:
     """Create new access token using refresh token."""
     is_valid, payload = verify_token(refresh_token, REFRESH_SECRET_KEY)
-    if not is_valid or payload.get("type") != "refresh":
+    
+    if not is_valid:
+        if "error" in payload and payload["error"] == "Token has expired":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Refresh token has expired",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid refresh token",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    username = payload.get("sub")
-    user = users.get_user_by_username(username)
-    if not user:
+    if payload.get("type") != "refresh":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found",
+            detail="Invalid token type",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    username = payload.get("sub")
+    if not username:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token claims",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Create new token pair
     return create_tokens({"sub": username})
