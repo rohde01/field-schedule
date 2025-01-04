@@ -147,7 +147,7 @@ export const generateScheduleRequestSchema = z.object({
     }),
     constraints: z.array(constraintSchema).optional(),
     club_id: z.number().int().positive(),
-    schedule_name: z.string().default("Generated Schedule")
+    schedule_name: z.string()
 });
 
 export const deleteScheduleSchema = z.object({

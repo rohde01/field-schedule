@@ -13,7 +13,7 @@ export const load = (async ({ fetch, locals }: RequestEvent) => {
             team_ids: [],
             constraints: [],
             club_id: locals.user?.primary_club_id ?? 0,
-            schedule_name: 'Generated Schedule'
+            schedule_name: ''
         }
     });
 

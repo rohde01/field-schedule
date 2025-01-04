@@ -11,9 +11,13 @@
     import { superForm } from 'sveltekit-superforms/client';
     import CreateSchedule from '$lib/components/CreateSchedule.svelte';
     import Dnd from '$lib/components/dnd.svelte'
+    import DisplayCard, { type Column } from '$lib/components/DisplayCard.svelte';
+    import { constraints } from '$stores/constraints';
+    import type { Constraint } from '$lib/schemas/schedule';
 
     let { data }: { data: PageData } = $props();
     const { form: rawForm } = data;
+    let displayColumns: Column[] = $state([]);
 
     const deleteForm = superForm(data.deleteForm, {
         onResult: ({ result }) => {
@@ -100,6 +104,37 @@
     function closeErrorModal() {
         showErrorModal = false;
     }
+
+    const handleFieldDelete = async (constraintId: number) => {
+        // Future implementation for deleting a constraint
+        console.log('Deleting constraint:', constraintId);
+    };
+
+    $effect(() => {
+        if ($SidebarDropdownState.selectedConstraint) {
+            const field = $constraints.find((f: Constraint) => 
+                f.constraint_id === $SidebarDropdownState.selectedConstraint?.constraint_id
+            ) || $SidebarDropdownState.selectedConstraint;
+            
+            displayColumns = [
+                {
+                    fields: [
+                        { label: 'Sessions', value: field.sessions ?? '' },
+                        { label: 'Start Time', value: field.start_time ?? '' },
+                    ]
+                },
+                {
+                    fields: [
+                        { 
+                            label: 'Required Size', 
+                            value: field.required_size ?? '',
+                            style: 'pill'
+                        }
+                    ]
+                }
+            ];
+        }
+    });
 </script>
 
 {#if showErrorModal}
@@ -129,15 +164,30 @@
         </div>
     </div>
 
-    {#if $SidebarDropdownState.selectedTeam || $SidebarDropdownState.showCreateSchedule || $dropdownState.selectedSchedule}
+    {#if $SidebarDropdownState.selectedTeam || $SidebarDropdownState.showCreateSchedule || $dropdownState.selectedSchedule || $SidebarDropdownState.selectedConstraint}
         <div class="main-content">
             {#if $SidebarDropdownState.showCreateSchedule}
-                <CreateConstraints {form} {errors} />
+                {#if $form.schedule_name}
+                    <CreateConstraints {form} {errors} />
+                {/if}
                 <CreateSchedule {form} {enhance} {errors} />
-            {:else if $dropdownState.selectedSchedule}
+            {/if}
+            
+            {#if $dropdownState.selectedSchedule}
                 <Dnd />
-            {:else}
-                not implemented
+            {/if}
+
+            {#if $SidebarDropdownState.selectedConstraint}
+                <DisplayCard 
+                    title={`Constraint ID: ${$SidebarDropdownState.selectedConstraint.constraint_id}`}
+                    columns={displayColumns}
+                    deleteConfig={{
+                        enabled: true,
+                        itemId: $SidebarDropdownState.selectedConstraint.constraint_id,
+                        itemName: `Constraint ID: ${$SidebarDropdownState.selectedConstraint.constraint_id}`,
+                        onDelete: handleFieldDelete
+                    }}
+                />
             {/if}
         </div>
     {:else}

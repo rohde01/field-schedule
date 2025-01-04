@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { SidebarDropdownState as teamDropdownState, toggleDropdown, selectTeam, toggleCreateSchedule } from '../../stores/ScheduleSidebarState';
+    import { SidebarDropdownState as teamDropdownState, toggleDropdown, selectTeam, toggleCreateSchedule, selectConstraint } from '../../stores/ScheduleSidebarState';
     import { dropdownState } from '../../stores/ScheduleDropdownState';
     import { facilities } from '$stores/facilities';
     import type { Team } from '$lib/schemas/team';
@@ -124,7 +124,7 @@
                 team_ids: [],
                 constraints: [],
                 club_id: $page.data.user?.primary_club_id ?? 0,
-                schedule_name: 'Generated Schedule'
+                schedule_name: ''
             });
             showFacilityMenu = false;
             showNameInput = false;
@@ -140,7 +140,6 @@
         $form.facility_id = facilityId;
         showFacilityMenu = false;
         showNameInput = true;
-        scheduleName = 'Generated Schedule';
     }
 
     function handleNameSubmit() {
@@ -259,8 +258,8 @@
                                 </h3>
                                 {#each teamConstraints as constraint}
                                     <button
-                                        class="dropdown-item flex items-center justify-between"
-                                        onclick={() => handleConstraintClick(constraint)}
+                                        class="dropdown-item flex items-center justify-between {$teamDropdownState.selectedConstraint?.constraint_id === constraint.constraint_id ? 'dropdown-item-selected' : ''}"
+                                        onclick={() => selectConstraint(constraint)}
                                     >
                                         <div>
                                             <span class="font-medium">
