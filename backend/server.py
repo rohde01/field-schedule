@@ -10,6 +10,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
+@app.get("/")
+async def root():
+    return {"message": "Field Schedule API"}
+
 app.include_router(users_router)
 app.include_router(clubs_router)
 app.include_router(teams_router)
@@ -17,10 +21,7 @@ app.include_router(fields_router)
 app.include_router(schedules_router)
 app.include_router(facilities_router)
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
-
+# Configure CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -28,3 +29,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
