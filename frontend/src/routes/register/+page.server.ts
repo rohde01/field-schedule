@@ -3,6 +3,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import { superValidate } from 'sveltekit-superforms/server';
 import { zod } from 'sveltekit-superforms/adapters';
 import { createUserSchema } from '$lib/schemas/user';
+import { API_URL } from '$env/static/private';
 
 export const load = (async ({ locals }) => {
     if (locals.user) {
@@ -13,14 +14,14 @@ export const load = (async ({ locals }) => {
 }) satisfies PageServerLoad;
 
 export const actions = {
-    default: async ({ request }) => {
+    default: async ({ request, fetch }) => {
         const form = await superValidate(request, zod(createUserSchema));
 
         if (!form.valid) {
             return fail(400, { form });
         }
 
-        const response = await fetch('http://localhost:8000/users/', {
+        const response = await fetch(`${API_URL}/users/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

@@ -4,6 +4,7 @@ import type { Facility } from '$lib/schemas/facility';
 import type { Field } from '$lib/schemas/field';
 import type { Team } from '$lib/schemas/team';
 import type { Constraint } from '$lib/schemas/schedule';
+import { API_URL } from '$env/static/private';
 
 export const load: LayoutServerLoad = async ({ locals, fetch }) => {
 
@@ -19,22 +20,22 @@ export const load: LayoutServerLoad = async ({ locals, fetch }) => {
 
     try {
         const [facilitiesResponse, fieldsResponse, teamsResponse, constraintsResponse] = await Promise.all([
-            fetch(`http://localhost:8000/facilities/club/${locals.user.primary_club_id}`, {
+            fetch(`${API_URL}/facilities/club/${locals.user.primary_club_id}`, {
                 headers: {
                     'Authorization': `Bearer ${locals.token}`
                 }
             }),
-            fetch(`http://localhost:8000/fields/club/${locals.user.primary_club_id}`, {
+            fetch(`${API_URL}/fields/club/${locals.user.primary_club_id}`, {
                 headers: {
                     'Authorization': `Bearer ${locals.token}`
                 }
             }),
-            fetch(`http://localhost:8000/teams?club_id=${locals.user.primary_club_id}`, {
+            fetch(`${API_URL}/teams?club_id=${locals.user.primary_club_id}`, {
                 headers: {
                     'Authorization': `Bearer ${locals.token}`
                 }
             }), 
-            fetch(`http://localhost:8000/schedules/${locals.user.primary_club_id}/constraints`, {
+            fetch(`${API_URL}/schedules/${locals.user.primary_club_id}/constraints`, {
                 headers: {
                     'Authorization': `Bearer ${locals.token}`
                 }

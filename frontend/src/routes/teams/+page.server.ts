@@ -3,6 +3,7 @@ import { superValidate } from 'sveltekit-superforms/server';
 import { zod } from 'sveltekit-superforms/adapters';
 import { teamSchema, deleteTeamSchema, type DeleteTeamResponse } from '$lib/schemas/team';
 import type { PageServerLoad, Actions } from './$types';
+import { API_URL } from '$env/static/private';
 
 export const load = (async ({ locals }) => {
     const deleteForm = await superValidate(zod(deleteTeamSchema));
@@ -66,7 +67,7 @@ export const actions: Actions = {
         console.log('Sending team data:', form.data);
 
         try {
-            const response = await fetch('http://localhost:8000/teams', {
+            const response = await fetch(`${API_URL}/teams`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -108,7 +109,7 @@ export const actions: Actions = {
         }
 
         try {
-            const response = await fetch(`http://localhost:8000/teams/${form.data.team_id}`, {
+            const response = await fetch(`${API_URL}/teams/${form.data.team_id}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${locals.token}`

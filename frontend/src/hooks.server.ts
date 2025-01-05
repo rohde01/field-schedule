@@ -11,7 +11,8 @@ export const handle: Handle = async ({ event, resolve }) => {
         const { user: validatedUser, tokenRefreshed } = await validateAndRefreshTokens(
             token,
             refreshToken,
-            event.cookies
+            event.cookies,
+            event.fetch
         );
         user = validatedUser;
         

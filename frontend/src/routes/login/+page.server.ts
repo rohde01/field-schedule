@@ -4,6 +4,7 @@ import { superValidate } from 'sveltekit-superforms/server';
 import { zod } from 'sveltekit-superforms/adapters';
 import { loginSchema } from '$lib/schemas/user';
 import type { LoginResponse } from '$lib/schemas/user';
+import { API_URL } from '$env/static/private';
 
 export const load = (async ({ locals }) => {
     if (locals.user) {
@@ -15,14 +16,14 @@ export const load = (async ({ locals }) => {
 
 
 export const actions = {
-    default: async ({ request, cookies, locals }) => {
+    default: async ({ request, cookies, fetch, locals }) => {
         const form = await superValidate(request, zod(loginSchema));
 
         if (!form.valid) {
             return fail(400, { form });
         }
 
-        const response = await fetch('http://localhost:8000/users/login', {
+        const response = await fetch(`${API_URL}/users/login`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
@@ -68,7 +69,7 @@ export const actions = {
             httpOnly: true,
             sameSite: 'strict',
             secure: process.env.NODE_ENV === 'production',
-            maxAge: 60 * 30 // 30 minutes
+            maxAge: 60 * 1440 // 30 minutes
         });
 
         // Set refresh token cookie

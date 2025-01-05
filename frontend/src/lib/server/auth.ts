@@ -1,6 +1,7 @@
 import type { User } from '$lib/schemas/user';
 import { jwtDecode } from 'jwt-decode';
 import type { Cookies } from '@sveltejs/kit';
+import { API_URL } from '$env/static/private';
 
 interface TokenCache {
     [key: string]: {
@@ -10,7 +11,7 @@ interface TokenCache {
 }
 
 const userCache: TokenCache = {};
-const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes in milliseconds
+const CACHE_DURATION = 1440 * 60 * 1000; // 30 minutes in milliseconds
 const TOKEN_REFRESH_THRESHOLD = 3 * 60; // 3 minutes in seconds
 
 interface TokenResponse {
@@ -19,9 +20,9 @@ interface TokenResponse {
     token_type: string;
 }
 
-export async function refreshTokens(refreshToken: string): Promise<TokenResponse | null> {
+export async function refreshTokens(refreshToken: string, fetch: typeof global.fetch): Promise<TokenResponse | null> {
     try {
-        const response = await fetch('http://localhost:8000/users/refresh', {
+        const response = await fetch(`${API_URL}/users/refresh`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -43,14 +44,15 @@ export async function refreshTokens(refreshToken: string): Promise<TokenResponse
 export async function validateAndRefreshTokens(
     accessToken: string,
     refreshToken: string | undefined | null,
-    cookies: Cookies
+    cookies: Cookies,
+    fetch: typeof global.fetch
 ): Promise<{ user: User | null; tokenRefreshed: boolean }> {
     try {
         const decoded = jwtDecode<{ exp: number }>(accessToken);
         const now = Math.floor(Date.now() / 1000);
         
         if (decoded.exp - now < TOKEN_REFRESH_THRESHOLD && refreshToken) {
-            const newTokens = await refreshTokens(refreshToken);
+            const newTokens = await refreshTokens(refreshToken, fetch);
             
             if (newTokens) {
                 // Update cookies with new tokens
@@ -59,7 +61,7 @@ export async function validateAndRefreshTokens(
                     httpOnly: true,
                     sameSite: 'strict',
                     secure: process.env.NODE_ENV === 'production',
-                    maxAge: 60 * 30 // 30 minutes
+                    maxAge: 60 * 1440 // 30 minutes
                 });
 
                 cookies.set('refresh_token', newTokens.refresh_token, {
@@ -70,7 +72,7 @@ export async function validateAndRefreshTokens(
                     maxAge: 60 * 60 * 24 * 7 // 7 days
                 });
 
-                const user = await validateUser(newTokens.access_token);
+                const user = await validateUser(newTokens.access_token, fetch);
                 return { user, tokenRefreshed: true };
             }
         }
@@ -79,7 +81,7 @@ export async function validateAndRefreshTokens(
             return { user: null, tokenRefreshed: false };
         }
 
-        const user = await validateUser(accessToken);
+        const user = await validateUser(accessToken, fetch);
         return { user, tokenRefreshed: false };
     } catch (error) {
         console.error('Error in validateAndRefreshTokens:', error);
@@ -87,7 +89,7 @@ export async function validateAndRefreshTokens(
     }
 }
 
-export async function validateUser(token: string): Promise<User | null> {
+export async function validateUser(token: string, fetch: typeof global.fetch): Promise<User | null> {
     try {
         const cachedData = userCache[token];
         if (cachedData && cachedData.expiresAt > Date.now()) {
@@ -95,7 +97,7 @@ export async function validateUser(token: string): Promise<User | null> {
         }
 
         // If not in cache or expired, fetch from backend
-        const response = await fetch('http://localhost:8000/users/me', {
+        const response = await fetch(`${API_URL}/users/me`, {
             headers: { Authorization: `Bearer ${token}` }
         });
         

@@ -1,12 +1,13 @@
 import type { PageServerLoad, Actions } from './$types'; 
 import { fail, redirect } from '@sveltejs/kit';
+import { API_URL } from '$env/static/private';
 
 export const load = (async ({ locals }) => {
     return {};
 }) satisfies PageServerLoad;
 
 export const actions: Actions = {
-    default: async ({ request, locals }) => {
+    default: async ({ request, locals, fetch }) => {
         if (!locals.user) {
             return fail(401, { error: 'Unauthorized' });
         }
@@ -18,7 +19,7 @@ export const actions: Actions = {
             return fail(400, { error: 'Club name is required' });
         }
 
-        const response = await fetch('http://localhost:8000/clubs/', {
+        const response = await fetch(`${API_URL}/clubs/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

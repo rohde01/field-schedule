@@ -4,6 +4,7 @@ import { superValidate } from 'sveltekit-superforms/server';
 import { zod } from 'sveltekit-superforms/adapters';
 import { facilityCreateSchema } from '$lib/schemas/facility';
 import { deleteFieldSchema, fieldCreateSchema, type DeleteFieldResponse } from '$lib/schemas/field';
+import { API_URL } from '$env/static/private';
 
 export const load: PageServerLoad = async ({ locals }) => {
     const [facilityForm, deleteForm, createFieldForm] = await Promise.all([
@@ -74,7 +75,7 @@ export const actions: Actions = {
         }
 
         try {
-            const response = await fetch('http://localhost:8000/facilities', {
+            const response = await fetch(`${API_URL}/facilities`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -119,7 +120,7 @@ export const actions: Actions = {
         }
 
         try {
-            const response = await fetch('http://localhost:8000/fields', {
+            const response = await fetch(`${API_URL}/fields`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -162,7 +163,7 @@ export const actions: Actions = {
         }
 
         try {
-            const response = await fetch(`http://localhost:8000/fields/${form.data.field_id}`, {
+            const response = await fetch(`${API_URL}/fields/${form.data.field_id}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${locals.token}`

@@ -4,6 +4,7 @@ import { superValidate } from 'sveltekit-superforms/server';
 import { zod } from 'sveltekit-superforms/adapters';
 import type { RequestEvent } from '@sveltejs/kit';
 import { generateScheduleRequestSchema, deleteScheduleSchema, type Schedule, type DeleteScheduleResponse } from '$lib/schemas/schedule';
+import { API_URL } from '$env/static/private';
 
 export const load = (async ({ fetch, locals }: RequestEvent) => {
     const createScheduleForm = await superValidate(zod(generateScheduleRequestSchema), {
@@ -26,7 +27,7 @@ export const load = (async ({ fetch, locals }: RequestEvent) => {
     }
 
     try {
-        const response = await fetch(`http://localhost:8000/schedules/${locals.user.primary_club_id}/schedules`, {
+        const response = await fetch(`${API_URL}/schedules/${locals.user.primary_club_id}/schedules`, {
             headers: {
                 'Authorization': `Bearer ${locals.token}`
             }
@@ -53,7 +54,7 @@ export const actions = {
         }
 
         try {
-            const response = await fetch('http://localhost:8000/schedules/generate', {
+            const response = await fetch('${API_URL}/schedules/generate', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -97,7 +98,7 @@ export const actions = {
         }
 
         try {
-            const response = await fetch(`http://localhost:8000/schedules/delete/${form.data.schedule_id}`, {
+            const response = await fetch(`${API_URL}/schedules/delete/${form.data.schedule_id}`, {
                 method: 'DELETE', 
                 headers: {
                     'Authorization': `Bearer ${locals.token}`
