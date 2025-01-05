@@ -54,6 +54,7 @@ export function toggleCreateSchedule() {
         const newState = {
             ...state,
             showCreateSchedule: !state.showCreateSchedule,
+            selectedConstraint: !state.showCreateSchedule ? null : state.selectedConstraint
         };
         return newState;
     });

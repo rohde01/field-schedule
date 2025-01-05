@@ -5,13 +5,11 @@ import { SidebarDropdownState as SidebarState } from './ScheduleSidebarState';
 type ScheduleDropdownState = {
     isOpen: boolean;
     selectedSchedule: Schedule | null;
-    selectedConstraint: Constraint | null;
 };
 
 const initialState: ScheduleDropdownState = {
     isOpen: false,
     selectedSchedule: null,
-    selectedConstraint: null,
 };
 
 export const dropdownState = writable<ScheduleDropdownState>(initialState);
@@ -35,7 +33,8 @@ export function selectSchedule(schedule: Schedule | null) {
     SidebarState.update(state => {
         const newState = {
             ...state,
-            showCreateSchedule: false
+            showCreateSchedule: false,
+            selectedConstraint: null
         };
         return newState;
     });
@@ -50,6 +49,7 @@ export function selectAndShowSchedule(schedule: Schedule | null) {
     
     SidebarState.update(state => ({
         ...state,
-        showCreateSchedule: false
+        showCreateSchedule: false,
+        selectedConstraint: null
     }));
 }

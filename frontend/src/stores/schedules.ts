@@ -1,7 +1,15 @@
-import { writable } from 'svelte/store';
+import { writable, derived } from 'svelte/store';
 import type { Schedule } from '$lib/schemas/schedule';
+import { selectSchedule } from './ScheduleDropdownState';
 
-export const schedules = writable([] as Schedule[]);
+export const schedules = writable<Schedule[]>([]);
+
+schedules.subscribe((schedulesList) => {
+    if (schedulesList.length > 0) {
+        const lastSchedule = schedulesList[schedulesList.length - 1];
+        selectSchedule(lastSchedule);
+    }
+});
 
 export function setSchedules(newSchedules: Schedule[]) {
     schedules.update(() => {
