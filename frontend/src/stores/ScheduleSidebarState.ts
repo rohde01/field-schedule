@@ -42,15 +42,11 @@ export function selectTeam(team: Team) {
     });
 }
 
-export function selectConstraint(constraint: Constraint) {
-    console.log('Selected constraint:', constraint);
-    SidebarDropdownState.update(state => {
-        const newState = {
-            ...state,
-            selectedConstraint: constraint
-        };
-        return newState;
-    });
+export function selectConstraint(constraint: Constraint | null) {
+    SidebarDropdownState.update(state => ({
+        ...state,
+        selectedConstraint: state.selectedConstraint?.constraint_id === constraint?.constraint_id ? null : constraint
+    }));
 }
 
 export function toggleCreateSchedule() {

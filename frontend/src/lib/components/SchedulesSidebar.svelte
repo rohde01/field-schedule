@@ -259,7 +259,7 @@
                                 {#each teamConstraints as constraint}
                                     <button
                                         class="dropdown-item flex items-center justify-between {$teamDropdownState.selectedConstraint?.constraint_id === constraint.constraint_id ? 'dropdown-item-selected' : ''}"
-                                        onclick={() => selectConstraint(constraint)}
+                                        onclick={() => selectConstraint($teamDropdownState.selectedConstraint?.constraint_id === constraint.constraint_id ? null : constraint)}
                                     >
                                         <div>
                                             <span class="font-medium">
