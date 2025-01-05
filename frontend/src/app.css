@@ -233,7 +233,10 @@
 
   .facility-menu,
   .name-input {
-    @apply absolute left-full top-0 ml-4 w-72 z-50;
+    position: fixed;
+    left: calc(27rem + 1rem);
+    top: 7rem;
+    @apply w-72 z-50;
   }
 
   .debug-container {
