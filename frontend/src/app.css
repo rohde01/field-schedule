@@ -37,6 +37,7 @@
 
   .nav-link {
     @apply px-3 py-2 text-sage-700 hover:text-mint-600 rounded-md hover:bg-sage-50 transition-colors duration-200;
+    position: relative;
   }
 
   .dropdown-trigger {
@@ -209,14 +210,21 @@
 
   .sidebar {
     @apply w-72 relative flex flex-col;
+    height: calc(100vh - 10rem);
   }
 
   .sidebar-content {
-    @apply flex-1;
+    @apply flex-1 overflow-y-auto;
+    position: fixed;
+    width: 18rem; 
+    top: 7rem; 
+    bottom: 8rem;
   }
 
   .sidebar-footer {
-    @apply w-full;
+    @apply w-72 bg-sage-50;
+    position: fixed;
+    bottom: 3rem;
   }
 
   .main-content {
@@ -297,5 +305,9 @@
 
   .event-field, .event-time {
     @apply flex items-center gap-1 text-[1.12em] text-gray-600;
+  }
+
+  .nav-container {
+    @apply fixed top-0 left-0 right-0 bg-white border-b border-sage-200 z-50;
   }
 }

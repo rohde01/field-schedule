@@ -117,7 +117,6 @@
     }
 
     // Grid layout setup
-    const timeslots: string[] = generateTimeSlots("16:00", "20:30", 15);
     const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     let currentWeekDay = 0;
 
@@ -182,14 +181,28 @@
       return time.slice(0, 5); // keep "HH:MM" only
     }
 
-    function rowForTime(time: string): number {
-      return timeslots.indexOf(normalizeTime(time)) + 2;
-    }
+    function getScheduleTimeRange(entries: ScheduleEntry[]): { earliestStart: string; latestEnd: string } {
+        if (!entries || entries.length === 0) {
+            return { earliestStart: "14:45", latestEnd: "22:30" };
+        }
 
-    function getEventEndRow(endTime: string): number {
-      const endTimeNormalized = normalizeTime(endTime);
-      const lastOccupiedSlot = timeslots.findIndex(slot => slot >= endTimeNormalized) - 1;
-      return lastOccupiedSlot + 2; 
+        let earliestStart = "23:59";
+        let latestEnd = "00:00";
+
+        entries.forEach(entry => {
+            if (entry.start_time < earliestStart) earliestStart = entry.start_time;
+            if (entry.end_time > latestEnd) latestEnd = entry.end_time;
+        });
+
+        const [hours, minutes] = normalizeTime(earliestStart).split(':').map(Number);
+        const totalMinutes = hours * 60 + minutes - 15;
+        const adjustedHours = Math.floor(totalMinutes / 60).toString().padStart(2, '0');
+        const adjustedMinutes = (totalMinutes % 60).toString().padStart(2, '0');
+        
+        return { 
+            earliestStart: `${adjustedHours}:${adjustedMinutes}`,
+            latestEnd: normalizeTime(latestEnd) 
+        };
     }
 
     const activeEvents = derived(dropdownState, ($dropdownState): ScheduleEntry[] => {
@@ -197,6 +210,21 @@
       if (!selectedSchedule) return [];
       return selectedSchedule.entries;
     });
+
+    const timeSlots = derived(activeEvents, ($activeEvents) => {
+        const { earliestStart, latestEnd } = getScheduleTimeRange($activeEvents);
+        return generateTimeSlots(earliestStart, latestEnd, 15);
+    });
+
+    function rowForTime(time: string): number {
+        return $timeSlots.indexOf(normalizeTime(time)) + 2;
+    }
+
+    function getEventEndRow(endTime: string): number {
+        const endTimeNormalized = normalizeTime(endTime);
+        const lastOccupiedSlot = $timeSlots.findIndex(slot => slot >= endTimeNormalized) - 1;
+        return lastOccupiedSlot + 2; 
+    }
 
     // Create a lookup for team names
     const teamNameLookup = derived(teams, ($teams) => {
@@ -234,7 +262,7 @@
 
     <div 
         class="schedule-grid"
-        style="--total-columns: {totalColumns}; --total-rows: {timeslots.length + 1};"
+        style="--total-columns: {totalColumns}; --total-rows: {$timeSlots.length + 1};"
     >
         <!-- HEADER ROW -->
         <div class="schedule-header schedule-header-time">
@@ -251,7 +279,7 @@
         {/each}
 
         <!-- TIMESLOT ROWS -->
-        {#each timeslots as time, rowIndex}
+        {#each $timeSlots as time, rowIndex}
             <div
                 class="schedule-time"
                 style="grid-column: 1; grid-row: {rowIndex + 2};"
