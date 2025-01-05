@@ -1,28 +1,23 @@
-import type { PageServerLoad } from './$types';
-import { redirect, fail } from '@sveltejs/kit';
-import type { RequestEvent } from '@sveltejs/kit';
+import type { PageServerLoad, Actions } from './$types';
+import { fail, redirect } from '@sveltejs/kit';
+import { superValidate } from 'sveltekit-superforms/server';
+import { zod } from 'sveltekit-superforms/adapters';
+import { createUserSchema } from '$lib/schemas/user';
 
-export const load = (async () => {
-    return {};
+export const load = (async ({ locals }) => {
+    if (locals.user) {
+        throw redirect(303, '/dashboard');
+    }
+    const form = await superValidate(zod(createUserSchema));
+    return { form };
 }) satisfies PageServerLoad;
 
 export const actions = {
-    default: async ({request}: RequestEvent) => {
-        const data = await request.formData();
-        const username = data.get('username');
-        const password = data.get('password');
-        const first_name = data.get('first_name');
-        const last_name = data.get('last_name');
-        const email = data.get('email');
+    default: async ({ request }) => {
+        const form = await superValidate(request, zod(createUserSchema));
 
-        if (!username || !password || !first_name || !last_name || !email) {
-            return fail(400, {
-                error: 'Missing required fields',
-                username: username?.toString(),
-                firstName: first_name?.toString(),
-                lastName: last_name?.toString(),
-                email: email?.toString()
-            });
+        if (!form.valid) {
+            return fail(400, { form });
         }
 
         const response = await fetch('http://localhost:8000/users/', {
@@ -30,29 +25,21 @@ export const actions = {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                username: username.toString(),
-                password: password.toString(),
-                first_name: first_name.toString(),
-                last_name: last_name.toString(),
-                email: email.toString()
-            })
+            body: JSON.stringify(form.data)
         });
 
-        const responseData = await response.json();
-
         if (!response.ok) {
+            const errorData = await response.json();
             return fail(response.status, {
-                error: responseData.detail || 'Registration failed',
-                username: username.toString(),
-                firstName: first_name.toString(),
-                lastName: last_name.toString(),
-                email: email.toString()
+                form: {
+                    ...form,
+                    message: errorData.detail || 'Registration failed'
+                }
             });
         }
-        
-        return redirect(303, '/login');
+
+        return { form };
     }
-};
+} satisfies Actions;
 
 
