@@ -15,7 +15,6 @@ from models.users import User
 router = APIRouter(prefix="/users", tags=["users"])
 
 class UserCreate(BaseModel):
-    username: str
     email: str
     password: str
     first_name: Optional[str] = None
@@ -23,7 +22,6 @@ class UserCreate(BaseModel):
     role: Optional[str] = "member"
 
 class UserUpdate(BaseModel):
-    username: Optional[str] = None
     email: Optional[str] = None
     password: Optional[str] = None
     first_name: Optional[str] = None
@@ -35,13 +33,8 @@ class RefreshRequest(BaseModel):
 
 @router.post("/")
 async def create_user(user: UserCreate):
-    existing = users.check_existing_credentials(user.username, user.email)
+    existing = users.check_existing_credentials(user.email)
     if existing:
-        if existing['username'] == user.username:
-            raise HTTPException(
-                status_code=400,
-                detail="Username already taken"
-            )
         raise HTTPException(
             status_code=400,
             detail="Email already registered"
@@ -49,7 +42,6 @@ async def create_user(user: UserCreate):
     created_user_data = users.create_user(user.dict())
     return User(
         user_id=created_user_data["user_id"],
-        username=created_user_data["username"],
         email=created_user_data["email"],
         first_name=created_user_data.get("first_name"),
         last_name=created_user_data.get("last_name"),
@@ -58,11 +50,11 @@ async def create_user(user: UserCreate):
 
 @router.post("/login")
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
-    user_data = users.authenticate_user(form_data.username, form_data.password)
+    user_data = users.authenticate_user(form_data.username, form_data.password)  # form_data.username contains email
     if not user_data:
-        raise HTTPException(status_code=400, detail="Incorrect username or password")
+        raise HTTPException(status_code=400, detail="Incorrect email or password")
     
-    tokens = create_tokens({"sub": user_data["username"]})
+    tokens = create_tokens({"sub": user_data["email"]})
     primary_club_id = users.get_user_primary_club(user_data["user_id"])
     has_facilities = clubs.club_has_facilities(primary_club_id) if primary_club_id else False
     
@@ -72,7 +64,6 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         "token_type": "bearer",
         "user": User(
             user_id=user_data["user_id"],
-            username=user_data["username"],
             email=user_data["email"],
             first_name=user_data.get("first_name"),
             last_name=user_data.get("last_name"),

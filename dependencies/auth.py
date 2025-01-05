@@ -75,18 +75,16 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    username: str = payload.get("sub")
-    if username is None:
+    email: str = payload.get("sub")
+    if email is None:
         raise credentials_exception
 
-    user_data = users.get_user_by_username(username)
+    user_data = users.get_user_by_email(email)
     if user_data is None:
         raise credentials_exception
 
-    # Convert RealDictRow to User model
     return User(
         user_id=user_data["user_id"],
-        username=user_data["username"],
         email=user_data["email"],
         first_name=user_data.get("first_name"),
         last_name=user_data.get("last_name"),
@@ -117,8 +115,8 @@ async def refresh_access_token(refresh_token: str) -> Token:
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    username = payload.get("sub")
-    if not username:
+    email = payload.get("sub")
+    if not email:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token claims",
@@ -126,4 +124,4 @@ async def refresh_access_token(refresh_token: str) -> Token:
         )
 
     # Create new token pair
-    return create_tokens({"sub": username})
+    return create_tokens({"sub": email})

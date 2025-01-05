@@ -56,33 +56,30 @@ def update_user(conn, user_id: int, user_data: dict):
         return cur.fetchone()
 
 @with_db_connection
-def authenticate_user(conn, username: str, password: str):
-    """Authenticate user by username and password."""
+def authenticate_user(conn, email: str, password: str):
+    """Authenticate user by email and password."""
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute("SELECT * FROM users WHERE username = %s", (username,))
+        cur.execute("SELECT * FROM users WHERE email = %s", (email,))
         user = cur.fetchone()
         if user and bcrypt.checkpw(password.encode('utf-8'), user['password_hash'].encode('utf-8')):
             return user
         return None
 
 @with_db_connection
-def get_user_by_username(conn, username: str):
-    """Retrieve user information by username."""
+def get_user_by_email(conn, email: str):
+    """Retrieve user information by email."""
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute("""
-            SELECT user_id, username, email, first_name, last_name, role, created_at, is_active
-            FROM users WHERE username = %s
-        """, (username,))
+            SELECT user_id, email, first_name, last_name, role, created_at, is_active
+            FROM users WHERE email = %s
+        """, (email,))
         return cur.fetchone()
 
 @with_db_connection
-def check_existing_credentials(conn, username: str, email: str):
-    """Check if username or email already exists."""
+def check_existing_credentials(conn, email: str):
+    """Check if email already exists."""
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute("""
-            SELECT username, email FROM users 
-            WHERE username = %s OR email = %s
-        """, (username, email))
+        cur.execute("SELECT email FROM users WHERE email = %s", (email,))
         return cur.fetchone()
 
 @with_db_connection
