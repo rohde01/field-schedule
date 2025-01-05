@@ -1,8 +1,5 @@
 {
-    "functions": {
-      "node": {
-        "runtime": "nodejs20.x"
-      }
-    }
-  }
-  
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "framework": "sveltekit"
+}
