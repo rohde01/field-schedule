@@ -187,6 +187,7 @@
                     const target = e.target as HTMLSelectElement;
                     const selectedOption = options.find(opt => String(opt.value) === target.value);
                     updateFormValue(selectedOption?.value ?? null);
+                    handleBlur();
                 }}
                 on:blur={handleBlur}
                 class="form-input-sm"
