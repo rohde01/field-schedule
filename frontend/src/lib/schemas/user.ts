@@ -26,7 +26,14 @@ export const refreshTokenSchema = z.object({
     refresh_token: z.string()
 });
 
+export const loginResponseSchema = z.object({
+    access_token: z.string(),
+    refresh_token: z.string(),
+    user: userSchema
+});
+
 export type User = z.infer<typeof userSchema>;
 export type CreateUser = z.infer<typeof createUserSchema>;
 export type LoginCredentials = z.infer<typeof loginSchema>;
 export type RefreshToken = z.infer<typeof refreshTokenSchema>;
+export type LoginResponse = z.infer<typeof loginResponseSchema>;

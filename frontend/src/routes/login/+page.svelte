@@ -1,13 +1,14 @@
 <script lang="ts">
     import { superForm } from 'sveltekit-superforms/client';
     import { zodClient } from 'sveltekit-superforms/adapters';
-    import type { PageData } from './$types';
     import { loginSchema } from '$lib/schemas/user';
 
-    export let data: PageData;
+    let { data } = $props();
     
-    const { form, errors, enhance } = superForm(data.form, {
-        validators: zodClient(loginSchema)
+    const { form, errors, enhance, message } = superForm(data.form, {
+        validators: zodClient(loginSchema),
+        resetForm: false,
+        taintedMessage: null
     });
 </script>
 
@@ -16,8 +17,14 @@
         <div class="bg-white px-8 py-6 shadow-sm rounded-lg border border-sage-200">
             <h2 class="text-2xl font-semibold text-sage-900 mb-6">Welcome back</h2>
             
+            {#if $message}
+                <div class="mb-4 p-3 rounded bg-red-50 text-red-600 text-sm" role="alert">
+                    {$message}
+                </div>
+            {/if}
+
             {#if $errors._errors}
-                <div class="mb-4 p-3 rounded bg-red-50 text-red-600 text-sm">
+                <div class="mb-4 p-3 rounded bg-red-50 text-red-600 text-sm" role="alert">
                     {$errors._errors.join(', ')}
                 </div>
             {/if}

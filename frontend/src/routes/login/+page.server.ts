@@ -1,11 +1,9 @@
 import type { PageServerLoad, Actions } from './$types';
 import { fail, redirect } from '@sveltejs/kit';
-import { user } from '$stores/user';
 import { superValidate } from 'sveltekit-superforms/server';
 import { zod } from 'sveltekit-superforms/adapters';
 import { loginSchema } from '$lib/schemas/user';
-import type { User } from '$lib/schemas/user';
-import { z } from 'zod';
+import type { LoginResponse } from '$lib/schemas/user';
 
 export const load = (async ({ locals }) => {
     if (locals.user) {
@@ -14,6 +12,7 @@ export const load = (async ({ locals }) => {
     const form = await superValidate(zod(loginSchema));
     return { form };
 }) satisfies PageServerLoad;
+
 
 export const actions = {
     default: async ({ request, cookies, locals }) => {
@@ -30,7 +29,7 @@ export const actions = {
                 'Accept': 'application/json'
             },
             body: new URLSearchParams({
-                email: form.data.email,
+                username: form.data.email,
                 password: form.data.password,
                 grant_type: 'password'
             })
@@ -38,25 +37,30 @@ export const actions = {
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('Login failed:', errorText);
+            let errorMessage = 'Oops! Invalid email or password';
+            try {
+                const errorJson = JSON.parse(errorText);
+                errorMessage = errorJson.detail || errorMessage;
+            } catch {
+                // Use default message if parsing fails
+            }
             return fail(response.status, {
-                form,
-                error: 'Invalid username or password'
+                form: {
+                    ...form,
+                    message: errorMessage
+                }
             });
         }
 
         let responseData;
         try {
-            responseData = await response.json();
+            responseData = await response.json() as LoginResponse;
         } catch (error) {
-            console.error('Failed to parse response:', error);
             return fail(500, {
                 form,
-                error: 'Server returned invalid response'
+                message: 'Server returned invalid response'
             });
         }
-
-        console.log('Login response data:', responseData);
 
         // Set access token cookie
         cookies.set('token', responseData.access_token, {
@@ -76,17 +80,8 @@ export const actions = {
             maxAge: 60 * 60 * 24 * 7 // 7 days
         });
 
-        const userStore: User = {
-            user_id: responseData.user.user_id,
-            email: responseData.user.email,
-            first_name: responseData.user.first_name,
-            last_name: responseData.user.last_name,
-            role: responseData.user.role,
-            primary_club_id: responseData.user.primary_club_id,
-        };
-
-        locals.user = userStore;
-        user.set(userStore);
+        // Set user data in locals
+        locals.user = responseData.user;
         
         throw redirect(303, '/dashboard');
     }

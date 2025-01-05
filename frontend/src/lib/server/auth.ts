@@ -1,4 +1,4 @@
-import type { User } from '$lib/types/user';
+import type { User } from '$lib/schemas/user';
 import { jwtDecode } from 'jwt-decode';
 import type { Cookies } from '@sveltejs/kit';
 
@@ -102,10 +102,10 @@ export async function validateUser(token: string): Promise<User | null> {
         if (!response.ok) return null;
         const data = await response.json();
         
-        const user = {
-            id: data.user_id,
-            firstName: data.first_name,
-            lastName: data.last_name,
+        const user: User = {
+            user_id: data.user_id,
+            first_name: data.first_name,
+            last_name: data.last_name,
             email: data.email,
             role: data.role,
             primary_club_id: data.primary_club_id
