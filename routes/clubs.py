@@ -11,7 +11,6 @@ router = APIRouter(prefix="/clubs", tags=["clubs"])
 
 class ClubCreate(BaseModel):
     name: str
-    user_id: int
 
 class UserClubCreate(BaseModel):
     user_id: int
@@ -20,7 +19,7 @@ class UserClubCreate(BaseModel):
 @router.post("/")
 async def create_club(club: ClubCreate, current_user: User = Depends(get_current_user)):
     new_club = clubs.create_club({"name": club.name})
-    clubs.add_user_to_club(club.user_id, new_club["club_id"], True)
+    clubs.add_user_to_club(current_user.user_id, new_club["club_id"], True)
     return {"club_id": new_club["club_id"], "name": new_club["name"]}
 
 @router.get("/{club_id}")

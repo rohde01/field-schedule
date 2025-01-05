@@ -25,8 +25,7 @@ export const actions: Actions = {
                 'Authorization': `Bearer ${locals.token}`
             },
             body: JSON.stringify({
-                name: name,
-                user_id: parseInt(locals.user.id)
+                name: name
             })
         });
 
