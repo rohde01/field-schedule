@@ -252,7 +252,7 @@
   .schedule-grid {
     @apply w-full border border-sage-200 rounded-lg overflow-hidden relative;
     display: grid !important;
-    grid-template-columns: 50px 1fr 1fr !important;
+    grid-template-columns: 50px repeat(auto-fit, minmax(0, 1fr)) !important;
     grid-template-rows: auto repeat(var(--total-rows) - 1, minmax(2.5rem, auto));
   }
 
