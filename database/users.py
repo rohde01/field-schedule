@@ -21,7 +21,7 @@ def create_user(conn, user_data: dict):
         query = f"""
             INSERT INTO users ({columns})
             VALUES ({values})
-            RETURNING user_id, username, email, first_name, last_name, role, created_at
+            RETURNING user_id, email, first_name, last_name, role, created_at
         """
         cur.execute(query, user_data)
         conn.commit()
@@ -31,7 +31,7 @@ def create_user(conn, user_data: dict):
 def get_user(conn, user_id: int):
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute("""
-            SELECT user_id, username, email, first_name, last_name, role, created_at, is_active
+            SELECT user_id, email, first_name, last_name, role, created_at, is_active
             FROM users WHERE user_id = %s
         """, (user_id,))
         return cur.fetchone()
@@ -49,7 +49,7 @@ def update_user(conn, user_id: int, user_data: dict):
         query = f"""
             UPDATE users SET {set_values}
             WHERE user_id = %(user_id)s
-            RETURNING user_id, username, email, first_name, last_name, role
+            RETURNING user_id, email, first_name, last_name, role
         """
         cur.execute(query, {**user_data, 'user_id': user_id})
         conn.commit()

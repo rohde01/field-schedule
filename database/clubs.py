@@ -28,16 +28,3 @@ def get_club(conn, club_id: int):
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute("SELECT * FROM clubs WHERE club_id = %s", (club_id,))
         return cur.fetchone()
-
-@with_db_connection
-def club_has_facilities(conn, club_id: int) -> bool:
-    if club_id is None:
-        return False
-    with conn.cursor() as cur:
-        cur.execute("""
-            SELECT EXISTS(
-                SELECT 1 FROM facilities 
-                WHERE club_id = %s
-            )
-        """, (club_id,))
-        return cur.fetchone()[0]

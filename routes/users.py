@@ -50,13 +50,12 @@ async def create_user(user: UserCreate):
 
 @router.post("/login")
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
-    user_data = users.authenticate_user(form_data.username, form_data.password)  # form_data.username contains email
+    user_data = users.authenticate_user(form_data.username, form_data.password)
     if not user_data:
         raise HTTPException(status_code=400, detail="Incorrect email or password")
     
     tokens = create_tokens({"sub": user_data["email"]})
     primary_club_id = users.get_user_primary_club(user_data["user_id"])
-    has_facilities = clubs.club_has_facilities(primary_club_id) if primary_club_id else False
     
     return {
         "access_token": tokens.access_token,
@@ -69,8 +68,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             last_name=user_data.get("last_name"),
             role=user_data.get("role", "member")
         ),
-        "primary_club_id": primary_club_id,
-        "has_facilities": has_facilities
+        "primary_club_id": primary_club_id
     }
 
 @router.get("/me")
@@ -85,7 +83,6 @@ async def get_user(user_id: int, current_user: User = Depends(get_current_user))
         raise HTTPException(status_code=404, detail="User not found")
     return User(
         user_id=user_data["user_id"],
-        username=user_data["username"],
         email=user_data["email"],
         first_name=user_data.get("first_name"),
         last_name=user_data.get("last_name"),
@@ -99,7 +96,6 @@ async def update_user(user_id: int, user: UserUpdate, current_user: User = Depen
         raise HTTPException(status_code=404, detail="User not found")
     return User(
         user_id=updated_user_data["user_id"],
-        username=updated_user_data["username"],
         email=updated_user_data["email"],
         first_name=updated_user_data.get("first_name"),
         last_name=updated_user_data.get("last_name"),
