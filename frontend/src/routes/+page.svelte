@@ -8,10 +8,10 @@
         <div class="flex flex-col justify-center items-center py-32 bg-gradient-to-br from-mint-500 to-sage-500 rounded-3xl shadow-lg">
             <div class="w-full max-w-4xl mx-auto text-center px-4" in:fly="{{ y: 50, duration: 1000 }}">
                 <h1 class="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-8">
-                    Streamline Your Field Scheduling
+                    Baneplanen.
                 </h1>
                 <p class="text-xl sm:text-2xl text-white/90 mb-12">
-                    This will be our fancy landing page
+                    En tidlig prototype udviklet i samarbejde med og for <span class="font-bold bg-gradient-to-r from-[#C8102E] to-blue-800 text-transparent bg-clip-text">Boldklubben af 1893</span>
                 </p>
                 <div class="flex flex-col sm:flex-row gap-4 justify-center">
                     <a href="/register" class="btn-primary text-lg px-8 py-3 bg-white text-mint-600 hover:bg-mint-50">
@@ -37,7 +37,7 @@
                             </svg>
                         </div>
                         <h3 class="text-xl font-semibold text-sage-800 mb-4">Smart Scheduling</h3>
-                        <p class="text-sage-600">Intelligent scheduling system that optimizes field usage and prevents conflicts</p>
+                        <p class="text-sage-600">A constraint model to solve soccer field scheduling problems for local soccer clubs</p>
                     </div>
 
                     <div class="text-center p-6" in:fly="{{ y: 50, duration: 1000, delay: 400 }}">
@@ -47,7 +47,7 @@
                             </svg>
                         </div>
                         <h3 class="text-xl font-semibold text-sage-800 mb-4">Team Management</h3>
-                        <p class="text-sage-600">Easily manage teams and their needs in one place</p>
+                        <p class="text-sage-600">Easily manage teams and their training needs in one place</p>
                     </div>
 
                     <div class="text-center p-6" in:fly="{{ y: 50, duration: 1000, delay: 600 }}">
@@ -57,7 +57,7 @@
                             </svg>
                         </div>
                         <h3 class="text-xl font-semibold text-sage-800 mb-4">Field Management</h3>
-                        <p class="text-sage-600">Easily build out your facility and map your field resources. Let the model do the rest</p>
+                        <p class="text-sage-600">Build out your facility and map your field resources. Let the model do the rest</p>
                     </div>
                 </div>
             </div>
