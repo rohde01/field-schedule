@@ -14,9 +14,11 @@
     import { constraints } from '$stores/constraints';
     import type { Constraint } from '$lib/schemas/schedule';
 
+
     let { data }: { data: PageData } = $props();
     const { form: rawForm } = data;
     let displayColumns: Column[] = $state([]);
+    let constraintTitle: string = $state('');
 
     const deleteForm = superForm(data.deleteForm, {
         onResult: ({ result }) => {
@@ -114,7 +116,10 @@
             const field = $constraints.find((f: Constraint) => 
                 f.constraint_id === $SidebarDropdownState.selectedConstraint?.constraint_id
             ) || $SidebarDropdownState.selectedConstraint;
-            
+
+            const teamName = $teams.find(t => t.team_id === field.team_id)?.name || 'Unknown Team';
+            constraintTitle = `Constraint ID: ${field.constraint_id} | ${teamName}`;
+
             const column1Fields = [
                 { label: 'Sessions', value: field.sessions },
                 { label: 'Length', value: field.length },
@@ -176,12 +181,12 @@
             
             {#if $SidebarDropdownState.selectedConstraint}
                 <DisplayCard 
-                    title={`Constraint ID: ${$SidebarDropdownState.selectedConstraint.constraint_id}`}
+                    title={constraintTitle}
                     columns={displayColumns}
                     deleteConfig={{
                         enabled: true,
                         itemId: $SidebarDropdownState.selectedConstraint.constraint_id,
-                        itemName: `Constraint ID: ${$SidebarDropdownState.selectedConstraint.constraint_id}`,
+                        itemName: constraintTitle,
                         onDelete: handleFieldDelete
                     }}
                 />
