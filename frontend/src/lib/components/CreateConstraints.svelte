@@ -77,7 +77,7 @@
 <div class="detail-card">
     {#if selectedTeam}
         <div class="mb-4">
-            <h3 class="text-lg font-semibold mb-2">Team Constraints</h3>
+            <h3 class="text-lg font-semibold mb-2">Constraints for {selectedTeam.name}</h3>
             {#if $form.constraints}
                 {#each $form.constraints.filter((c: Constraint) => c.team_id === selectedTeam.team_id) as constraint, visibleIndex}
                     <div class="bg-gray-50 p-4 rounded-lg mb-4">

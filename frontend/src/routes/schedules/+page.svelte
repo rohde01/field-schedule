@@ -198,7 +198,7 @@
         </div>
     {:else}
         <div class="main-content text-center p-8 text-sage-500">
-            Please select a team to view details
+            Select a schedule or create a new one
         </div>
     {/if}
 </div>

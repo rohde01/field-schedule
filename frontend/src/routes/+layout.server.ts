@@ -10,6 +10,7 @@ export const load: LayoutServerLoad = async ({ locals, fetch }) => {
     if (!locals.user?.primary_club_id) {
         console.log('No primary_club_id found');
         return {
+            user: locals.user || null,
             facilities: [],
             fields: [],
             constraints: []
@@ -72,11 +73,11 @@ export const load: LayoutServerLoad = async ({ locals, fetch }) => {
         console.log('Fetched teams:', teams);
 
         return {
+            user: locals.user,
             facilities,
             fields,
             teams,
-            constraints,
-            user: locals.user
+            constraints
         };
     } catch (err) {
         console.error('Error in layout load function:', err);

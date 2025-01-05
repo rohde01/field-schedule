@@ -11,7 +11,8 @@
         
         return allFields.filter(field => {
             if (field.facility_id !== selectedSchedule.facility_id) return false;
-            if (field.is_active) return true;
+            // if (field.is_active) return true; (this lines determines if active fields from the facility should be included
+            // despite not in the schedule
 
             const scheduleFieldIds = new Set(selectedSchedule.entries.map(entry => entry.field_id));
 

@@ -72,7 +72,7 @@
             {/if}
             
             <a 
-                href={success ? "/club" : "/"} 
+                href={success ? "/club" : "/dashboard"} 
                 class="btn-secondary w-full text-lg py-3 mt-4 text-center block hover:bg-sage-300 transition-colors"
             >
                 Maybe Later
