@@ -7,7 +7,6 @@
     import { dropdownState, selectSchedule } from '$stores/ScheduleDropdownState';
     import CreateConstraints from '$lib/components/CreateConstraints.svelte';
     import { teams, setTeams } from '$stores/teams';
-    import SuperDebug from 'sveltekit-superforms';
     import { superForm } from 'sveltekit-superforms/client';
     import CreateSchedule from '$lib/components/CreateSchedule.svelte';
     import Dnd from '$lib/components/dnd.svelte'
@@ -116,23 +115,25 @@
                 f.constraint_id === $SidebarDropdownState.selectedConstraint?.constraint_id
             ) || $SidebarDropdownState.selectedConstraint;
             
+            const column1Fields = [
+                { label: 'Sessions', value: field.sessions },
+                { label: 'Length', value: field.length },
+                { label: 'Start Time', value: field.start_time },
+                { label: 'Partial Size', value: field.partial_ses_space_cost },
+                { label: 'Partial Size', value: field.partial_ses_space_size }
+            ].filter(item => item.value != null).map(item => ({ ...item, value: item.value ?? '' }));
+
+            const column2Fields = [
+                { label: 'Required Size', value: field.required_size, style: 'pill' },
+                { label: 'Required Size', value: field.required_cost, style: 'pill' },
+                { label: 'Subfield Type', value: field.subfield_type, style: 'pill' },
+                { label: 'Partial Time', value: field.partial_ses_time, style: 'pill' }
+            ].filter(item => item.value != null).map(item => ({ ...item, value: item.value ?? '' }));
+
             displayColumns = [
-                {
-                    fields: [
-                        { label: 'Sessions', value: field.sessions ?? '' },
-                        { label: 'Start Time', value: field.start_time ?? '' },
-                    ]
-                },
-                {
-                    fields: [
-                        { 
-                            label: 'Required Size', 
-                            value: field.required_size ?? '',
-                            style: 'pill'
-                        }
-                    ]
-                }
-            ];
+                { fields: column1Fields },
+                { fields: column2Fields }
+            ].filter(column => column.fields.length > 0);
         }
     });
 </script>
@@ -173,10 +174,6 @@
                 <CreateSchedule {form} {enhance} {errors} />
             {/if}
             
-            {#if $dropdownState.selectedSchedule}
-                <Dnd />
-            {/if}
-
             {#if $SidebarDropdownState.selectedConstraint}
                 <DisplayCard 
                     title={`Constraint ID: ${$SidebarDropdownState.selectedConstraint.constraint_id}`}
@@ -189,16 +186,14 @@
                     }}
                 />
             {/if}
+
+            {#if $dropdownState.selectedSchedule}
+                <Dnd />
+            {/if}
         </div>
     {:else}
         <div class="main-content text-center p-8 text-sage-500">
             Please select a team to view details
         </div>
     {/if}
-</div>
-
-<div class="mt-8">
-    <div class="debug-container">
-        <SuperDebug data={$form} collapsible={true} />
-    </div>
 </div>
