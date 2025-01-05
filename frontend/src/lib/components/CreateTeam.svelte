@@ -55,10 +55,10 @@
     }));
 
     const fieldSizeOptions = [
-        { value: 125, label: '125' },
-        { value: 250, label: '250' },
-        { value: 500, label: '500' },
-        { value: 1000, label: '1000' }
+        { value: 125, label: '3v3, Half 5v5, Quarter 8v8' },
+        { value: 250, label: '5v5, Half 8v8, Quarter 11v11' },
+        { value: 500, label: '8v8, Half 11v11' },
+        { value: 1000, label: '11v11' }
     ];
 
     const weeklyTrainingOptions = Array.from({ length: 5 }, (_, i) => ({

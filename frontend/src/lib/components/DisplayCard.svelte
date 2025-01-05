@@ -72,9 +72,13 @@
                                     <p class="detail-card-value whitespace-pre-line">{field.value}</p>
                                 {:else if field.style === 'pill'}
                                     <div class="flex flex-wrap gap-2 mt-1">
-                                        <span class="field-tag">
-                                            {field.value}
-                                        </span>
+                                        {#each typeof field.value === 'string' 
+                                            ? field.value.split(',').map((v: string) => v.trim())
+                                            : [field.value] as pill}
+                                            <span class="field-tag">
+                                                {pill}
+                                            </span>
+                                        {/each}
                                     </div>
                                 {:else}
                                     <p class="detail-card-value">{field.value}</p>

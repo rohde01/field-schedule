@@ -75,13 +75,6 @@
 
     $: selectedOption = options.find(opt => String(opt.value) === String(fieldValue ?? ''));
 
-    $: hide_label_in_view = (() => {
-        const keys = name.split(/[\[\].]+/).filter(Boolean);
-        const lastKey = keys[keys.length - 1];
-        if (!fieldValue) return false;
-        return hide_label_in_view || lastKey === 'start_time' || lastKey === 'end_time';
-    })();
-
     $: {
         if (
             fieldValue === undefined ||
@@ -171,6 +164,12 @@
             input?.focus();
         });
     }
+
+    function splitPillValues(value: string): string[] {
+        return value.split(',').map(v => v.trim()).filter(Boolean);
+    }
+
+    $: pillValues = selectedOption?.label ? splitPillValues(selectedOption.label) : [];
 </script>
 
 <div class="editable-field mb-4">
@@ -247,14 +246,20 @@
             <p class="detail-card-label">{label}</p>
         {/if}
         <div 
-            class="{view_mode_style === 'title' ? 'detail-card-title' : view_mode_style === 'pill' ? 'field-tag' : 'detail-card-value'} cursor-pointer"
+            class="{view_mode_style === 'title' ? 'detail-card-title' : view_mode_style === 'pill' ? 'flex flex-wrap gap-2' : 'detail-card-value'} cursor-pointer"
             on:click={enterEditMode}
             on:keydown={(e) => e.key === 'Enter' && enterEditMode()}
             role="button"
             tabindex="0"
         >
             {#if type === 'select'}
-                {selectedOption?.label ?? fieldValue ?? '+'}
+                {#if view_mode_style === 'pill' && selectedOption?.label}
+                    {#each pillValues as pill}
+                        <span class="field-tag">{pill}</span>
+                    {/each}
+                {:else}
+                    {selectedOption?.label ?? fieldValue ?? '+'}
+                {/if}
             {:else if type === 'checkbox'}
                 {fieldValue ? 'Yes' : 'No'}
             {:else}

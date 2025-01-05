@@ -254,6 +254,7 @@
                                         label="Start Time"
                                         type="text"
                                         placeholder="HH:MM"
+                                        hide_label_in_view={true}
                                     />
                                     <EditableField
                                         {form}
@@ -262,6 +263,7 @@
                                         label="End Time"
                                         type="text"
                                         placeholder="HH:MM"
+                                        hide_label_in_view={true}
                                     />
                                     <button
                                         type="button"

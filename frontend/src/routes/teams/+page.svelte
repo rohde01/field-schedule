@@ -19,6 +19,21 @@
         dropdownState.update(state => ({ ...state, selectedTeam: null }));
     };
 
+    function formatFieldSize(size: number): string {
+        switch (size) {
+            case 1000:
+                return '11v11';
+            case 500:
+                return '8v8, Half 11v11';
+            case 250:
+                return '5v5, Half 8v8, Quarter 11v11';
+            case 125:
+                return '3v3, Half 5v5, Quarter 8v8';
+            default:
+                return `${size}`;
+        }
+    }
+
     $: if ($dropdownState.selectedTeam) {
         const team = $dropdownState.selectedTeam;
         displayColumns = [
@@ -33,8 +48,8 @@
             {
                 fields: [
                     { label: 'Weekly Trainings', value: team.weekly_trainings },
-                    { label: 'Min Field Size', value: team.minimum_field_size, style: 'pill' },
-                    { label: 'Preferred Size', value: team.preferred_field_size || 'Not set', style: 'pill' }
+                    { label: 'Minimum Field Size', value: formatFieldSize(team.minimum_field_size), style: 'pill' },
+                    { label: 'Preferred Size', value: team.preferred_field_size ? formatFieldSize(team.preferred_field_size) : 'Not set', style: 'pill' }
                 ]
             }
         ];
