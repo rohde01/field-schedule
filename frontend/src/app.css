@@ -313,4 +313,42 @@
   .nav-container {
     @apply fixed top-0 left-0 right-0 bg-white border-b border-sage-200 z-50;
   }
+
+    /* Dashboard Component Classes */
+
+  .shortcut-container {
+    @apply grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto mt-8;
+  }
+
+  .shortcut-box {
+    @apply flex flex-col items-center justify-center p-8 bg-white rounded-2xl shadow-lg 
+           border-2 border-sage-100 hover:border-mint-500 transition-all duration-200 
+           hover:shadow-xl hover:-translate-y-1 cursor-pointer;
+    min-height: 200px;
+  }
+
+  .shortcut-icon {
+    @apply text-4xl text-mint-600 mb-4;
+  }
+
+  .shortcut-title {
+    @apply text-xl font-semibold text-sage-800 mb-2;
+  }
+
+  .shortcut-description {
+    @apply text-sage-600 text-center;
+  }
+
+  .dashboard-welcome {
+    @apply max-w-4xl mx-auto text-sage-700 bg-sage-50/50 rounded-2xl p-8 mb-12 
+           border border-sage-100 shadow-sm;
+  }
+
+  .dashboard-welcome-text {
+    @apply text-lg leading-relaxed space-y-4;
+  }
+
+  .dashboard-welcome-highlight {
+    @apply text-mint-700 font-medium;
+  }
 }
