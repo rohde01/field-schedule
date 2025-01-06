@@ -54,7 +54,7 @@ export const actions = {
         }
 
         try {
-            const response = await fetch('${API_URL}/schedules/generate', {
+            const response = await fetch(`${API_URL}/schedules/generate`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

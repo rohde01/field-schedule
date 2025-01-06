@@ -12,7 +12,7 @@ interface TokenCache {
 
 const userCache: TokenCache = {};
 const CACHE_DURATION = 1440 * 60 * 1000; // 30 minutes in milliseconds
-const TOKEN_REFRESH_THRESHOLD = 3 * 60; // 3 minutes in seconds
+const TOKEN_REFRESH_THRESHOLD = 1435 * 60; // 3 minutes in seconds
 
 interface TokenResponse {
     access_token: string;
