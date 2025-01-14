@@ -5,7 +5,7 @@ from typing import Dict, List, Optional
 from typing import Literal
 import cProfile
 import pstats
-from database.test_data import create_test_data, save_schedule #imports a list of constraints and fields (see dataclasses below) and a function to save the schedule
+from database.test_data import create_test_data, save_schedule
 from assign_subfields import post_process_solution
 
 @dataclass
@@ -63,7 +63,6 @@ def get_capacity_and_allowed(field: Field) -> tuple[int, List[int], int]:
     return total_cap, allowed_demands, max_splits
 
 def solve_field_schedule():
-
     profiler = cProfile.Profile()
     profiler.enable()
 
@@ -78,8 +77,9 @@ def solve_field_schedule():
 
     num_sessions = len(all_sessions)
     day_to_idx = {'Mon':0,'Tue':1,'Wed':2,'Thu':3,'Fri':4,'Sat':5,'Sun':6}
-    idx_to_day = {v:k for k,v in day_to_idx.items()}
+    idx_to_day = {v: k for k, v in day_to_idx.items()}
 
+    # Build a quick lookup for each field's day-based windows, capacity, etc.
     field_info = {}
     for f in fields:
         total_cap, allowed_demands, max_splits = get_capacity_and_allowed(f)
@@ -97,45 +97,57 @@ def solve_field_schedule():
 
     model = cp_model.CpModel()
     max_time_blocks = 24 * 4
-    day_var = [model.NewIntVar(0, 6, f'day_s{s}') for s in range(num_sessions)]
-    field_ids = [f.field_id for f in fields]
-    field_var = [model.NewIntVarFromDomain(cp_model.Domain.FromValues(field_ids), f'field_s{s}') for s in range(num_sessions)]
+    
+    # We still need a start time for each session, but day/field are now implied solely by presence booleans.
     start_var = [model.NewIntVar(0, max_time_blocks, f'start_s{s}') for s in range(num_sessions)]
 
-    session_intervals = {}  # (s, f, d) -> intervalVar
-    presence_var = {}       # (s, f, d) -> BoolVar controlling presence
+    # presence_var[(s, f_id, d)] -> BoolVar
+    presence_var = {}
+    session_intervals = {}
     demands_capacity = {}
     demands_splits = {}
 
+    # A direct container for each session's presence booleans
+    session_presence_vars = [[] for _ in range(num_sessions)]
+
+    # Create presence booleans / intervals for all feasible (day, field) combos
     for s, (sid, team_id, req_capacity, length_15) in enumerate(all_sessions):
         duration = length_15
         for f in fields:
             f_id = f.field_id
             fi = field_info[f_id]
             for d in range(7):
+                # Check if day d is feasible for this field and capacity
                 if (d in fi['day_windows']) and (req_capacity in fi['allowed_demands']):
                     (window_start, window_end) = fi['day_windows'][d]
-                    
+
                     pres = model.NewBoolVar(f'pres_s{s}_f{f_id}_d{d}')
                     presence_var[(s, f_id, d)] = pres
+                    session_presence_vars[s].append(pres)
 
+                    # Create an optional interval for scheduling
                     interval = model.NewOptionalIntervalVar(
-                        start_var[s], duration,
-                        model.NewIntVar(0, max_time_blocks, ''), 
+                        start_var[s],
+                        duration,
+                        model.NewIntVar(0, max_time_blocks, ''),  # end time, but rarely used directly
                         pres,
                         f'interval_s{s}_f{f_id}_d{d}'
                     )
                     session_intervals[(s, f_id, d)] = interval
+
+                    # Demand usage for capacity-based constraints
                     demands_capacity[(s, f_id, d)] = req_capacity
                     demands_splits[(s, f_id, d)] = 1
 
-                    # If pres is true, day_var[s] must be d, field_var[s] must be f_id
-                    model.Add(day_var[s] == d).OnlyEnforceIf(pres)
-                    model.Add(field_var[s] == f_id).OnlyEnforceIf(pres)
+                    # Constrain start time to the field's available window if presence is True
                     model.Add(start_var[s] >= window_start).OnlyEnforceIf(pres)
                     model.Add(start_var[s] <= window_end - duration).OnlyEnforceIf(pres)
 
+    # Each session must occur exactly once among all feasible (day, field)
+    for s in range(num_sessions):
+        model.AddExactlyOne(session_presence_vars[s])
 
+    # Capacity constraints for each (field, day)
     for f in fields:
         f_id = f.field_id
         fi = field_info[f_id]
@@ -154,14 +166,20 @@ def solve_field_schedule():
                     intervals_fd.append(session_intervals[(s, f_id, d)])
                     capacity_demands.append(demands_capacity[(s, f_id, d)])
                     splits_demands.append(demands_splits[(s, f_id, d)])
+
             if intervals_fd:
+                # Enforce capacity usage
                 model.AddCumulative(intervals_fd, capacity_demands, cap)
+                # Enforce max splits
                 model.AddCumulative(intervals_fd, splits_demands, max_splits)
 
+    # Keep track of sessions by team, to ensure each team has at most one session per day
     team_sessions = defaultdict(list)
     for s, (sid, team_id, req_capacity, length_15) in enumerate(all_sessions):
         team_sessions[team_id].append(s)
 
+    # For each team and day d, sum of presences across all fields must be <= 1
+    field_ids = [f.field_id for f in fields]
     for team_id, sess_list in team_sessions.items():
         for d in range(7):
             bools_for_that_day = []
@@ -172,14 +190,7 @@ def solve_field_schedule():
             if bools_for_that_day:
                 model.Add(sum(bools_for_that_day) <= 1)
 
-    for s in range(num_sessions):
-        feasible_bools = []
-        for f_id in field_ids:
-            for d in range(7):
-                if (s, f_id, d) in presence_var:
-                    feasible_bools.append(presence_var[(s, f_id, d)])
-        model.Add(sum(feasible_bools) == 1)
-
+    # Solve
     solver = cp_model.CpSolver()
     status = solver.Solve(model)
 
@@ -188,10 +199,23 @@ def solve_field_schedule():
         profiler.disable()
         stats = pstats.Stats(profiler).sort_stats('cumtime')
         stats.print_stats(10)
+
+        # Build final solution by decoding which presence variable is 1 for each session
         solution = []
         for s, (sid, team_id, req_capacity, length_15) in enumerate(all_sessions):
-            assigned_day = solver.Value(day_var[s])
-            assigned_field = solver.Value(field_var[s])
+            # Find the (d, f_id) that was chosen:
+            chosen_day = None
+            chosen_field = None
+            for f_id in field_ids:
+                for d in range(7):
+                    if (s, f_id, d) in presence_var:
+                        if solver.Value(presence_var[(s, f_id, d)]) == 1:
+                            chosen_day = d
+                            chosen_field = f_id
+                            break
+                if chosen_day is not None:
+                    break
+
             assigned_start = solver.Value(start_var[s])
             hh = assigned_start // 4
             mm = (assigned_start % 4) * 15
@@ -200,16 +224,17 @@ def solve_field_schedule():
             hh_end = end_block // 4
             mm_end = (end_block % 4) * 15
             end_str = f"{hh_end:02d}:{mm_end:02d}"
+
             solution.append({
                 "team_id": team_id,
-                "day_of_week": idx_to_day[assigned_day],
+                "day_of_week": idx_to_day[chosen_day],
                 "start_time": start_str,
                 "end_time": end_str,
-                "field_id": assigned_field,
+                "field_id": chosen_field,
                 "required_size": req_capacity
             })
-        
-        # Post-process the solution to assign specific subfields (not part of the main model, and is not negatively affecting performance considerably)
+
+        # Post-process to assign specific subfields (not part of main model).
         solution = post_process_solution(solution, fields)
         
         schedule_id = save_schedule(solution, club_id=5, facility_id=4, name="generated 2")
