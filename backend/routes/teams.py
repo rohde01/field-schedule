@@ -28,6 +28,7 @@ class TeamBase(BaseModel):
     level: int = Field(..., ge=1, le=5)
     is_active: bool = True
     weekly_trainings: int = Field(..., ge=1, le=5)
+    training_length: Optional[int] = Field(None, ge=2, le=10, description="Number of 15-minute blocks (2-10)")
 
     @model_validator(mode='after')
     def validate_field_sizes(self):
@@ -58,6 +59,7 @@ class TeamUpdate(BaseModel):
     level: Optional[int] = Field(None, ge=1, le=5)
     is_active: Optional[bool] = None
     weekly_trainings: Optional[int] = Field(None, ge=1, le=5)
+    training_length: Optional[int] = Field(None, ge=2, le=10, description="Number of 15-minute blocks (2-10)")
 
     @model_validator(mode='after')
     def validate_field_sizes(self):
