@@ -5,8 +5,8 @@ from typing import Dict, List, Optional
 from typing import Literal
 import cProfile
 import pstats
-from database.fields import get_fields_by_facility
-from database.index import with_db_connection
+from database.test_data import create_test_data, save_schedule #imports a list of constraints and fields (see dataclasses below) and a function to save the schedule
+from assign_subfields import post_process_solution
 
 @dataclass
 class FieldAvailability:
@@ -20,7 +20,7 @@ class Field:
     facility_id: int
     name: str
     size: str                  # '11v11', '8v8', '5v5', '3v3'
-    field_type: str            # e.g. 'Outdoor', 'Indoor'
+    field_type: str            # 'full', 'half', 'quarter'
     parent_field_id: Optional[int]
     is_active: bool = True
     availability: Dict[str, FieldAvailability] = field(default_factory=dict)
@@ -46,31 +46,6 @@ def time_str_to_block(s: str) -> int:
     hh, mm = s.split(':')
     return int(hh)*4 + int(int(mm)//15)
 
-def create_test_data():
-    """
-    Gets fields from the database and returns a tuple: (list_of_fields, list_of_constraints).
-    """
-    fields = get_fields_by_facility(4)  # Hardcoded facility_id=4
-
-    constraints = [
-        Constraint(team_id=1, sessions=3, length=4, required_size='1000'),# U18-2
-        Constraint(team_id=1, sessions=2, length=4, required_size='500'), 
-
-        Constraint(team_id=3, sessions=3, length=4, required_size='500'), # U13
-
-        Constraint(team_id=2, sessions=2, length=4, required_size='1000'), # U10
-
-        Constraint(team_id=4, sessions=3, length=4, required_size='500'), #U12
-
-        Constraint(team_id=7, sessions=4, length=4, required_size='500'), #U16-pige
-
-        Constraint(team_id=5, sessions=2, length=4, required_size='1000'), #U11
-
-        Constraint(team_id=6, sessions=4, length=4, required_size='500'), #U18
-    ]
-
-    return fields, constraints
-
 def get_capacity_and_allowed(field: Field) -> tuple[int, List[int], int]:
     total_cap = SIZE_TO_CAPACITY[field.size]
     if field.quarter_subfields:
@@ -86,174 +61,6 @@ def get_capacity_and_allowed(field: Field) -> tuple[int, List[int], int]:
         demands.add(total_cap // 4)
     allowed_demands = sorted(list(demands))
     return total_cap, allowed_demands, max_splits
-
-def assign_subfields(field: Field, day_sessions: List[dict]) -> None:
-    """
-    Post-process to assign specific subfields to sessions scheduled on the same field and day.
-    Modifies the sessions in-place to add subfield assignments.
-    """
-    if not field.half_subfields and not field.quarter_subfields:
-        # No subfields to assign
-        return
-
-    # Sort sessions by start time to process them in chronological order
-    day_sessions.sort(key=lambda x: (x['start_time'], x['end_time']))
-    
-    # Track subfield usage over time
-    subfield_usage = {}  # (start_block, end_block) -> set of used subfield_ids
-    
-    for session in day_sessions:
-        start_block = time_str_to_block(session['start_time'])
-        end_block = time_str_to_block(session['end_time'])
-        required_size = session['required_size']
-        
-        # Find overlapping sessions
-        overlapping_subfields = set()
-        for (s, e), used_subfields in subfield_usage.items():
-            if not (end_block <= s or start_block >= e):
-                overlapping_subfields.update(used_subfields)
-        
-        # Determine available subfields based on capacity requirement
-        if required_size == 1000:  # Full field
-            session['field_id'] = field.field_id
-        elif required_size == 500 and field.size == '11v11':  # Half field
-            available_subfields = [f.field_id for f in field.half_subfields 
-                                 if f.field_id not in overlapping_subfields]
-            if len(available_subfields) >= 1:
-                # Assign the first available subfield
-                subfield = available_subfields[0]
-                session['field_id'] = subfield
-            else:
-                print(f"Warning: Could not find available subfield for session {session}")
-        elif required_size == 250 and field.size == '11v11':  # Quarter field
-            available_subfields = [f.field_id for f in field.quarter_subfields 
-                                 if f.field_id not in overlapping_subfields]
-            if len(available_subfields) >= 1:
-                # Assign the first available subfield
-                subfield = available_subfields[0]
-                session['field_id'] = subfield
-            else:
-                print(f"Warning: Could not find available subfield for session {session}")
-        elif required_size == 500 and field.size == '8v8':
-            session['field_id'] = field.field_id
-        elif required_size == 250 and field.size == '8v8':
-            available_subfields = [f.field_id for f in field.half_subfields
-                                 if f.field_id not in overlapping_subfields]
-            if len(available_subfields) >= 1:
-                # Assign the first available subfield
-                subfield = available_subfields[0]
-                session['field_id'] = subfield
-            else:
-                print(f"Warning: Could not find available subfield for session {session}")
-        elif required_size == 125 and field.size == '8v8':
-            available_subfields = [f.field_id for f in field.quarter_subfields
-                                 if f.field_id not in overlapping_subfields]
-            if len(available_subfields) >= 1:
-                # Assign the first available subfield
-                subfield = available_subfields[0]
-                session['field_id'] = subfield
-            else:
-                print(f"Warning: Could not find available subfield for session {session}")
-        elif required_size == 250 and field.size == '5v5':
-            session['field_id'] = field.field_id
-        elif required_size == 125 and field.size == '5v5':
-            available_subfields = [f.field_id for f in field.half_subfields
-                                 if f.field_id not in overlapping_subfields]
-            if len(available_subfields) >= 1:
-                # Assign the first available subfield
-                subfield = available_subfields[0]
-                session['field_id'] = subfield
-            else:
-                print(f"Warning: Could not find available subfield for session {session}")
-        elif required_size == 125 and field.size == '3v3':
-            session['field_id'] = field.field_id
-            
-        # Update subfield usage
-        if (start_block, end_block) not in subfield_usage:
-            subfield_usage[(start_block, end_block)] = set()
-        subfield_usage[(start_block, end_block)].add(session['field_id'])
-
-def post_process_solution(solution: List[dict], fields: List[Field]) -> List[dict]:
-    """
-    Post-process the entire solution to assign specific subfields.
-    """
-    # Create field lookup
-    field_lookup = {f.field_id: f for f in fields}
-    
-    # Group sessions by field and day
-    field_day_sessions = defaultdict(lambda: defaultdict(list))
-    for session in solution:
-        field_id = session['field_id']
-        day = session['day_of_week']
-        # Add required_size based on team capacity
-        session['required_size'] = int(session.get('required_size', 1000))  # Default to full field if not specified
-        field_day_sessions[field_id][day].append(session)
-    
-    # Process each field's sessions
-    for field_id, day_sessions in field_day_sessions.items():
-        field = field_lookup[field_id]
-        for day, sessions in day_sessions.items():
-            assign_subfields(field, sessions)
-    
-    # Flatten the processed solution
-    processed_solution = []
-    for field_sessions in field_day_sessions.values():
-        for day_sessions in field_sessions.values():
-            processed_solution.extend(day_sessions)
-    
-    return processed_solution
-
-@with_db_connection
-def save_schedule(conn, solution: List[dict], club_id: int, facility_id: int, name: str) -> int:
-    """
-    Save the generated schedule to the database.
-    
-    Args:
-        conn: Database connection from decorator
-        solution: List of scheduled sessions
-        club_id: ID of the club the schedule belongs to
-        facility_id: ID of the facility
-        name: Name of the schedule
-        
-    Returns:
-        schedule_id: ID of the created schedule
-    """
-    # Insert into schedules table
-    with conn.cursor() as cur:
-        cur.execute(
-            """
-            INSERT INTO schedules (club_id, name, facility_id)
-            VALUES (%s, %s, %s)
-            RETURNING schedule_id
-            """,
-            (club_id, name, facility_id)
-        )
-        schedule_id = cur.fetchone()[0]
-        
-        # Insert all entries
-        for entry in solution:
-            # Convert day of week from string to integer (0 = Monday, 6 = Sunday)
-            day_mapping = {'Mon': 0, 'Tue': 1, 'Wed': 2, 'Thu': 3, 'Fri': 4, 'Sat': 5, 'Sun': 6}
-            week_day = day_mapping[entry['day_of_week']]
-            
-            cur.execute(
-                """
-                INSERT INTO schedule_entries 
-                (schedule_id, team_id, field_id, start_time, end_time, week_day)
-                VALUES (%s, %s, %s, %s, %s, %s)
-                """,
-                (
-                    schedule_id,
-                    entry['team_id'],
-                    entry['field_id'],
-                    entry['start_time'],
-                    entry['end_time'],
-                    week_day
-                )
-            )
-        
-        conn.commit()
-        return schedule_id
 
 def solve_field_schedule():
 
@@ -308,6 +115,7 @@ def solve_field_schedule():
             for d in range(7):
                 if (d in fi['day_windows']) and (req_capacity in fi['allowed_demands']):
                     (window_start, window_end) = fi['day_windows'][d]
+                    
                     pres = model.NewBoolVar(f'pres_s{s}_f{f_id}_d{d}')
                     presence_var[(s, f_id, d)] = pres
 
@@ -317,22 +125,16 @@ def solve_field_schedule():
                         pres,
                         f'interval_s{s}_f{f_id}_d{d}'
                     )
-
                     session_intervals[(s, f_id, d)] = interval
                     demands_capacity[(s, f_id, d)] = req_capacity
                     demands_splits[(s, f_id, d)] = 1
 
+                    # If pres is true, day_var[s] must be d, field_var[s] must be f_id
                     model.Add(day_var[s] == d).OnlyEnforceIf(pres)
                     model.Add(field_var[s] == f_id).OnlyEnforceIf(pres)
                     model.Add(start_var[s] >= window_start).OnlyEnforceIf(pres)
                     model.Add(start_var[s] <= window_end - duration).OnlyEnforceIf(pres)
 
-                    b_not_day = model.NewBoolVar(f'not_day_s{s}_d{d}')
-                    b_not_field = model.NewBoolVar(f'not_field_s{s}_f{f_id}')
-                    model.Add(day_var[s] != d).OnlyEnforceIf(b_not_day)
-                    model.Add(field_var[s] != f_id).OnlyEnforceIf(b_not_field)
-                    model.AddImplication(b_not_day, pres.Not())
-                    model.AddImplication(b_not_field, pres.Not())
 
     for f in fields:
         f_id = f.field_id
@@ -376,12 +178,9 @@ def solve_field_schedule():
             for d in range(7):
                 if (s, f_id, d) in presence_var:
                     feasible_bools.append(presence_var[(s, f_id, d)])
-        # Always require the session to be assigned exactly once.
-        # If feasible_bools is empty, this forces the model to be infeasible, which is correct.
         model.Add(sum(feasible_bools) == 1)
 
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = 30.0
     status = solver.Solve(model)
 
     if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
@@ -410,10 +209,9 @@ def solve_field_schedule():
                 "required_size": req_capacity
             })
         
-        # Post-process the solution to assign specific subfields
+        # Post-process the solution to assign specific subfields (not part of the main model, and is not negatively affecting performance considerably)
         solution = post_process_solution(solution, fields)
         
-        # Save the schedule to database
         schedule_id = save_schedule(solution, club_id=5, facility_id=4, name="generated 2")
         print(f"Schedule saved successfully with ID: {schedule_id}")
         
