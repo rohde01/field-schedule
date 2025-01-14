@@ -2,46 +2,8 @@ from dataclasses import dataclass, field
 from collections import defaultdict
 from typing import Dict, List, Optional
 from typing import Literal
-
-
-
-@dataclass
-class FieldAvailability:
-    day_of_week: Literal['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-    start_time: str    # e.g. "16:00"
-    end_time: str      # e.g. "20:00"
-
-@dataclass
-class Field:
-    field_id: int
-    facility_id: int
-    name: str
-    size: str                  # '11v11', '8v8', '5v5', '3v3'
-    field_type: str            # e.g. 'Outdoor', 'Indoor'
-    parent_field_id: Optional[int]
-    is_active: bool = True
-    availability: Dict[str, FieldAvailability] = field(default_factory=dict)
-    quarter_subfields: List['Field'] = field(default_factory=list)
-    half_subfields: List['Field'] = field(default_factory=list)
-
-@dataclass
-class Constraint:
-    team_id: int
-    sessions: int
-    length: int               # in 15-minute blocks
-    required_size: str        # '125','250','500','1000'
-    start_time: Optional[str] = None  # optional fixed start time
-
-SIZE_TO_CAPACITY = {
-    '11v11': 1000,
-    '8v8':   500,
-    '5v5':   250,
-    '3v3':   125,
-}
-
-def time_str_to_block(s: str) -> int:
-    hh, mm = s.split(':')
-    return int(hh)*4 + int(int(mm)//15)
+from dataclass import Field
+from utils import SIZE_TO_CAPACITY, time_str_to_block
 
 def get_all_blocked_ids(field: Field, required_size: int, assigned_subfield_id: Optional[int] = None) -> set[int]:
     """
