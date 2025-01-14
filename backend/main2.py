@@ -7,6 +7,7 @@ import cProfile
 import pstats
 from database.test_data import create_test_data, save_schedule
 from assign_subfields import post_process_solution
+from collections import defaultdict
 
 @dataclass
 class FieldAvailability:
@@ -68,6 +69,7 @@ def solve_field_schedule():
 
     fields, constraints_list = create_test_data()
 
+    # Build the list of all sessions (session_index, team_id, required_capacity, length_15)
     all_sessions = []
     session_index = 0
     for c in constraints_list:
@@ -95,11 +97,33 @@ def solve_field_schedule():
             'day_windows': day_windows
         }
 
+    # Precompute global earliest and latest blocks across all fields/days
+    all_starts = []
+    all_ends = []
+    for f in fields:
+        fi = field_info[f.field_id]
+        for d_win in fi['day_windows'].values():
+            all_starts.append(d_win[0])  # window_start
+            all_ends.append(d_win[1])    # window_end
+    if not all_starts:
+        # No availability at all - trivial no solution
+        print("No field availability found, no feasible solution.")
+        return None
+    global_earliest = min(all_starts)
+    global_latest = max(all_ends)
+
     model = cp_model.CpModel()
-    max_time_blocks = 24 * 4
-    
-    # We still need a start time for each session, but day/field are now implied solely by presence booleans.
-    start_var = [model.NewIntVar(0, max_time_blocks, f'start_s{s}') for s in range(num_sessions)]
+
+    # Create start_var[s] with domain [global_earliest..global_latest]
+    start_var = []
+    for s in range(num_sessions):
+        start_var.append(
+            model.NewIntVar(
+                global_earliest,
+                global_latest,
+                f'start_s{s}'
+            )
+        )
 
     # presence_var[(s, f_id, d)] -> BoolVar
     presence_var = {}
@@ -116,6 +140,7 @@ def solve_field_schedule():
         for f in fields:
             f_id = f.field_id
             fi = field_info[f_id]
+            # Check all 7 days
             for d in range(7):
                 # Check if day d is feasible for this field and capacity
                 if (d in fi['day_windows']) and (req_capacity in fi['allowed_demands']):
@@ -129,7 +154,7 @@ def solve_field_schedule():
                     interval = model.NewOptionalIntervalVar(
                         start_var[s],
                         duration,
-                        model.NewIntVar(0, max_time_blocks, ''),  # end time, but rarely used directly
+                        model.NewIntVar(0, global_latest, ''),  # end time var (rarely used directly)
                         pres,
                         f'interval_s{s}_f{f_id}_d{d}'
                     )
@@ -178,7 +203,6 @@ def solve_field_schedule():
     for s, (sid, team_id, req_capacity, length_15) in enumerate(all_sessions):
         team_sessions[team_id].append(s)
 
-    # For each team and day d, sum of presences across all fields must be <= 1
     field_ids = [f.field_id for f in fields]
     for team_id, sess_list in team_sessions.items():
         for d in range(7):
