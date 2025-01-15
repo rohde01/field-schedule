@@ -229,15 +229,15 @@ def get_field_facility_id(conn, field_id: int) -> Optional[int]:
 
 @with_db_connection
 def get_fields_by_facility(conn, facility_id: int) -> List[Field]:
-    """Fetches a list of Field instances from the database for a specific facility."""
+    """Fetches a list of Field instances from the database for a specific facility, including subfields."""
     cursor = conn.cursor()
     fields_query = """
         SELECT f.field_id, f.facility_id, f.name, f.size, f.field_type, f.parent_field_id,
-            fa.day_of_week, fa.start_time, fa.end_time, f.is_active
-        FROM fields f
-        LEFT JOIN field_availability fa ON f.field_id = fa.field_id
-        WHERE f.facility_id = %s AND f.is_active = true
-        """
+               fa.day_of_week, fa.start_time, fa.end_time, f.is_active
+          FROM fields f
+          LEFT JOIN field_availability fa ON f.field_id = fa.field_id
+         WHERE f.facility_id = %s AND f.is_active = true
+    """
     cursor.execute(fields_query, (facility_id,))
     rows = cursor.fetchall()
     fields_by_id: Dict[int, Field] = {}
@@ -256,10 +256,10 @@ def get_fields_by_facility(conn, facility_id: int) -> List[Field]:
                 is_active=row[9],
                 availability={}
             )
-            parent_id = row[5]
-            if parent_id:
-                parent_to_children.setdefault(parent_id, []).append(fields_by_id[field_id])
-
+        parent_id = row[5]
+        if parent_id:
+            parent_to_children.setdefault(parent_id, []).append(fields_by_id[field_id])
+        
         if row[6] is not None:
             day_of_week = row[6]
             start_time = str(row[7])[:5]
@@ -270,24 +270,34 @@ def get_fields_by_facility(conn, facility_id: int) -> List[Field]:
                 end_time=end_time
             )
 
-    full_fields = [field for field in fields_by_id.values() if field.field_type == 'full']
-    field_list: List[Field] = []
-    for full_field in full_fields:
-        children = parent_to_children.get(full_field.field_id, [])
-        half_fields = [child for child in children if child.field_type == 'half']
-        quarter_fields_direct = [child for child in children if child.field_type == 'quarter']
+    for f_id, children in parent_to_children.items():
+        parent_field = fields_by_id[f_id]
+        for child in children:
+            if child.field_type == 'half':
+                parent_field.half_subfields.append(child)
+            elif child.field_type == 'quarter':
+                parent_field.quarter_subfields.append(child)
 
-        full_field.quarter_subfields.extend(quarter_fields_direct)
+    def gather_all_fields(root: Field, out_list: List[Field]):
+        """Recursively add root and all subfields into out_list."""
+        out_list.append(root)
+        for hf in root.half_subfields:
+            gather_all_fields(hf, out_list)
+        for qf in root.quarter_subfields:
+            gather_all_fields(qf, out_list)
 
-        for half_field in half_fields:
-            quarter_children = parent_to_children.get(half_field.field_id, [])
-            half_field.quarter_subfields.extend(quarter_children)
-            full_field.half_subfields.append(half_field)
-            full_field.quarter_subfields.extend(quarter_children)
-            
-        unique_quarters = {field.field_id: field for field in full_field.quarter_subfields}
-        full_field.quarter_subfields = list(unique_quarters.values())
+    top_level_fields = [f for f in fields_by_id.values() if f.parent_field_id is None]
 
-        field_list.append(full_field)
+    all_fields: List[Field] = []
+    for top_field in top_level_fields:
+        gather_all_fields(top_field, all_fields)
 
-    return field_list
+    # 4) For convenience, remove duplicates if any
+    unique_field_ids = set()
+    final_fields = []
+    for fld in all_fields:
+        if fld.field_id not in unique_field_ids:
+            unique_field_ids.add(fld.field_id)
+            final_fields.append(fld)
+
+    return final_fields
