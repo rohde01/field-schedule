@@ -27,7 +27,7 @@ class Constraint:
     sessions: int
     length: int               # in 15-minute blocks
     required_cost: Optional[str]        # '125','250','500','1000'
-    required_field: Optional[int]       # A specific field_id to be used in the session. If specified, required_size is ignored.
+    required_field: Optional[int] = None       # A specific field_id to be used in the session. If specified, required_size is ignored.
     start_time: Optional[str] = None  # optional fixed start time
 
 @dataclass

@@ -68,18 +68,11 @@ export const constraintSchema = z.object({
     } as const;
 
     if (data.constraint_type === 'specific') {
-        if (!data.required_size) {
+        if (!data.required_field) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
-                path: ['required_size'],
-                message: 'Required size is required for specific constraint type.'
-            });
-        }
-        if (!data.subfield_type) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                path: ['subfield_type'],
-                message: 'Subfield type is required for specific constraint type.'
+                path: ['required_field'],
+                message: 'Required field is required for specific constraint type.'
             });
         }
         if ((data.partial_ses_space_size === null) !== (data.partial_ses_time === null)) {
