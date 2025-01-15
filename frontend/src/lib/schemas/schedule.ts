@@ -42,6 +42,7 @@ export const constraintSchema = z.object({
       .optional(),
     length: z.number().int().min(1).max(10),
     required_size: z.enum(['11v11', '8v8', '5v5', '3v3']).nullable().optional(),
+    required_field : z.number().int().positive().nullable().optional(),
     subfield_type: z.enum(['full', 'half', 'quarter']).nullable().optional(),
     partial_ses_space_size: z.enum(['full', 'half', 'quarter']).nullable().optional(),
     required_cost: z.number()

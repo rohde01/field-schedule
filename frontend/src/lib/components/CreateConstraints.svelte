@@ -5,6 +5,7 @@
     import { SidebarDropdownState } from '../../stores/ScheduleSidebarState';
     import type { Writable } from 'svelte/store';
     import { writable } from 'svelte/store';
+    import { fields } from '../../stores/fields';
     
     let { form, errors } = $props<{ 
         form: Writable<GenerateScheduleRequest>,
@@ -17,8 +18,7 @@
     function addConstraint(type: 'specific' | 'flexible') {
         const newConstraint: Constraint = {
             team_id: selectedTeam?.team_id || 0,
-            required_size: null,
-            subfield_type: null,
+            required_field: null,
             required_cost: null,
             sessions: 1,
             length: 1,
@@ -113,17 +113,20 @@
                                 <EditableField
                                     {form}
                                     errors={$errors}
-                                    name="constraints[{actualIndex}].required_size"
-                                    label="Required Size"
+                                    name="constraints[{actualIndex}].required_field"
+                                    label="Required Field"
                                     type="select"
-                                    options={[
-                                        { value: '11v11', label: '11v11' },
-                                        { value: '8v8', label: '8v8' },
-                                        { value: '5v5', label: '5v5' },
-                                        { value: '3v3', label: '3v3' }
-                                    ]}
-                                    required
-                                    view_mode_style="pill"
+                                    options={$fields.flatMap(field => [
+                                        { value: field.field_id, label: `${field.name} (${field.field_type})` },
+                                        ...field.half_subfields.map(half => ({ 
+                                            value: half.field_id, 
+                                            label: `${half.name} (half of ${field.name})` 
+                                        })),
+                                        ...field.quarter_subfields.map(quarter => ({ 
+                                            value: quarter.field_id, 
+                                            label: `${quarter.name} (quarter of ${field.name})` 
+                                        }))
+                                    ])}
                                 />
                             
                                 <EditableField
@@ -144,21 +147,6 @@
                                         { value: 9, label: '135 minutes' },
                                         { value: 10, label: '150 minutes (2,5 hours)' }
                                     ]}
-                                    required
-                                />
-
-                                <EditableField
-                                    {form}
-                                    errors={$errors}
-                                    name="constraints[{actualIndex}].subfield_type"
-                                    label="Subfield Type"
-                                    type="select"
-                                    options={[
-                                        { value: 'full', label: 'Full' },
-                                        { value: 'half', label: 'Half' },
-                                        { value: 'quarter', label: 'Quarter' }
-                                    ]}
-                                    view_mode_style="pill"
                                     required
                                 />
 

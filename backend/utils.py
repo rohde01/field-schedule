@@ -36,7 +36,7 @@ def teams_to_constraints(team_ids: List[int]) -> List[Constraint]:
     
     for team in teams:
         # Use preferred_field_size if available, otherwise use minimum_field_size
-        required_size = str(team.preferred_field_size if team.preferred_field_size is not None else team.minimum_field_size)
+        required_cost = str(team.preferred_field_size if team.preferred_field_size is not None else team.minimum_field_size)
         # Use training_length if available, otherwise default to 4
         length = team.training_length if team.training_length is not None else 4
         
@@ -44,7 +44,7 @@ def teams_to_constraints(team_ids: List[int]) -> List[Constraint]:
             team_id=team.team_id,
             sessions=team.weekly_trainings,
             length=length,
-            required_size=required_size
+            required_cost=required_cost
         ))
     
     return constraints_list

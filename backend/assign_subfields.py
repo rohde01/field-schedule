@@ -5,13 +5,13 @@ from typing import Literal
 from dataclass import Field
 from utils import SIZE_TO_CAPACITY, time_str_to_block
 
-def get_all_blocked_ids(field: Field, required_size: int, assigned_subfield_id: Optional[int] = None) -> set[int]:
+def get_all_blocked_ids(field: Field, required_cost: int, assigned_subfield_id: Optional[int] = None) -> set[int]:
     """
     Return the set of all field_ids that become blocked when assigning this session.
     For example:
-      - If required_size == 1000 (full 11v11), block the entire field + all subfields.
-      - If required_size == 500 (half 11v11), block the entire field + that half-field + its quarter subfields.
-      - If required_size == 250 (quarter 11v11), block the entire field + the half that quarter belongs to + that quarter itself.
+      - If required_cost == 1000 (full 11v11), block the entire field + all subfields.
+      - If required_cost == 500 (half 11v11), block the entire field + that half-field + its quarter subfields.
+      - If required_cost == 250 (quarter 11v11), block the entire field + the half that quarter belongs to + that quarter itself.
       - And similarly for 8v8, 5v5, etc.
     
     assigned_subfield_id can be:
@@ -54,7 +54,7 @@ def get_all_blocked_ids(field: Field, required_size: int, assigned_subfield_id: 
             blocked.add(f.field_id)
     
     # 2) If the assigned field is the entire top-level field, block everything
-    if required_size == 1000 and field.size == '11v11':
+    if required_cost == 1000 and field.size == '11v11':
         # Full field
         blocked_ids.add(field.field_id)
         # Block all halves and quarters
@@ -72,7 +72,7 @@ def get_all_blocked_ids(field: Field, required_size: int, assigned_subfield_id: 
     # This also needs to block all subfields of that top-level field
     # in case an 8v8 is subdivided, etc.
     top_level_capacity = SIZE_TO_CAPACITY[field.size]
-    if required_size == top_level_capacity:
+    if required_cost == top_level_capacity:
         # The usage is for the entire top-level field (whatever that size is).
         def block_recursively(f: Field):
             blocked_ids.add(f.field_id)
@@ -142,7 +142,7 @@ def assign_subfields(field: Field, day_sessions: List[dict]) -> None:
     for session in day_sessions:
         start_block = time_str_to_block(session['start_time'])
         end_block = time_str_to_block(session['end_time'])
-        required_size = session['required_size']
+        required_cost = session['required_cost']
         
         # Determine which intervals we overlap with
         overlapping_blocked = set()
@@ -153,14 +153,14 @@ def assign_subfields(field: Field, day_sessions: List[dict]) -> None:
                 overlapping_blocked |= blocked_ids
         
         # Now choose how to assign the session's subfield usage
-        # We do this by checking required_size and seeing if we have a valid subfield that isn't in overlapping_blocked
+        # We do this by checking required_cost and seeing if we have a valid subfield that isn't in overlapping_blocked
         assigned_subfield_id = None
         
         # === 11v11 logic
-        if required_size == 1000 and field.size == '11v11':
+        if required_cost == 1000 and field.size == '11v11':
             # Full field
             assigned_subfield_id = field.field_id
-        elif required_size == 500 and field.size == '11v11':
+        elif required_cost == 500 and field.size == '11v11':
             # Need a half subfield
             # Filter out half subfields that are already blocked
             possible_halves = [
@@ -174,7 +174,7 @@ def assign_subfields(field: Field, day_sessions: List[dict]) -> None:
                 # Could not find a free half => warning (the solver gave us a time, but it conflicts in post-processing)
                 print(f"Warning: Could not find an available half subfield for session {session}")
                 # We'll still assign the first half for debugging or remain unassigned
-        elif required_size == 250 and field.size == '11v11':
+        elif required_cost == 250 and field.size == '11v11':
             # Need a quarter subfield
             possible_quarters = [
                 qf.field_id
@@ -187,10 +187,10 @@ def assign_subfields(field: Field, day_sessions: List[dict]) -> None:
                 print(f"Warning: Could not find an available quarter subfield for session {session}")
         
         # === 8v8 logic
-        elif required_size == 500 and field.size == '8v8':
+        elif required_cost == 500 and field.size == '8v8':
             # entire 8v8 field (no sub-subfields exist for "500" demand)
             assigned_subfield_id = field.field_id
-        elif required_size == 250 and field.size == '8v8':
+        elif required_cost == 250 and field.size == '8v8':
             # half of 8v8
             possible_halves = [
                 half_f.field_id
@@ -201,7 +201,7 @@ def assign_subfields(field: Field, day_sessions: List[dict]) -> None:
                 assigned_subfield_id = possible_halves[0]
             else:
                 print(f"Warning: Could not find half subfield for 8v8 {session}")
-        elif required_size == 125 and field.size == '8v8':
+        elif required_cost == 125 and field.size == '8v8':
             # quarter of 8v8
             possible_quarters = [
                 qf.field_id
@@ -214,10 +214,10 @@ def assign_subfields(field: Field, day_sessions: List[dict]) -> None:
                 print(f"Warning: Could not find quarter subfield for 8v8 {session}")
         
         # === 5v5 logic
-        elif required_size == 250 and field.size == '5v5':
+        elif required_cost == 250 and field.size == '5v5':
             # entire 5v5 field
             assigned_subfield_id = field.field_id
-        elif required_size == 125 and field.size == '5v5':
+        elif required_cost == 125 and field.size == '5v5':
             # half of 5v5
             possible_halves = [
                 hf.field_id
@@ -230,7 +230,7 @@ def assign_subfields(field: Field, day_sessions: List[dict]) -> None:
                 print(f"Warning: Could not find half subfield for 5v5 {session}")
         
         # === 3v3 logic
-        elif required_size == 125 and field.size == '3v3':
+        elif required_cost == 125 and field.size == '3v3':
             # entire 3v3 field
             assigned_subfield_id = field.field_id
         
@@ -243,7 +243,7 @@ def assign_subfields(field: Field, day_sessions: List[dict]) -> None:
         session['field_id'] = assigned_subfield_id
         
         # Compute which IDs get blocked by this usage
-        blocked_ids = get_all_blocked_ids(field, required_size, assigned_subfield_id)
+        blocked_ids = get_all_blocked_ids(field, required_cost, assigned_subfield_id)
         
         # Update subfield_usage for this time range
         # We merge with any existing usage for (start_block, end_block) if they are identical blocks
@@ -268,8 +268,8 @@ def post_process_solution(solution: List[dict], fields: List[Field]) -> List[dic
     for session in solution:
         field_id = session['field_id']
         day = session['day_of_week']
-        # Add required_size based on team capacity
-        session['required_size'] = int(session.get('required_size', 1000))  # Default to full field if not specified
+        # Add required_cost based on team capacity
+        session['required_cost'] = int(session.get('required_cost', 1000))  # Default to full field if not specified
         field_day_sessions[field_id][day].append(session)
     
     # Process each field's sessions

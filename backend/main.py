@@ -20,14 +20,15 @@ def generate_schedule(facility_id: int, team_ids: List[int], club_id: int, sched
     profiler.enable()
 
     fields = get_fields_by_facility(facility_id)
-    constraints_list = teams_to_constraints(team_ids)
+    default_constraints = teams_to_constraints(team_ids)
+    constraints_list = default_constraints + (constraints_list or [])
 
     # Build the list of all sessions (session_index, team_id, required_capacity, length_15)
     all_sessions = []
     session_index = 0
     for c in constraints_list:
         for _ in range(c.sessions):
-            all_sessions.append((session_index, c.team_id, int(c.required_size), c.length))
+            all_sessions.append((session_index, c.team_id, int(c.required_cost), c.length))
             session_index += 1
 
     num_sessions = len(all_sessions)
@@ -208,7 +209,7 @@ def generate_schedule(facility_id: int, team_ids: List[int], club_id: int, sched
                 "start_time": start_str,
                 "end_time": end_str,
                 "field_id": chosen_field,
-                "required_size": req_capacity
+                "required_cost": req_capacity
             })
 
         # Post-process to assign specific subfields (not part of main model).

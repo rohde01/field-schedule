@@ -19,14 +19,10 @@ router = APIRouter(prefix="/schedules", tags=["schedules"])
 class ConstraintSchema(BaseModel):
     team_id: int
     club_id: Optional[int] = None
-    required_size: Optional[str] = None
-    subfield_type: Optional[str] = None
     required_cost: Optional[int] = None
+    required_field: Optional[int] = None
     sessions: int = Field(default=1)
-    length: int = Field(default=1)
-    partial_ses_space_size: Optional[str] = None
-    partial_ses_space_cost: Optional[int] = None
-    partial_ses_time: Optional[int] = None
+    length: int = Field(default=4)
     start_time: Optional[str] = None
 
 class ConstraintResponse(BaseModel):
