@@ -44,7 +44,8 @@ def teams_to_constraints(team_ids: List[int]) -> List[Constraint]:
             team_id=team.team_id,
             sessions=team.weekly_trainings,
             length=length,
-            required_cost=required_cost
+            required_cost=required_cost,
+            day_of_week=None
         ))
     
     return constraints_list
@@ -90,4 +91,3 @@ def find_top_field_and_cost(subfield_id: int, fields_by_id: Dict[int, Field]) ->
         sub_cost = top_capacity
 
     return (top_field.field_id, sub_cost)
-

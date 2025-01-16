@@ -1,26 +1,30 @@
 from dataclasses import dataclass
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Literal
 from database.index import with_db_connection
+
 
 @dataclass
 class Constraint:
     team_id: int
-    club_id: int
-    constraint_id: int = 0
+    sessions: int
+    length: int
+    day_of_week: Optional[Literal[0, 1, 2, 3, 4, 5, 6]]
+    club_id: Optional[int] = None
+    constraint_id: Optional[int] = None
     schedule_entry_id: Optional[int] = None
     required_size: Optional[str] = None
     subfield_type: Optional[str] = None
     required_cost: Optional[int] = None
-    sessions: int = 0
-    length: int = 0
+    start_time: Optional[str] = None
     partial_ses_space_size: Optional[str] = None
     partial_ses_space_cost: Optional[int] = None
     partial_ses_time: Optional[int] = None
-    start_time: Optional[str] = None
 
-    def __init__(self, team_id: int, club_id: int, **kwargs):
+    def __init__(self, team_id: int, sessions: int, length: int, day_of_week: Optional[Literal[0, 1, 2, 3, 4, 5, 6]] = None, **kwargs):
         self.team_id = team_id
-        self.club_id = club_id
+        self.sessions = sessions
+        self.length = length
+        self.day_of_week = day_of_week
         for key, value in kwargs.items():
             setattr(self, key, value)
 
@@ -31,7 +35,7 @@ def get_constraints(conn, club_id: int) -> List[Constraint]:
     select_query = """
     SELECT constraint_id, schedule_entry_id, team_id, club_id, required_size, subfield_type, 
            required_cost, sessions, length, partial_ses_space_size, partial_ses_space_cost,
-           partial_ses_time, start_time
+           partial_ses_time, start_time, day_of_week
     FROM constraints
     WHERE club_id = %s
     """
@@ -53,7 +57,8 @@ def get_constraints(conn, club_id: int) -> List[Constraint]:
             'partial_ses_space_size': row[9],
             'partial_ses_space_cost': row[10],
             'partial_ses_time': row[11],
-            'start_time': row[12]
+            'start_time': row[12],
+            'day_of_week': row[13]
         }
         constraints.append(Constraint(**constraint_data))
     cursor.close()
@@ -65,15 +70,14 @@ def save_constraints(cursor: Any, schedule_entry_id: int, team_id: int, constrai
     INSERT INTO constraints (
         schedule_entry_id, team_id, club_id, required_size, subfield_type, required_cost,
         sessions, length, partial_ses_space_size, partial_ses_space_cost,
-        partial_ses_time, start_time
+        partial_ses_time, start_time, day_of_week
     )
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
     cursor.execute(
         insert_constraint_query,
         (schedule_entry_id, team_id, constraint.club_id, constraint.required_size, constraint.subfield_type,
          constraint.required_cost, constraint.sessions, constraint.length,
          constraint.partial_ses_space_size, constraint.partial_ses_space_cost,
-         constraint.partial_ses_time, constraint.start_time)
+         constraint.partial_ses_time, constraint.start_time, constraint.day_of_week)
     )
-

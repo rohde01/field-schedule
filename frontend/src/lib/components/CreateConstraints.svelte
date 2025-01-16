@@ -160,8 +160,23 @@
                                     hide_label_in_view={false}
                                 />
 
-                                
-                                
+                                <EditableField
+                                    {form}
+                                    errors={$errors}
+                                    name="constraints[{actualIndex}].day_of_week"
+                                    label="Day of Week"
+                                    type="select"
+                                    options={[
+                                        { value: 0, label: 'Monday' },
+                                        { value: 1, label: 'Tuesday' },
+                                        { value: 2, label: 'Wednesday' },
+                                        { value: 3, label: 'Thursday' },
+                                        { value: 4, label: 'Friday' },
+                                        { value: 5, label: 'Saturday' },
+                                        { value: 6, label: 'Sunday' }
+                                    ]}
+                                />
+
                                 <div class="col-span-2 flex justify-end">
                                     <button
                                         class="flex items-center text-mint-600 hover:text-mint-700 mt-2"
@@ -227,6 +242,24 @@
                                     type="text"
                                     placeholder="HH:MM:SS"
                                 />
+
+                                <EditableField
+                                    {form}
+                                    errors={$errors}
+                                    name="constraints[{actualIndex}].day_of_week"
+                                    label="Day of Week"
+                                    type="select"
+                                    options={[
+                                        { value: 0, label: 'Monday' },
+                                        { value: 1, label: 'Tuesday' },
+                                        { value: 2, label: 'Wednesday' },
+                                        { value: 3, label: 'Thursday' },
+                                        { value: 4, label: 'Friday' },
+                                        { value: 5, label: 'Saturday' },
+                                        { value: 6, label: 'Sunday' }
+                                    ]}
+                                />
+
                                 <EditableField
                                     {form}
                                     errors={$errors}

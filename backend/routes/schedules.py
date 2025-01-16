@@ -4,7 +4,7 @@ Filename: schedules.py in routes folder
 
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Literal
 from main import generate_schedule
 from database.constraints import Constraint as ConstraintModel
 from database.schedules import get_club_schedules, delete_schedule, get_schedule_club_id
@@ -24,6 +24,7 @@ class ConstraintSchema(BaseModel):
     sessions: int = Field(default=1)
     length: int = Field(default=4)
     start_time: Optional[str] = None
+    day_of_week: Optional[Literal[0, 1, 2, 3, 4, 5, 6]]
 
 class ConstraintResponse(BaseModel):
     constraint_id: int
@@ -34,6 +35,7 @@ class ConstraintResponse(BaseModel):
     required_cost: Optional[int]
     sessions: int
     length: int
+    day_of_week: Optional[Literal[0, 1, 2, 3, 4, 5, 6]]
     partial_ses_space_size: Optional[str]
     partial_ses_space_cost: Optional[int]
     partial_ses_time: Optional[int]

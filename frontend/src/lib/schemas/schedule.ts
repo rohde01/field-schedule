@@ -41,6 +41,7 @@ export const constraintSchema = z.object({
       .nullable()
       .optional(),
     length: z.number().int().min(1).max(10),
+    day_of_week: z.number().int().min(0).max(6).optional(),
     required_size: z.enum(['11v11', '8v8', '5v5', '3v3']).nullable().optional(),
     required_field : z.number().int().positive().nullable().optional(),
     subfield_type: z.enum(['full', 'half', 'quarter']).nullable().optional(),

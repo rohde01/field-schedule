@@ -1,5 +1,5 @@
 """
-Filename: main.py 
+Filename: main.py
 Main module to solve the soccer scheduling problem.
 Provides a generate_schedule function to be called from other modules.
 """
@@ -8,7 +8,7 @@ from ortools.sat.python import cp_model
 from collections import defaultdict
 import cProfile
 import pstats
-from utils import ( time_str_to_block, get_capacity_and_allowed, teams_to_constraints, SIZE_TO_CAPACITY, build_fields_by_id, find_top_field_and_cost)
+from utils import ( time_str_to_block, get_capacity_and_allowed, teams_to_constraints, build_fields_by_id, find_top_field_and_cost)
 from database.schedules import save_schedule
 from database.fields import get_fields_by_facility
 from assign_subfields import post_process_solution
@@ -44,7 +44,8 @@ def generate_schedule(facility_id: int, team_ids: List[int], club_id: int, sched
                     final_cost,
                     c.length,
                     c.required_field,
-                    c.start_time
+                    c.start_time,
+                    c.day_of_week
                 )
             )
             session_index += 1
@@ -58,10 +59,12 @@ def generate_schedule(facility_id: int, team_ids: List[int], club_id: int, sched
     for f in fields:
         total_cap, allowed_demands, max_splits = get_capacity_and_allowed(f)
         day_windows = {}
-        for day, avail in f.availability.items():
+        for day_name, avail in f.availability.items():
             start_block = time_str_to_block(avail.start_time)
-            end_block = time_str_to_block(avail.end_time)
-            day_windows[day_to_idx[day]] = (start_block, end_block)
+            end_block   = time_str_to_block(avail.end_time)
+            d_idx       = day_to_idx[day_name]
+            day_windows[d_idx] = (start_block, end_block)
+
         field_info[f.field_id] = {
             'total_cap': total_cap,
             'allowed_demands': allowed_demands,
@@ -72,18 +75,16 @@ def generate_schedule(facility_id: int, team_ids: List[int], club_id: int, sched
     all_starts = []
     all_ends = []
     for f in fields:
-        fi = field_info[f.field_id]
-        for (start_blk, end_blk) in fi['day_windows'].values():
+        for (start_blk, end_blk) in field_info[f.field_id]['day_windows'].values():
             all_starts.append(start_blk)
             all_ends.append(end_blk)
-
     if not all_starts:
         print("No field availability found, no feasible solution.")
         return None
 
     model = cp_model.CpModel()
 
-    # Revised variable creation: one start/end per (session, field, day)
+    # Variables for presence, start, end, intervals
     presence_var = {}
     start_var = {}
     end_var = {}
@@ -93,19 +94,26 @@ def generate_schedule(facility_id: int, team_ids: List[int], club_id: int, sched
     session_presence_vars = [[] for _ in range(num_sessions)]
 
     for s in range(num_sessions):
-        sid, team_id, forced_field, req_capacity, length_15, req_field_id, c_start_time = all_sessions[s]
+        sid, team_id, forced_field, req_capacity, length_15, req_field_id, c_start_time, c_day_of_week = all_sessions[s]
         duration = length_15
 
-        possible_top_fields = [fields_by_id[forced_field]] if forced_field else fields
+        possible_top_fields = (
+            [fields_by_id[forced_field]] if forced_field else fields
+        )
 
-        for f in possible_top_fields:
-            f_id = f.field_id
+        if c_day_of_week is not None:
+            possible_days = [c_day_of_week]
+        else:
+            possible_days = range(7)
+
+        for f_obj in possible_top_fields:
+            f_id = f_obj.field_id
             fi = field_info[f_id]
 
             if req_capacity not in fi['allowed_demands']:
                 continue
 
-            for d in range(7):
+            for d in possible_days:
                 if d not in fi['day_windows']:
                     continue
 
@@ -150,10 +158,8 @@ def generate_schedule(facility_id: int, team_ids: List[int], club_id: int, sched
         cap = fi['total_cap']
         max_splits = fi['max_splits']
 
-        for d in range(7):
-            if d not in fi['day_windows']:
-                continue
-
+        # For each day in this field's availability
+        for d in fi['day_windows']:
             intervals_fd = []
             capacity_demands = []
             splits_demands = []
@@ -169,7 +175,7 @@ def generate_schedule(facility_id: int, team_ids: List[int], club_id: int, sched
 
     # Each team at most one session per day
     team_sessions = defaultdict(list)
-    for s, (sid, team_id, forced_field, req_capacity, length_15, req_field_id, c_start_time) in enumerate(all_sessions):
+    for s, (sid, team_id, forced_field, req_capacity, length_15, req_field_id, c_start_time, c_day_of_week) in enumerate(all_sessions):
         team_sessions[team_id].append(s)
 
     top_field_ids = [f.field_id for f in fields]
@@ -194,7 +200,7 @@ def generate_schedule(facility_id: int, team_ids: List[int], club_id: int, sched
 
         solution = []
         for s in range(num_sessions):
-            sid, team_id, forced_field, req_capacity, length_15, req_field_id, c_start_time = all_sessions[s]
+            sid, team_id, forced_field, req_capacity, length_15, req_field_id, c_start_time, c_day_of_week = all_sessions[s]
             chosen_day = None
             chosen_field = None
             assigned_start = None
