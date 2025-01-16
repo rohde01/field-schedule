@@ -8,7 +8,7 @@ from ortools.sat.python import cp_model
 from collections import defaultdict
 import cProfile
 import pstats
-from utils import time_str_to_block, get_capacity_and_allowed, teams_to_constraints, SIZE_TO_CAPACITY
+from utils import ( time_str_to_block, get_capacity_and_allowed, teams_to_constraints, SIZE_TO_CAPACITY, build_fields_by_id, find_top_field_and_cost)
 from database.schedules import save_schedule
 from database.fields import get_fields_by_facility
 from assign_subfields import post_process_solution
@@ -19,54 +19,16 @@ def generate_schedule(facility_id: int, team_ids: List[int], club_id: int, sched
     profiler.enable()
 
     top_fields = get_fields_by_facility(facility_id)
-
-    fields_by_id = {}
-    def add_field_and_descendants(field):
-        fields_by_id[field.field_id] = field
-        for hf in field.half_subfields:
-            add_field_and_descendants(hf)
-        for qf in field.quarter_subfields:
-            add_field_and_descendants(qf)
-
-    for tf in top_fields:
-        add_field_and_descendants(tf)
-
-    fields = top_fields
+    fields_by_id, fields = build_fields_by_id(top_fields)
 
     default_constraints = teams_to_constraints(team_ids)
     constraints_list = default_constraints + (constraints_list or [])
-
-    def find_top_field_and_cost(subfield_id: int) -> tuple[int, int]:
-        """
-        Given a subfield_id, return (top_level_field_id, cost_for_subfield).
-        cost_for_subfield is derived by dividing the top-level capacity 
-        based on whether subfield is 'full', 'half', or 'quarter'.
-        """
-        if subfield_id not in fields_by_id:
-            raise ValueError(f"Unknown required_field {subfield_id}")
-        sf = fields_by_id[subfield_id]
-        
-        top_field = sf
-        while top_field.parent_field_id is not None:
-            top_field = fields_by_id[top_field.parent_field_id]
-
-        top_capacity = SIZE_TO_CAPACITY[top_field.size]
-        if sf.field_type == 'full':
-            sub_cost = top_capacity
-        elif sf.field_type == 'half':
-            sub_cost = top_capacity // 2
-        elif sf.field_type == 'quarter':
-            sub_cost = top_capacity // 4
-        else:
-            sub_cost = top_capacity
-
-        return (top_field.field_id, sub_cost)
 
     all_sessions = []
     session_index = 0
     for c in constraints_list:
         if c.required_field is not None:
-            top_f_id, sub_cost = find_top_field_and_cost(c.required_field)
+            top_f_id, sub_cost = find_top_field_and_cost(c.required_field, fields_by_id)
             final_cost = sub_cost
             forced_top_field = top_f_id
         else:
@@ -118,9 +80,6 @@ def generate_schedule(facility_id: int, team_ids: List[int], club_id: int, sched
     if not all_starts:
         print("No field availability found, no feasible solution.")
         return None
-
-    global_earliest = min(all_starts)
-    global_latest = max(all_ends)
 
     model = cp_model.CpModel()
 
@@ -271,7 +230,7 @@ def generate_schedule(facility_id: int, team_ids: List[int], club_id: int, sched
                 "required_field": req_field_id
             })
 
-        # Post-process subfield assignment
+        # Post-process subfield assignment (not part of main scheduling model)
         solution = post_process_solution(solution, top_fields)
         schedule_id = save_schedule(solution, club_id=club_id, facility_id=facility_id, name=schedule_name)
         print(f"Schedule saved successfully with ID: {schedule_id}")

@@ -1,6 +1,6 @@
 from dataclass import Constraint, Field
 from database.teams import get_teams_by_ids
-from typing import List
+from typing import List, Dict, Tuple, Any
 
 SIZE_TO_CAPACITY = {
     '11v11': 1000,
@@ -48,4 +48,46 @@ def teams_to_constraints(team_ids: List[int]) -> List[Constraint]:
         ))
     
     return constraints_list
+
+def build_fields_by_id(top_fields: List[Field]) -> Tuple[Dict[int, Field], List[Field]]:
+    """Build a dictionary mapping field IDs to field objects."""
+    fields_by_id = {}
+    
+    def add_field_and_descendants(field: Field) -> None:
+        fields_by_id[field.field_id] = field
+        for hf in field.half_subfields:
+            add_field_and_descendants(hf)
+        for qf in field.quarter_subfields:
+            add_field_and_descendants(qf)
+
+    for tf in top_fields:
+        add_field_and_descendants(tf)
+
+    return fields_by_id, top_fields
+
+def find_top_field_and_cost(subfield_id: int, fields_by_id: Dict[int, Field]) -> Tuple[int, int]:
+    """
+    Given a subfield_id, return (top_level_field_id, cost_for_subfield).
+    cost_for_subfield is derived by dividing the top-level capacity 
+    based on whether subfield is 'full', 'half', or 'quarter'.
+    """
+    if subfield_id not in fields_by_id:
+        raise ValueError(f"Unknown required_field {subfield_id}")
+    sf = fields_by_id[subfield_id]
+    
+    top_field = sf
+    while top_field.parent_field_id is not None:
+        top_field = fields_by_id[top_field.parent_field_id]
+
+    top_capacity = SIZE_TO_CAPACITY[top_field.size]
+    if sf.field_type == 'full':
+        sub_cost = top_capacity
+    elif sf.field_type == 'half':
+        sub_cost = top_capacity // 2
+    elif sf.field_type == 'quarter':
+        sub_cost = top_capacity // 4
+    else:
+        sub_cost = top_capacity
+
+    return (top_field.field_id, sub_cost)
 
