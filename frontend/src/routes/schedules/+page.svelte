@@ -13,7 +13,7 @@
     import DisplayCard, { type Column } from '$lib/components/DisplayCard.svelte';
     import { constraints } from '$stores/constraints';
     import type { Constraint } from '$lib/schemas/schedule';
-
+    import SuperDebug from 'sveltekit-superforms';
 
     let { data }: { data: PageData } = $props();
     const { form: rawForm } = data;
@@ -201,4 +201,9 @@
             Select a schedule or create a new one
         </div>
     {/if}
+</div>
+<div class="mt-8">
+    <div class="debug-container">
+        <SuperDebug data={$form} collapsible={true} />
+    </div>
 </div>

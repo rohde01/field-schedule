@@ -22,6 +22,7 @@
             required_cost: null,
             sessions: 1,
             length: 1,
+            day_of_week: null,
             partial_ses_space_size: null,
             partial_ses_space_cost: null,
             partial_ses_time: null,
