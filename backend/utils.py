@@ -13,6 +13,11 @@ def time_str_to_block(s: str) -> int:
     hh, mm = s.split(':')
     return int(hh)*4 + int(int(mm)//15)
 
+def blocks_to_time_str(blocks: int) -> str:
+    hh = blocks // 4
+    mm = (blocks % 4) * 15
+    return f"{hh:02d}:{mm:02d}"
+
 def get_capacity_and_allowed(field: Field) -> tuple[int, List[int], int]:
     total_cap = SIZE_TO_CAPACITY[field.size]
     if field.quarter_subfields:
