@@ -4,9 +4,9 @@ from typing import Literal
 
 @dataclass
 class FieldAvailability:
+    day_of_week: Literal['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
     start_time: str    # e.g. "16:00"
     end_time: str      # e.g. "20:00"
-    day_of_week: Literal['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 @dataclass
 class Field:
@@ -27,9 +27,11 @@ class Constraint:
     sessions: int
     length: int               # in 15-minute blocks
     day_of_week: Optional[Literal[0, 1, 2, 3, 4, 5, 6]]
+    start_time: Optional[str] = None         # optional fixed start time
     required_cost: Optional[str] = None       # '125','250','500','1000'
     required_field: Optional[int] = None      # A specific field_id to be used in the session
-    start_time: Optional[str] = None         # optional fixed start time
+    partial_time: Optional[int] = None   # in 15-minute blocks. must be less than length
+    partial_cost: Optional[int] = None # '125','250','500','1000'. must be larger than required_cost.
 
 @dataclass
 class Team:

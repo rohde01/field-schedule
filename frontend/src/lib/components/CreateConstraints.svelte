@@ -24,8 +24,8 @@
             length: 1,
             day_of_week: null,
             partial_ses_space_size: null,
-            partial_ses_space_cost: null,
-            partial_ses_time: null,
+            partial_cost: null,
+            partial_time: null,
             start_time: null,
             constraint_type: type
         };
@@ -204,7 +204,7 @@
                                     <EditableField
                                         {form}
                                         errors={$errors}
-                                        name="constraints[{actualIndex}].partial_ses_time"
+                                        name="constraints[{actualIndex}].partial_time"
                                         label="Partial Time"
                                         type="select"
                                         options={[
@@ -310,7 +310,7 @@
                                     <EditableField
                                         {form}
                                         errors={$errors}
-                                        name="constraints[{actualIndex}].partial_ses_space_cost"
+                                        name="constraints[{actualIndex}].partial_cost"
                                         label="Partial Size"
                                         type="select"
                                         options={[
@@ -323,7 +323,7 @@
                                     <EditableField
                                         {form}
                                         errors={$errors}
-                                        name="constraints[{actualIndex}].partial_ses_time"
+                                        name="constraints[{actualIndex}].partial_time"
                                         label="Partial Time"
                                         type="select"
                                         options={[

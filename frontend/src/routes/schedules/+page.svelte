@@ -124,7 +124,7 @@
                 { label: 'Sessions', value: field.sessions },
                 { label: 'Length', value: field.length },
                 { label: 'Start Time', value: field.start_time },
-                { label: 'Partial Size', value: field.partial_ses_space_cost },
+                { label: 'Partial Size', value: field.partial_cost },
                 { label: 'Partial Size', value: field.partial_ses_space_size }
             ].filter(item => item.value != null).map(item => ({ ...item, value: item.value ?? '' }));
 
@@ -132,7 +132,7 @@
                 { label: 'Required Size', value: field.required_size, style: 'pill' },
                 { label: 'Required Size', value: field.required_cost, style: 'pill' },
                 { label: 'Subfield Type', value: field.subfield_type, style: 'pill' },
-                { label: 'Partial Time', value: field.partial_ses_time, style: 'pill' }
+                { label: 'Partial Time', value: field.partial_time, style: 'pill' }
             ].filter(item => item.value != null).map(item => ({ ...item, value: item.value ?? '' }));
 
             displayColumns = [

@@ -25,6 +25,8 @@ class ConstraintSchema(BaseModel):
     length: int = Field(default=4)
     start_time: Optional[str] = None
     day_of_week: Optional[Literal[0, 1, 2, 3, 4, 5, 6]]
+    partial_time: Optional[int] = None   # in 15-minute blocks. must be less than length
+    partial_cost: Optional[int] = None # '125','250','500','1000'. must be larger than required_cost.
 
 class ConstraintResponse(BaseModel):
     constraint_id: int
@@ -37,8 +39,8 @@ class ConstraintResponse(BaseModel):
     length: int
     day_of_week: Optional[Literal[0, 1, 2, 3, 4, 5, 6]]
     partial_ses_space_size: Optional[str]
-    partial_ses_space_cost: Optional[int]
-    partial_ses_time: Optional[int]
+    partial_cost: Optional[int]
+    partial_time: Optional[int]
     start_time: Optional[str]
 
 class GenerateScheduleRequest(BaseModel):
