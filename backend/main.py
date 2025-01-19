@@ -13,6 +13,7 @@ from database.schedules import save_schedule
 from database.fields import get_fields_by_facility
 from assign_subfields import post_process_solution
 from typing import List, Any, Optional
+from objectives import add_adjacency_objective
 
 def generate_schedule(facility_id: int, team_ids: List[int], club_id: int, schedule_name: str = "Generated Schedule", constraints_list: Optional[List[Any]] = None) -> int:
     profiler = cProfile.Profile()
@@ -237,14 +238,17 @@ def generate_schedule(facility_id: int, team_ids: List[int], club_id: int, sched
                 for f_id in top_field_ids:
                     if (s, f_id, d) in presence_var:
                         bools_for_that_day.append(presence_var[(s, f_id, d)])
-            if bools_for_that_day:
-                model.Add(sum(bools_for_that_day) <= 1)
+            model.Add(sum(bools_for_that_day) <= 1)
+
+    # Add the adjacency objective
+    add_adjacency_objective(model, team_sessions, presence_var, top_field_ids)
 
     solver = cp_model.CpSolver()
     status = solver.Solve(model)
 
     if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
-        print("Found a feasible solution!")
+        solution_type = "OPTIMAL" if status == cp_model.OPTIMAL else "FEASIBLE (not optimal)"
+        print(f"Found a {solution_type} solution!")
         profiler.disable()
         stats = pstats.Stats(profiler).sort_stats('cumtime')
         stats.print_stats(10)
