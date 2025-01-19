@@ -74,14 +74,12 @@ def get_all_blocked_ids(field: Field, required_cost: int, assigned_subfield_id: 
     
     climb_parents(field, assigned_subfield_id, blocked_ids)
     
-    def block_descendants(fld: Field):
-        blocked_ids.add(fld.field_id)
-        for sf in fld.half_subfields:
-            block_descendants(sf)
-        for sf in fld.quarter_subfields:
-            block_descendants(sf)
+    if subfield_obj.parent_field_id is not None:
+        parent = lookup[subfield_obj.parent_field_id]
+        if parent.parent_field_id is not None:
+            blocked_ids.add(parent.field_id)
     
-    block_descendants(subfield_obj)
+    blocked_ids.add(subfield_obj.field_id)
     
     return blocked_ids
 
