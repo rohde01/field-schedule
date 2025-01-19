@@ -37,6 +37,7 @@ def generate_schedule(facility_id: int, team_ids: List[int], club_id: int, sched
 
         partial_time = c.partial_time or 0
         partial_cost = c.partial_cost or 0
+        partial_field = c.partial_field
 
         for _ in range(c.sessions):
             all_sessions.append(
@@ -50,7 +51,8 @@ def generate_schedule(facility_id: int, team_ids: List[int], club_id: int, sched
                     c.start_time,
                     c.day_of_week,
                     partial_time,
-                    partial_cost
+                    partial_cost,
+                    partial_field
                 )
             )
             session_index += 1
@@ -105,7 +107,7 @@ def generate_schedule(facility_id: int, team_ids: List[int], club_id: int, sched
     session_presence_vars = [[] for _ in range(num_sessions)]
 
     for s in range(num_sessions):
-        ( sid, team_id, forced_field, req_capacity, length_15, req_field_id, c_start_time, c_day_of_week, partial_time, partial_cost
+        ( sid, team_id, forced_field, req_capacity, length_15, req_field_id, c_start_time, c_day_of_week, partial_time, partial_cost, partial_field_id
         ) = all_sessions[s]
         # If partial_time > 0, the total session duration is length_15 + partial_time
         duration_main = length_15
@@ -224,7 +226,7 @@ def generate_schedule(facility_id: int, team_ids: List[int], club_id: int, sched
     team_sessions = defaultdict(list)
     for s, (sid, team_id, forced_field, req_capacity, length_15,
             req_field_id, c_start_time, c_day_of_week,
-            partial_time, partial_cost) in enumerate(all_sessions):
+            partial_time, partial_cost, partial_field_id) in enumerate(all_sessions):
         team_sessions[team_id].append(s)
 
     top_field_ids = [f.field_id for f in fields]
@@ -249,7 +251,7 @@ def generate_schedule(facility_id: int, team_ids: List[int], club_id: int, sched
 
         solution = []
         for s in range(num_sessions):
-            sid, team_id, forced_field, req_capacity, length_15, req_field_id, c_start_time, c_day_of_week, partial_time, partial_cost = all_sessions[s]
+            sid, team_id, forced_field, req_capacity, length_15, req_field_id, c_start_time, c_day_of_week, partial_time, partial_cost, partial_field_id = all_sessions[s]
             chosen_day = None
             chosen_field = None
             assigned_start_main = None
@@ -299,7 +301,8 @@ def generate_schedule(facility_id: int, team_ids: List[int], club_id: int, sched
                     "end_time": end_str_part,
                     "field_id": chosen_field,
                     "required_cost": partial_cost,
-                    "required_field": req_field_id
+                    "required_field": partial_field_id
+                    
                 }
                 solution.append(partial_session)
 

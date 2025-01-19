@@ -32,6 +32,7 @@ class Constraint:
     required_field: Optional[int] = None      # A specific field_id to be used in the session
     partial_time: Optional[int] = None   # in 15-minute blocks. must be less than length
     partial_cost: Optional[int] = None # '125','250','500','1000'. must be larger than required_cost.
+    partial_field: Optional[int] = None
 
 @dataclass
 class Team:

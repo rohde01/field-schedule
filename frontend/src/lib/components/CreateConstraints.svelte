@@ -23,7 +23,7 @@
             sessions: 1,
             length: 1,
             day_of_week: null,
-            partial_ses_space_size: null,
+            partial_field: null,
             partial_cost: null,
             partial_time: null,
             start_time: null,
@@ -189,17 +189,23 @@
                                 </div>
                                 
                                 {#if $expandedConstraints.has(visibleIndex)}
-                                    <EditableField
+                                        <EditableField
                                         {form}
                                         errors={$errors}
-                                        name="constraints[{actualIndex}].partial_ses_space_size"
-                                        label="Partial Size"
+                                        name="constraints[{actualIndex}].partial_field"
+                                        label="Partial Field"
                                         type="select"
-                                        options={[
-                                            { value: 'full', label: 'Full' },
-                                            { value: 'half', label: 'Half' },
-                                            { value: 'quarter', label: 'Quarter' }
-                                        ]}
+                                        options={$fields.flatMap(field => [
+                                            { value: field.field_id, label: `${field.name} (${field.field_type})` },
+                                            ...field.half_subfields.map(half => ({ 
+                                                value: half.field_id, 
+                                                label: `${half.name} (half of ${field.name})` 
+                                            })),
+                                            ...field.quarter_subfields.map(quarter => ({ 
+                                                value: quarter.field_id, 
+                                                label: `${quarter.name} (quarter of ${field.name})` 
+                                            }))
+                                        ])}
                                     />
                                     <EditableField
                                         {form}

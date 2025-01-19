@@ -45,7 +45,7 @@ export const constraintSchema = z.object({
     required_size: z.enum(['11v11', '8v8', '5v5', '3v3']).nullable().optional(),
     required_field : z.number().int().positive().nullable().optional(),
     subfield_type: z.enum(['full', 'half', 'quarter']).nullable().optional(),
-    partial_ses_space_size: z.enum(['full', 'half', 'quarter']).nullable().optional(),
+    partial_field: z.number().int().positive().nullable().optional(),
     required_cost: z.number()
       .refine((val) => [1000, 500, 250, 125].includes(val), {
         message: 'Cost must be one of: 1000, 500, 250, or 125'
@@ -76,25 +76,12 @@ export const constraintSchema = z.object({
                 message: 'Required field is required for specific constraint type.'
             });
         }
-        if ((data.partial_ses_space_size === null) !== (data.partial_time === null)) {
+        if ((data.partial_field === null) !== (data.partial_time === null)) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
-                message: 'For specific constraint type, partial_ses_space_size and partial_time must both be either null or filled.',
-                path: ['partial_ses_space_size']
+                message: 'For specific constraint type, partial_field and partial_time must both be either null or filled.',
+                path: ['partial_field']
             });
-        }
-
-        if (data.partial_ses_space_size && data.subfield_type) {
-            const partialIndex = sizeHierarchy.indexOf(data.partial_ses_space_size);
-            const requiredIndex = sizeHierarchy.indexOf(data.subfield_type);
-            
-            if (partialIndex <= requiredIndex) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    path: ['partial_ses_space_size'],
-                    message: 'Partial session space size must be strictly larger than subfield type'
-                });
-            }
         }
     }
     if (data.constraint_type === 'flexible') {

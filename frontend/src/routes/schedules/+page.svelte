@@ -125,7 +125,7 @@
                 { label: 'Length', value: field.length },
                 { label: 'Start Time', value: field.start_time },
                 { label: 'Partial Size', value: field.partial_cost },
-                { label: 'Partial Size', value: field.partial_ses_space_size }
+                { label: 'Partial Size', value: field.partial_field }
             ].filter(item => item.value != null).map(item => ({ ...item, value: item.value ?? '' }));
 
             const column2Fields = [

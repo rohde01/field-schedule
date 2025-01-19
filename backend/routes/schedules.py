@@ -27,6 +27,7 @@ class ConstraintSchema(BaseModel):
     day_of_week: Optional[Literal[0, 1, 2, 3, 4, 5, 6]]
     partial_time: Optional[int] = None   # in 15-minute blocks. must be less than length
     partial_cost: Optional[int] = None # '125','250','500','1000'. must be larger than required_cost.
+    partial_field: Optional[int] = None
 
 class ConstraintResponse(BaseModel):
     constraint_id: int
@@ -38,7 +39,7 @@ class ConstraintResponse(BaseModel):
     sessions: int
     length: int
     day_of_week: Optional[Literal[0, 1, 2, 3, 4, 5, 6]]
-    partial_ses_space_size: Optional[str]
+    partial_field: Optional[int]
     partial_cost: Optional[int]
     partial_time: Optional[int]
     start_time: Optional[str]
