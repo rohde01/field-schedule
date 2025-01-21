@@ -1,7 +1,4 @@
-"""
-filename: objectives.py
-description: This file contains objective functions to be used in the CP-SAT model.
-"""
+# filename: objectives.py
 
 from typing import Dict, List, Tuple
 from ortools.sat.python import cp_model
@@ -13,36 +10,53 @@ def add_adjacency_objective(
     top_field_ids: List[int]
 ) -> None:
     """
-    Adds the adjacency objective to minimize consecutive practice days for teams.
+    Adds an objective to minimize, for each team, its longest chain of
+    back-to-back training days. I.e., if a team has sessions on consecutive 
+    days, we count them as part of the same chain. The objective is to minimize 
+    the sum of these 'longest chains' across all teams.
     
     Args:
         model: The CP-SAT model instance
-        team_sessions: Dictionary mapping team IDs to their session IDs
-        presence_var: Dictionary mapping (session_id, field_id, day) to presence variables
-        top_field_ids: List of field IDs to consider
+        team_sessions: Dictionary mapping team IDs to a list of their session IDs
+        presence_var: Dictionary mapping (session_id, field_id, day) -> BoolVar
+                      that is 1 if session `session_id` is assigned to field `field_id`
+                      on day `day`.
+        top_field_ids: List of top-level field IDs to consider
     """
-    # Calculate has_session variables for each team and day
-    has_session_var = {}
+
+    NUM_DAYS = 7
+
+    has_session = {}
     for t_id, sess_list in team_sessions.items():
-        for d in range(7):
-            bools_for_that_day = []
+        for d in range(NUM_DAYS):
+            day_bools = []
             for s in sess_list:
                 for f_id in top_field_ids:
                     if (s, f_id, d) in presence_var:
-                        bools_for_that_day.append(presence_var[(s, f_id, d)])
+                        day_bools.append(presence_var[(s, f_id, d)])
+            
             var = model.NewIntVar(0, 1, f'has_session_t{t_id}_d{d}')
-            has_session_var[(t_id, d)] = var
-            model.Add(var == sum(bools_for_that_day))
+            model.Add(var == sum(day_bools))
+            
+            has_session[(t_id, d)] = var
 
-    # Create adjacency variables and constraints
-    adjacency_vars = []
-    for t_id, _ in team_sessions.items():
-        for d in range(5):
-            adj = model.NewBoolVar(f"adjacency_t{t_id}_d{d}")
-            # If we have a session on day d and d+1, adjacency is 1
-            model.Add(has_session_var[(t_id, d)] + has_session_var[(t_id, d+1)] == 2).OnlyEnforceIf(adj)
-            model.Add(has_session_var[(t_id, d)] + has_session_var[(t_id, d+1)] < 2).OnlyEnforceIf(adj.Not())
-            adjacency_vars.append(adj)
+    chain = {}
+    for t_id in team_sessions:
+        for d in range(NUM_DAYS):
+            chain[(t_id, d)] = model.NewIntVar(0, NUM_DAYS, f'chain_t{t_id}_d{d}')
 
-    # Set the objective to minimize the sum of adjacencies
-    model.Minimize(sum(adjacency_vars))
+    for t_id in team_sessions:
+        model.Add(chain[(t_id, 0)] == has_session[(t_id, 0)])
+
+        for d in range(1, NUM_DAYS):
+            model.Add(chain[(t_id, d)] <= chain[(t_id, d-1)] + 1)
+            model.Add(chain[(t_id, d)] <= has_session[(t_id, d)] * NUM_DAYS)
+            model.Add(
+                chain[(t_id, d)] >= chain[(t_id, d-1)] + has_session[(t_id, d)] - NUM_DAYS * (1 - has_session[(t_id, d)])
+            )
+    chain_max = {}
+    for t_id in team_sessions:
+        chain_max[t_id] = model.NewIntVar(0, NUM_DAYS, f'chain_max_t{t_id}')
+        for d in range(NUM_DAYS):
+            model.Add(chain_max[t_id] >= chain[(t_id, d)])
+    model.Minimize(sum(chain_max[t_id] for t_id in team_sessions))

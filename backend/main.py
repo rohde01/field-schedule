@@ -240,7 +240,7 @@ def generate_schedule(facility_id: int, team_ids: List[int], club_id: int, sched
                         bools_for_that_day.append(presence_var[(s, f_id, d)])
             model.Add(sum(bools_for_that_day) <= 1)
 
-    # Add the adjacency objective
+    # New objective: minimize each team's longest consecutive chain
     add_adjacency_objective(model, team_sessions, presence_var, top_field_ids)
 
     solver = cp_model.CpSolver()
