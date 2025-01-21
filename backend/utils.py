@@ -1,6 +1,7 @@
-from dataclass import Constraint, Field
+from models.field import Field
+from models.schedule import Constraint
 from database.teams import get_teams_by_ids
-from typing import List, Dict, Tuple, Any
+from typing import List, Dict, Tuple
 
 SIZE_TO_CAPACITY = {
     '11v11': 1000,

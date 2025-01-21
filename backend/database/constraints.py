@@ -1,32 +1,6 @@
-from dataclasses import dataclass
-from typing import List, Optional, Any, Literal
+from typing import List, Any
 from database.index import with_db_connection
-
-
-@dataclass
-class Constraint:
-    team_id: int
-    sessions: int
-    length: int
-    day_of_week: Optional[Literal[0, 1, 2, 3, 4, 5, 6]]
-    club_id: Optional[int] = None
-    constraint_id: Optional[int] = None
-    schedule_entry_id: Optional[int] = None
-    required_size: Optional[str] = None
-    subfield_type: Optional[str] = None
-    required_cost: Optional[int] = None
-    start_time: Optional[str] = None
-    partial_field: Optional[str] = None
-    partial_cost: Optional[int] = None
-    partial_time: Optional[int] = None
-
-    def __init__(self, team_id: int, sessions: int, length: int, day_of_week: Optional[Literal[0, 1, 2, 3, 4, 5, 6]] = None, **kwargs):
-        self.team_id = team_id
-        self.sessions = sessions
-        self.length = length
-        self.day_of_week = day_of_week
-        for key, value in kwargs.items():
-            setattr(self, key, value)
+from models.schedule import Constraint
 
 @with_db_connection
 def get_constraints(conn, club_id: int) -> List[Constraint]:

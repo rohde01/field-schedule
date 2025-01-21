@@ -1,8 +1,6 @@
-from dataclasses import dataclass, field
 from collections import defaultdict
-from typing import Dict, List, Optional
-from typing import Literal
-from dataclass import Field
+from typing import List, Optional
+from models.field import Field
 from utils import SIZE_TO_CAPACITY, time_str_to_block
 
 def get_all_blocked_ids(field: Field, required_cost: int, assigned_subfield_id: Optional[int] = None) -> set[int]:

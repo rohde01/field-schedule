@@ -7,7 +7,7 @@ from database import users
 from dotenv import load_dotenv
 import os
 from pydantic import BaseModel
-from models.users import User
+from backend.models.user import User
 
 load_dotenv()
 

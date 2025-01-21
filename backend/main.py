@@ -166,7 +166,7 @@ def generate_schedule(facility_id: int, team_ids: List[int], club_id: int, sched
                 end_var_main[(s, f_id, d)] = e_main
                 interval_var_main[(s, f_id, d)] = interval_main
                 demands_capacity_main[(s, f_id, d)] = req_capacity
-                demands_splits_main[(s, f_id, d)] = 1  # or your own logic for "splits"
+                demands_splits_main[(s, f_id, d)] = 1
 
                 # Partial session interval if needed
                 if duration_partial > 0:
@@ -240,7 +240,7 @@ def generate_schedule(facility_id: int, team_ids: List[int], club_id: int, sched
                         bools_for_that_day.append(presence_var[(s, f_id, d)])
             model.Add(sum(bools_for_that_day) <= 1)
 
-    # New objective: minimize each team's longest consecutive chain
+    # objective: minimize each team's longest consecutive chain of back to back training days
     add_adjacency_objective(model, team_sessions, presence_var, top_field_ids)
 
     solver = cp_model.CpSolver()

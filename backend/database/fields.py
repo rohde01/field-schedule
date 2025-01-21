@@ -1,28 +1,8 @@
-from dataclasses import dataclass, field
-from typing import List, Dict, Optional, Literal
+from typing import List, Dict, Optional
 from .index import with_db_connection
+from models.field import Field, FieldAvailability
 import psycopg2
-from database.index import connection_string
 from collections import defaultdict
-
-@dataclass
-class FieldAvailability:
-    day_of_week: Literal['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-    start_time: str 
-    end_time: str    
-
-@dataclass
-class Field:
-    field_id: int
-    facility_id: int
-    name: str
-    size: str
-    field_type: str
-    parent_field_id: Optional[int]
-    is_active: bool = True
-    availability: Dict[str, FieldAvailability] = field(default_factory=dict)
-    quarter_subfields: List['Field'] = field(default_factory=list)
-    half_subfields: List['Field'] = field(default_factory=list)
 
 @with_db_connection
 def get_fields(conn, club_id: int) -> List[Field]:

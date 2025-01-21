@@ -8,48 +8,15 @@ from typing import List, Optional, Literal
 from main import generate_schedule
 from database.constraints import Constraint as ConstraintModel
 from database.schedules import get_club_schedules, delete_schedule, get_schedule_club_id
-from models.schedules import Schedule
+from backend.models.schedule import Schedule
 from dependencies.auth import get_current_user
 from dependencies.permissions import require_club_access
-from models.users import User
+from backend.models.user import User
 from database.constraints import get_constraints
+from backend.models.schedule import GenerateScheduleRequest, Constraint
 
 router = APIRouter(prefix="/schedules", tags=["schedules"])
 
-class ConstraintSchema(BaseModel):
-    team_id: int
-    club_id: Optional[int] = None
-    required_cost: Optional[int] = None
-    required_field: Optional[int] = None
-    sessions: int = Field(default=1)
-    length: int = Field(default=4)
-    start_time: Optional[str] = None
-    day_of_week: Optional[Literal[0, 1, 2, 3, 4, 5, 6]]
-    partial_time: Optional[int] = None   # in 15-minute blocks. must be less than length
-    partial_cost: Optional[int] = None # '125','250','500','1000'. must be larger than required_cost.
-    partial_field: Optional[int] = None
-
-class ConstraintResponse(BaseModel):
-    constraint_id: int
-    schedule_entry_id: Optional[int]
-    team_id: int
-    required_size: Optional[str]
-    subfield_type: Optional[str]
-    required_cost: Optional[int]
-    sessions: int
-    length: int
-    day_of_week: Optional[Literal[0, 1, 2, 3, 4, 5, 6]]
-    partial_field: Optional[int]
-    partial_cost: Optional[int]
-    partial_time: Optional[int]
-    start_time: Optional[str]
-
-class GenerateScheduleRequest(BaseModel):
-    facility_id: int
-    team_ids: List[int]
-    constraints: List[ConstraintSchema]
-    club_id: int
-    schedule_name: str = Field(default="Generated Schedule")
 
 @router.post("/generate", response_model=dict)
 async def generate_schedule_route(
@@ -88,7 +55,7 @@ async def fetch_club_schedules(
     schedules = get_club_schedules(club_id)
     return schedules
 
-@router.get("/{club_id}/constraints", response_model=List[ConstraintResponse])
+@router.get("/{club_id}/constraints", response_model=List[Constraint])
 async def fetch_club_constraints(
     club_id: int,
     current_user: User = Depends(get_current_user)
@@ -109,7 +76,7 @@ async def fetch_club_constraints(
             }
             if constraint_dict.get('start_time'):
                 constraint_dict['start_time'] = constraint_dict['start_time'].strftime('%H:%M:%S')
-            response.append(ConstraintResponse(**constraint_dict))
+            response.append(Constraint(**constraint_dict))
             
         return response
     except Exception as e:

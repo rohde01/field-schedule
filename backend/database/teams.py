@@ -1,21 +1,6 @@
-from dataclasses import dataclass
 from typing import List, Optional
 from database.index import with_db_connection
-
-@dataclass
-class Team:
-    team_id: int
-    name: str
-    year: str
-    club_id: int
-    gender: str
-    is_academy: bool
-    minimum_field_size: int
-    preferred_field_size: Optional[int]
-    level: int
-    is_active: bool
-    weekly_trainings: int
-    training_length: Optional[int] = None
+from models.team import Team
 
 @with_db_connection
 def get_teams(conn, club_id: int, include_inactive: bool = False) -> List[Team]:

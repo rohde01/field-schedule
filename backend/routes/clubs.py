@@ -5,16 +5,12 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from database import clubs
 from dependencies.auth import get_current_user
-from models.users import User
+from backend.models.user import User, UserClubCreate
 
 router = APIRouter(prefix="/clubs", tags=["clubs"])
 
 class ClubCreate(BaseModel):
     name: str
-
-class UserClubCreate(BaseModel):
-    user_id: int
-    is_primary: bool = False
 
 @router.post("/")
 async def create_club(club: ClubCreate, current_user: User = Depends(get_current_user)):
