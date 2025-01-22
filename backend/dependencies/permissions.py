@@ -1,6 +1,6 @@
 import logging
 from fastapi import Depends, HTTPException, status
-from backend.models.user import User
+from models.user import User
 from database.users import user_belongs_to_club
 from database.facilities import get_facility
 from .auth import get_current_user 

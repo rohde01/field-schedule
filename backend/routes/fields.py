@@ -7,7 +7,7 @@ from typing import List
 from pydantic import Field
 from dependencies.auth import get_current_user
 from dependencies.permissions import validate_facility_access, validate_field_access, require_club_access
-from backend.models.user import User
+from models.user import User
 from database.fields import FieldAvailability, Field
 from database.facilities import Facility
 

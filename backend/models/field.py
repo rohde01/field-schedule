@@ -17,5 +17,5 @@ class Field(BaseModel):
     parent_field_id: Optional[int]
     is_active: bool = True
     availability: Dict[str, FieldAvailability] = Field(default_factory=dict)
-    quarter_subfields: List['Field'] = Field(default_factory=list)
-    half_subfields: List['Field'] = Field(default_factory=list)
+    quarter_subfields: Optional[List['Field']] = Field(default_factory=list)
+    half_subfields: Optional[List['Field']] = Field(default_factory=list)

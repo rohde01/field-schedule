@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from database import clubs
 from dependencies.auth import get_current_user
-from backend.models.user import User, UserClubCreate
+from models.user import User, UserClubCreate
 
 router = APIRouter(prefix="/clubs", tags=["clubs"])
 

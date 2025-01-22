@@ -1,16 +1,12 @@
 '''
 Filename: users.py in routes folder
 '''
-
 from fastapi import APIRouter, HTTPException, Depends, status
 from pydantic import BaseModel
-from typing import Optional
 from database import users
-from dependencies.auth import create_tokens, get_current_user, Token, OAuth2PasswordBearer, refresh_access_token
-from datetime import timedelta
+from dependencies.auth import create_tokens, get_current_user, refresh_access_token
 from fastapi.security import OAuth2PasswordRequestForm
-from database import clubs
-from backend.models.user import User
+from models.user import User
 
 router = APIRouter(prefix="/users", tags=["users"])
 

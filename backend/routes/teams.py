@@ -3,13 +3,12 @@ Filename: teams.py in routes folder
 '''
 
 from fastapi import APIRouter, HTTPException, Depends
-from typing import List, Optional
-from pydantic import BaseModel, Field, model_validator
+from typing import List
 from database.teams import create_team, get_teams, delete_team, update_team, get_teams_by_ids
 from dependencies.auth import get_current_user
 from dependencies.permissions import require_club_access
-from backend.models.user import User
-from backend.models.team import Team
+from models.user import User
+from models.team import Team
 
 router = APIRouter(
     prefix="/teams",

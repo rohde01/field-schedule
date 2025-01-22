@@ -1,15 +1,13 @@
-import logging
 from fastapi import APIRouter, HTTPException, Depends
 from database.facilities import (
     create_facility, get_facilities,
     FacilityError, DuplicatePrimaryFacilityError, DuplicateFacilityNameError
 )
 from typing import List
-from pydantic import BaseModel, Field
 from dependencies.auth import get_current_user
 from dependencies.permissions import require_club_access, validate_facility_access
-from backend.models.user import User
-from database.facilities import Facility
+from models.user import User
+from models.facility import Facility
 
 router = APIRouter(
     prefix="/facilities",

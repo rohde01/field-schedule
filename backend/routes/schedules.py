@@ -3,17 +3,16 @@ Filename: schedules.py in routes folder
 '''
 
 from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel, Field
-from typing import List, Optional, Literal
+from typing import List
 from main import generate_schedule
 from database.constraints import Constraint as ConstraintModel
 from database.schedules import get_club_schedules, delete_schedule, get_schedule_club_id
-from backend.models.schedule import Schedule
+from models.schedule import Schedule
 from dependencies.auth import get_current_user
 from dependencies.permissions import require_club_access
-from backend.models.user import User
+from models.user import User
 from database.constraints import get_constraints
-from backend.models.schedule import GenerateScheduleRequest, Constraint
+from models.schedule import GenerateScheduleRequest, Constraint
 
 router = APIRouter(prefix="/schedules", tags=["schedules"])
 

@@ -14,7 +14,12 @@ def get_teams(conn, club_id: int, include_inactive: bool = False) -> List[Team]:
     if not include_inactive:
         query += " AND is_active = true"
     cursor.execute(query, (club_id,))
-    return [Team(*row) for row in cursor.fetchall()]
+    
+    columns = ['team_id', 'name', 'year', 'club_id', 'gender', 'is_academy',
+               'minimum_field_size', 'preferred_field_size', 'level', 'is_active',
+               'weekly_trainings', 'training_length']
+    
+    return [Team(**dict(zip(columns, row))) for row in cursor.fetchall()]
 
 @with_db_connection
 def create_team(conn, team_data: dict) -> Team:
