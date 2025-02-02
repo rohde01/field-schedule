@@ -46,7 +46,7 @@ def create_team(conn, team_data: dict) -> Team:
     ))
     row = cursor.fetchone()
     conn.commit()
-    return Team(*row)
+    return Team(**dict(zip(Team.__fields__.keys(), row)))
 
 @with_db_connection
 def delete_team(conn, team_id: int) -> dict:
@@ -98,7 +98,7 @@ def get_teams_by_ids(conn, team_ids: List[int]) -> List[Team]:
     WHERE team_id IN ({format_strings})
     """
     cursor.execute(query, tuple(team_ids))
-    return [Team(*row) for row in cursor.fetchall()]
+    return [Team(**dict(zip(Team.__fields__.keys(), row))) for row in cursor.fetchall()]
 
 @with_db_connection
 def update_team(conn, team_id: int, update_data: dict) -> Optional[Team]:
@@ -124,4 +124,4 @@ def update_team(conn, team_id: int, update_data: dict) -> Optional[Team]:
         return None
         
     conn.commit()
-    return Team(*row)
+    return Team(**dict(zip(Team.__fields__.keys(), row)))

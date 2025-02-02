@@ -4,11 +4,11 @@ Filename: fields.py in routes folder
 from fastapi import APIRouter, HTTPException, Depends
 from database.fields import get_fields, create_field, add_field_availabilities, delete_field
 from typing import List
-from pydantic import Field
+from models.field import FieldCreate
 from dependencies.auth import get_current_user
 from dependencies.permissions import validate_facility_access, validate_field_access, require_club_access
 from models.user import User
-from database.fields import FieldAvailability, Field
+from database.fields import FieldAvailability
 from database.facilities import Facility
 
 router = APIRouter(
@@ -60,7 +60,7 @@ async def get_club_fields(
     _: bool = Depends(require_club_access),
     current_user: User = Depends(get_current_user)
 ) -> List[dict]:
-    fields = get_fields(club_id)  # Remove await since get_fields is synchronous
+    fields = get_fields(club_id)
     return [
         {
             "field_id": field.field_id,
@@ -97,7 +97,7 @@ async def get_club_fields(
 
 @router.post("")
 async def create_new_field(
-    field: Field,
+    field: FieldCreate,
     current_user: User = Depends(get_current_user)
 ) -> dict:
     

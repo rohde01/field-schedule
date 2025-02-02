@@ -8,7 +8,7 @@ from database.teams import create_team, get_teams, delete_team, update_team, get
 from dependencies.auth import get_current_user
 from dependencies.permissions import require_club_access
 from models.user import User
-from models.team import Team
+from models.team import Team, TeamCreate
 
 router = APIRouter(
     prefix="/teams",
@@ -19,7 +19,7 @@ router = APIRouter(
 
 @router.post("", response_model=Team)
 async def create_team_route(
-    team: Team,
+    team: TeamCreate,
     current_user: User = Depends(get_current_user)
 ):
     # Check club access before creating team
