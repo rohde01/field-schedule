@@ -8,7 +8,7 @@ from ortools.sat.python import cp_model
 from collections import defaultdict
 import cProfile
 import pstats
-from utils import ( time_str_to_block, blocks_to_time_str, get_capacity_and_allowed, teams_to_constraints, build_fields_by_id, find_top_field_and_cost)
+from utils import ( time_str_to_block, blocks_to_time_str, get_capacity_and_allowed, build_fields_by_id, find_top_field_and_cost)
 from database.schedules import save_schedule
 from database.fields import get_fields_by_facility
 from assign_subfields import post_process_solution
@@ -22,8 +22,7 @@ def generate_schedule(facility_id: int, team_ids: List[int], club_id: int, sched
     top_fields = get_fields_by_facility(facility_id)
     fields_by_id, fields = build_fields_by_id(top_fields)
 
-    default_constraints = teams_to_constraints(team_ids)
-    constraints_list = default_constraints + (constraints_list or [])
+    constraints_list = constraints_list
 
     all_sessions = []
     session_index = 0

@@ -35,27 +35,6 @@ def get_capacity_and_allowed(field: Field) -> tuple[int, List[int], int]:
     allowed_demands = sorted(list(demands))
     return total_cap, allowed_demands, max_splits
 
-def teams_to_constraints(team_ids: List[int]) -> List[Constraint]:
-    """Convert a list of team IDs into scheduling constraints."""
-    teams = get_teams_by_ids(team_ids)
-    constraints_list = []
-    
-    for team in teams:
-        # Use preferred_field_size if available, otherwise use minimum_field_size
-        required_cost = str(team.preferred_field_size if team.preferred_field_size is not None else team.minimum_field_size)
-        # Use training_length if available, otherwise default to 4
-        length = team.training_length if team.training_length is not None else 4
-        
-        constraints_list.append(Constraint(
-            team_id=team.team_id,
-            sessions=team.weekly_trainings,
-            length=length,
-            required_cost=required_cost,
-            day_of_week=None
-        ))
-    
-    return constraints_list
-
 def build_fields_by_id(top_fields: List[Field]) -> Tuple[Dict[int, Field], List[Field]]:
     """Build a dictionary mapping field IDs to field objects."""
     fields_by_id = {}
