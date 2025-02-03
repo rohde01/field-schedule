@@ -41,22 +41,24 @@ export const constraintSchema = z.object({
       .nullable()
       .optional(),
     length: z.number().int().min(1).max(10),
+    day_of_week: z.number().int().min(0).max(6).nullable(),
     required_size: z.enum(['11v11', '8v8', '5v5', '3v3']).nullable().optional(),
+    required_field : z.number().int().positive().nullable().optional(),
     subfield_type: z.enum(['full', 'half', 'quarter']).nullable().optional(),
-    partial_ses_space_size: z.enum(['full', 'half', 'quarter']).nullable().optional(),
+    partial_field: z.number().int().positive().nullable().optional(),
     required_cost: z.number()
       .refine((val) => [1000, 500, 250, 125].includes(val), {
         message: 'Cost must be one of: 1000, 500, 250, or 125'
       })
       .nullable()
       .optional(),
-    partial_ses_space_cost: z.number()
+    partial_cost: z.number()
       .refine((val) => [1000, 500, 250, 125].includes(val), {
         message: 'Cost must be one of: 1000, 500, 250, or 125'
       })
       .nullable()
       .optional(),
-    partial_ses_time: z.number().int().min(1).max(10).nullable().optional()
+    partial_time: z.number().int().min(1).max(10).nullable().optional()
 }).superRefine((data, ctx) => {
     const sizeHierarchy = ['quarter', 'half', 'full'] as const;
     const fieldSizeHierarchy = {
@@ -67,39 +69,19 @@ export const constraintSchema = z.object({
     } as const;
 
     if (data.constraint_type === 'specific') {
-        if (!data.required_size) {
+        if (!data.required_field) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
-                path: ['required_size'],
-                message: 'Required size is required for specific constraint type.'
+                path: ['required_field'],
+                message: 'Required field is required for specific constraint type.'
             });
         }
-        if (!data.subfield_type) {
+        if ((data.partial_field === null) !== (data.partial_time === null)) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
-                path: ['subfield_type'],
-                message: 'Subfield type is required for specific constraint type.'
+                message: 'For specific constraint type, partial_field and partial_time must both be either null or filled.',
+                path: ['partial_field']
             });
-        }
-        if ((data.partial_ses_space_size === null) !== (data.partial_ses_time === null)) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: 'For specific constraint type, partial_ses_space_size and partial_ses_time must both be either null or filled.',
-                path: ['partial_ses_space_size']
-            });
-        }
-
-        if (data.partial_ses_space_size && data.subfield_type) {
-            const partialIndex = sizeHierarchy.indexOf(data.partial_ses_space_size);
-            const requiredIndex = sizeHierarchy.indexOf(data.subfield_type);
-            
-            if (partialIndex <= requiredIndex) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    path: ['partial_ses_space_size'],
-                    message: 'Partial session space size must be strictly larger than subfield type'
-                });
-            }
         }
     }
     if (data.constraint_type === 'flexible') {
@@ -110,29 +92,29 @@ export const constraintSchema = z.object({
                 message: 'Required cost is required for flexible constraint type.'
             });
         }
-        if ((data.partial_ses_space_cost === null) !== (data.partial_ses_time === null)) {
+        if ((data.partial_cost === null) !== (data.partial_time === null)) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
-                message: 'For flexible constraint type, partial_ses_space_cost and partial_ses_time must both be either null or filled.',
-                path: ['partial_ses_space_cost']
+                message: 'For flexible constraint type, partial_cost and partial_time must both be either null or filled.',
+                path: ['partial_cost']
             });
         }
 
-        if (data.partial_ses_space_cost && data.required_cost &&
-            data.partial_ses_space_cost <= data.required_cost) {
+        if (data.partial_cost && data.required_cost &&
+            data.partial_cost <= data.required_cost) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
-                path: ['partial_ses_space_cost'],
+                path: ['partial_cost'],
                 message: 'Partial session space cost must be strictly larger than required cost'
             });
         }
     }
-    if (data.partial_ses_time !== undefined && 
-        data.partial_ses_time !== null && 
-        data.partial_ses_time >= data.length) {
+    if (data.partial_time !== undefined && 
+        data.partial_time !== null && 
+        data.partial_time >= data.length) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            path: ['partial_ses_time'],
+            path: ['partial_time'],
             message: 'Partial session time must be less than total session length.'
         });
     }

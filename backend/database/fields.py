@@ -1,27 +1,8 @@
-from dataclasses import dataclass, field
-from typing import List, Dict, Optional, Literal
+from typing import List, Dict, Optional
 from .index import with_db_connection
+from models.field import Field, FieldAvailability
 import psycopg2
-from database.index import connection_string
-
-@dataclass
-class FieldAvailability:
-    day_of_week: Literal['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-    start_time: str 
-    end_time: str    
-
-@dataclass
-class Field:
-    field_id: int
-    facility_id: int
-    name: str
-    size: str
-    field_type: str
-    parent_field_id: Optional[int]
-    is_active: bool = True
-    availability: Dict[str, FieldAvailability] = field(default_factory=dict)
-    quarter_subfields: List['Field'] = field(default_factory=list)
-    half_subfields: List['Field'] = field(default_factory=list)
+from collections import defaultdict
 
 @with_db_connection
 def get_fields(conn, club_id: int) -> List[Field]:
@@ -229,20 +210,24 @@ def get_field_facility_id(conn, field_id: int) -> Optional[int]:
 
 @with_db_connection
 def get_fields_by_facility(conn, facility_id: int) -> List[Field]:
-    """Fetches a list of Field instances from the database for a specific facility."""
+    """
+    Fetch a list of top-level fields (field_type='full' AND parent_field_id is None)
+    """
     cursor = conn.cursor()
     fields_query = """
         SELECT f.field_id, f.facility_id, f.name, f.size, f.field_type, f.parent_field_id,
-            fa.day_of_week, fa.start_time, fa.end_time, f.is_active
-        FROM fields f
-        LEFT JOIN field_availability fa ON f.field_id = fa.field_id
-        WHERE f.facility_id = %s AND f.is_active = true
-        """
+               fa.day_of_week, fa.start_time, fa.end_time, f.is_active
+          FROM fields f
+          LEFT JOIN field_availability fa ON f.field_id = fa.field_id
+         WHERE f.facility_id = %s
+           AND f.is_active = TRUE
+        ORDER BY f.field_id
+    """
     cursor.execute(fields_query, (facility_id,))
     rows = cursor.fetchall()
-    fields_by_id: Dict[int, Field] = {}
-    parent_to_children: Dict[int, List[Field]] = {}
 
+    # Build a dict of Field objects (for ALL rows: full, half, quarter).
+    fields_by_id: Dict[int, Field] = {}
     for row in rows:
         field_id = row[0]
         if field_id not in fields_by_id:
@@ -254,12 +239,11 @@ def get_fields_by_facility(conn, facility_id: int) -> List[Field]:
                 field_type=row[4],
                 parent_field_id=row[5],
                 is_active=row[9],
-                availability={}
+                availability={},
+                half_subfields=[],
+                quarter_subfields=[],
             )
-            parent_id = row[5]
-            if parent_id:
-                parent_to_children.setdefault(parent_id, []).append(fields_by_id[field_id])
-
+        # Add availability if present
         if row[6] is not None:
             day_of_week = row[6]
             start_time = str(row[7])[:5]
@@ -270,24 +254,35 @@ def get_fields_by_facility(conn, facility_id: int) -> List[Field]:
                 end_time=end_time
             )
 
-    full_fields = [field for field in fields_by_id.values() if field.field_type == 'full']
-    field_list: List[Field] = []
-    for full_field in full_fields:
-        children = parent_to_children.get(full_field.field_id, [])
-        half_fields = [child for child in children if child.field_type == 'half']
-        quarter_fields_direct = [child for child in children if child.field_type == 'quarter']
+    parent_to_children: Dict[int, List[int]] = defaultdict(list)
+    for f_id, f_obj in fields_by_id.items():
+        if f_obj.parent_field_id is not None:
+            parent_to_children[f_obj.parent_field_id].append(f_id)
 
-        full_field.quarter_subfields.extend(quarter_fields_direct)
+    def collect_subfields_recursive(top: Field, current_id: int):
+        """
+        - If the child is half, add to top.half_subfields.
+        - If the child is quarter, add to top.quarter_subfields.
+        - Then recurse on that child in case it has its own subfields.
+        """
+        children_ids = parent_to_children.get(current_id, [])
+        for cid in children_ids:
+            child = fields_by_id[cid]
+            if child.field_type == 'half':
+                top.half_subfields.append(child)
+            elif child.field_type == 'quarter':
+                top.quarter_subfields.append(child)
 
-        for half_field in half_fields:
-            quarter_children = parent_to_children.get(half_field.field_id, [])
-            half_field.quarter_subfields.extend(quarter_children)
-            full_field.half_subfields.append(half_field)
-            full_field.quarter_subfields.extend(quarter_children)
-            
-        unique_quarters = {field.field_id: field for field in full_field.quarter_subfields}
-        full_field.quarter_subfields = list(unique_quarters.values())
+            # Recurse down
+            collect_subfields_recursive(top, cid)
 
-        field_list.append(full_field)
+    top_level_fields = []
+    for f_obj in fields_by_id.values():
+        if f_obj.field_type == 'full' and f_obj.parent_field_id is None:
+            top_level_fields.append(f_obj)
 
-    return field_list
+    for top_f in top_level_fields:
+        collect_subfields_recursive(top_f, top_f.field_id)
+
+    # Return just these top-level fields, each with fully-populated subfields.
+    return top_level_fields

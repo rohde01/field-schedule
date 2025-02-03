@@ -1,152 +1,323 @@
 """
-Filename: main.py 
+Filename: main.py
 Main module to solve the soccer scheduling problem.
 Provides a generate_schedule function to be called from other modules.
 """
 
-import cProfile
-import pstats
-from typing import List, Dict, Any, Optional
 from ortools.sat.python import cp_model
 from collections import defaultdict
-from database.teams import get_teams_by_ids
-from database.fields import get_fields_by_facility
-from database.constraints import get_constraints
+import cProfile
+import pstats
+from utils import ( time_str_to_block, blocks_to_time_str, get_capacity_and_allowed, teams_to_constraints, build_fields_by_id, find_top_field_and_cost)
 from database.schedules import save_schedule
-from utils import (
-    build_time_slots,
-    get_subfields,
-    get_size_to_combos,
-    get_subfield_availability,
-    get_subfield_areas,
-    get_cost_to_combos,
-    get_field_costs,
-    get_field_to_smallest_subfields,
-)
-from model import create_variables
-from constraints import (
-    add_no_overlapping_sessions_constraints,
-    add_no_double_booking_constraints,
-    add_field_availability_constraints,
-    add_team_day_constraints,
-    add_allowed_assignments_constraints,
-)
-from objectives import add_objective_function
-
-def add_objectives(model: cp_model.CpModel, teams: List[Any], interval_vars: Dict[int, Any], time_slots: Dict[str, List[str]], day_name_to_index: Dict[str, int]) -> None:
-    """
-    Adds an objective function to the model to minimize penalties for undesirable scheduling patterns
-    and reward desirable ones.
-    """
-    add_objective_function(model, teams, interval_vars, time_slots, day_name_to_index)
-
-
-def add_constraints(model: cp_model.CpModel, teams: List[Any], constraints: Dict[int, List[Any]], time_slots: Dict[str, List[str]], size_to_combos: Dict[Any, Any],
-                    interval_vars: Dict[int, Any], assigned_fields: Dict[int, Any], subfield_areas: Dict[str, List[str]], subfield_availability: Dict[str, Dict[str, List[bool]]], global_time_slots: List[Any]) -> None:
-    """
-    Adds various constraints to the model.
-    """
-    add_no_overlapping_sessions_constraints(model, teams, interval_vars)
-    add_no_double_booking_constraints(model, teams, interval_vars, assigned_fields, subfield_areas, global_time_slots)
-    add_field_availability_constraints(model, interval_vars, assigned_fields, subfield_availability, global_time_slots)
-    add_team_day_constraints(model, interval_vars)
-    add_allowed_assignments_constraints(model, interval_vars)
-
-def solve_model(model: cp_model.CpModel) -> Any:
-    """
-    Solves the CP-SAT model.
-    """
-    solver = cp_model.CpSolver()
-    status = solver.Solve(model)
-    return solver, status
+from database.fields import get_fields_by_facility
+from assign_subfields import post_process_solution
+from typing import List, Any, Optional
+from objectives import add_adjacency_objective
 
 def generate_schedule(facility_id: int, team_ids: List[int], club_id: int, schedule_name: str = "Generated Schedule", constraints_list: Optional[List[Any]] = None) -> int:
-    """
-    Generates a schedule based on the provided facility_id, team_ids, club_id, and constraints_list.
-    Returns the schedule_id if successful.
-    """
     profiler = cProfile.Profile()
     profiler.enable()
 
-    constraints: Dict[int, List[Any]] = defaultdict(list)
-    if constraints_list:
-        for constraint in constraints_list:
-            constraints[constraint.team_id].append(constraint)
-    else:
-        constraints_list = get_constraints()
-        for constraint in constraints_list:
-            constraints.setdefault(constraint.team_id, []).append(constraint)
+    top_fields = get_fields_by_facility(facility_id)
+    fields_by_id, fields = build_fields_by_id(top_fields)
 
-    # Fetch teams
-    teams = get_teams_by_ids(team_ids)
-    if not teams:
-        raise ValueError("No teams found for the given team IDs")
+    default_constraints = teams_to_constraints(team_ids)
+    constraints_list = default_constraints + (constraints_list or [])
 
-    # Fetch fields
-    fields = get_fields_by_facility(facility_id)
-    if not fields:
-        raise ValueError("No fields found for the given facility ID")
+    all_sessions = []
+    session_index = 0
+    for c in constraints_list:
+        if c.required_field is not None:
+            top_f_id, sub_cost = find_top_field_and_cost(c.required_field, fields_by_id)
+            final_cost = sub_cost
+            forced_top_field = top_f_id
+        else:
+            final_cost = int(c.required_cost) if c.required_cost else 1000
+            forced_top_field = None
 
-    # Build field mappings
-    field_name_to_id: Dict[str, int] = {}
-    for field in fields:
-        field_name_to_id[field.name] = field.field_id
-        for half_subfield in field.half_subfields:
-            field_name_to_id[half_subfield.name] = half_subfield.field_id
-        for quarter_subfield in field.quarter_subfields:
-            field_name_to_id[quarter_subfield.name] = quarter_subfield.field_id
+        partial_time = c.partial_time or 0
+        partial_cost = c.partial_cost or 0
+        partial_field = c.partial_field
 
-    time_slots, all_days = build_time_slots(fields)
-    all_subfields = get_subfields(fields)
-    subfield_availability = get_subfield_availability(fields, time_slots, all_subfields)
-    size_to_combos = get_size_to_combos(fields)
-    subfield_areas = get_subfield_areas(fields)
-    field_costs = get_field_costs()
-    cost_to_combos = get_cost_to_combos(fields, field_costs)
-    field_to_smallest_subfields, smallest_subfields_list = get_field_to_smallest_subfields(fields)
+        for _ in range(c.sessions):
+            all_sessions.append(
+                (
+                    session_index,
+                    c.team_id,
+                    forced_top_field,
+                    final_cost,
+                    c.length,
+                    c.required_field,
+                    c.start_time,
+                    c.day_of_week,
+                    partial_time,
+                    partial_cost,
+                    partial_field
+                )
+            )
+            session_index += 1
 
-    parent_field_names = set()
-    for field in fields:
-        parent_field_names.add(field.name)
-    parent_field_name_to_id = {name: idx for idx, name in enumerate(parent_field_names)}
-    parent_field_id_to_name = {idx: name for name, idx in parent_field_name_to_id.items()}
+    num_sessions = len(all_sessions)
+
+    day_to_idx = {'Mon':0,'Tue':1,'Wed':2,'Thu':3,'Fri':4,'Sat':5,'Sun':6}
+    idx_to_day = {v: k for k, v in day_to_idx.items()}
+
+    # Build the field_info for each top-level field
+    field_info = {}
+    for f in fields:
+        total_cap, allowed_demands, max_splits = get_capacity_and_allowed(f)
+        day_windows = {}
+        for day_name, avail in f.availability.items():
+            start_block = time_str_to_block(avail.start_time)
+            end_block = time_str_to_block(avail.end_time)
+            d_idx = day_to_idx[day_name]
+            day_windows[d_idx] = (start_block, end_block)
+
+        field_info[f.field_id] = {
+            'total_cap': total_cap,
+            'allowed_demands': allowed_demands,
+            'max_splits': max_splits,
+            'day_windows': day_windows
+        }
+
+    all_starts = []
+    all_ends = []
+    for f in fields:
+        for (start_blk, end_blk) in field_info[f.field_id]['day_windows'].values():
+            all_starts.append(start_blk)
+            all_ends.append(end_blk)
+    if not all_starts:
+        print("No field availability found, no feasible solution.")
+        return None
 
     model = cp_model.CpModel()
 
-    # Create variables
-    interval_vars, assigned_fields, global_time_slots, day_name_to_index = create_variables(
-        model, teams, constraints, time_slots, size_to_combos, cost_to_combos, parent_field_name_to_id, fields
-    )
+    # Variables for presence, start, end, intervals
+    presence_var = {}
+    start_var_main = {}
+    end_var_main = {}
+    interval_var_main = {}
+    demands_capacity_main = {}
+    demands_splits_main = {}
+    start_var_partial = {}
+    end_var_partial = {}
+    interval_var_partial = {}
+    demands_capacity_partial = {}
+    demands_splits_partial = {}
+    session_presence_vars = [[] for _ in range(num_sessions)]
 
-    # Add constraints
-    add_constraints(model, teams, constraints, time_slots, size_to_combos,
-                    interval_vars, assigned_fields, subfield_areas, subfield_availability, global_time_slots)
+    for s in range(num_sessions):
+        ( sid, team_id, forced_field, req_capacity, length_15, req_field_id, c_start_time, c_day_of_week, partial_time, partial_cost, partial_field_id
+        ) = all_sessions[s]
+        # If partial_time > 0, the total session duration is length_15 + partial_time
+        duration_main = length_15
+        duration_partial = partial_time
+        duration_total = duration_main + duration_partial
 
-    # Add objectives
-    add_objectives(model, teams, interval_vars, time_slots, day_name_to_index)
+        if forced_field:
+            possible_top_fields = [fields_by_id[forced_field]]
+        else:
+            possible_top_fields = fields
 
-    # Solve the model
-    solver, status = solve_model(model)
+        if c_day_of_week is not None:
+            possible_days = [c_day_of_week]
+        else:
+            possible_days = range(7)
 
-    if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
-        # Save the schedule
-        schedule_id = save_schedule(
-            solver, 
-            teams, 
-            interval_vars, 
-            field_name_to_id, 
-            fields, 
-            club_id=club_id,
-            facility_id=facility_id,
-            schedule_name=schedule_name,
-            constraints_list=constraints_list
-        )
+        for f_obj in possible_top_fields:
+            f_id = f_obj.field_id
+            fi = field_info[f_id]
+
+            if req_capacity not in fi['allowed_demands']:
+                continue
+
+            for d in possible_days:
+                if d not in fi['day_windows']:
+                    continue
+
+                window_start, window_end = fi['day_windows'][d]
+                if window_end - window_start < duration_total:
+                    continue
+
+                pres = model.NewBoolVar(f'pres_s{sid}_f{f_id}_d{d}')
+                presence_var[(s, f_id, d)] = pres
+                session_presence_vars[s].append(pres)
+
+                # Main session interval
+                if duration_partial > 0:
+                    s_main = model.NewIntVar(window_start, window_end - duration_total,
+                                             f'start_s{sid}_f{f_id}_d{d}_main')
+                    e_main = model.NewIntVar(window_start + duration_main,
+                                             window_end - duration_partial,
+                                             f'end_s{sid}_f{f_id}_d{d}_main')
+                else:
+                    s_main = model.NewIntVar(window_start, window_end - duration_main,
+                                             f'start_s{sid}_f{f_id}_d{d}_main')
+                    e_main = model.NewIntVar(window_start + duration_main, window_end,
+                                             f'end_s{sid}_f{f_id}_d{d}_main')
+
+                interval_main = model.NewOptionalIntervalVar(
+                    s_main, duration_main, e_main, pres,
+                    f'interval_s{sid}_f{f_id}_d{d}_main'
+                )
+
+                start_var_main[(s, f_id, d)] = s_main
+                end_var_main[(s, f_id, d)] = e_main
+                interval_var_main[(s, f_id, d)] = interval_main
+                demands_capacity_main[(s, f_id, d)] = req_capacity
+                demands_splits_main[(s, f_id, d)] = 1
+
+                # Partial session interval if needed
+                if duration_partial > 0:
+                    s_part = model.NewIntVar(window_start + duration_main,
+                                             window_end - duration_partial,
+                                             f'start_s{sid}_f{f_id}_d{d}_part')
+                    e_part = model.NewIntVar(window_start + duration_main + duration_partial,
+                                             window_end,
+                                             f'end_s{sid}_f{f_id}_d{d}_part')
+
+                    interval_partial_ = model.NewOptionalIntervalVar(
+                        s_part, duration_partial, e_part, pres,
+                        f'interval_s{sid}_f{f_id}_d{d}_part'
+                    )
+
+                    # Force partial to start exactly where main ends
+                    model.Add(s_part == e_main).OnlyEnforceIf(pres)
+
+                    start_var_partial[(s, f_id, d)] = s_part
+                    end_var_partial[(s, f_id, d)] = e_part
+                    interval_var_partial[(s, f_id, d)] = interval_partial_
+                    demands_capacity_partial[(s, f_id, d)] = partial_cost
+                    demands_splits_partial[(s, f_id, d)] = 1
+
+                if c_start_time is not None:
+                    fixed_block = time_str_to_block(c_start_time)
+                    model.Add(s_main == fixed_block).OnlyEnforceIf(pres)
+
+    for s in range(num_sessions):
+        model.AddExactlyOne(session_presence_vars[s])
+
+    for f in fields:
+        f_id = f.field_id
+        fi = field_info[f_id]
+        cap = fi['total_cap']
+        max_splits = fi['max_splits']
+
+        for d in fi['day_windows']:
+            intervals_fd = []
+            cap_demands_fd = []
+            split_demands_fd = []
+
+            # Collect main intervals
+            for s in range(num_sessions):
+                if (s, f_id, d) in interval_var_main:
+                    intervals_fd.append(interval_var_main[(s, f_id, d)])
+                    cap_demands_fd.append(demands_capacity_main[(s, f_id, d)])
+                    split_demands_fd.append(demands_splits_main[(s, f_id, d)])
+                if (s, f_id, d) in interval_var_partial:
+                    intervals_fd.append(interval_var_partial[(s, f_id, d)])
+                    cap_demands_fd.append(demands_capacity_partial[(s, f_id, d)])
+                    split_demands_fd.append(demands_splits_partial[(s, f_id, d)])
+
+            if intervals_fd:
+                model.AddCumulative(intervals_fd, cap_demands_fd, cap)
+                model.AddCumulative(intervals_fd, split_demands_fd, max_splits)
+
+    team_sessions = defaultdict(list)
+    for s, (sid, team_id, forced_field, req_capacity, length_15,
+            req_field_id, c_start_time, c_day_of_week,
+            partial_time, partial_cost, partial_field_id) in enumerate(all_sessions):
+        team_sessions[team_id].append(s)
+
+    top_field_ids = [f.field_id for f in fields]
+    for team_id, sess_list in team_sessions.items():
+        for d in range(7):
+            bools_for_that_day = []
+            for s in sess_list:
+                for f_id in top_field_ids:
+                    if (s, f_id, d) in presence_var:
+                        bools_for_that_day.append(presence_var[(s, f_id, d)])
+            model.Add(sum(bools_for_that_day) <= 1)
+
+    # objective: minimize each team's longest consecutive chain of back to back training days
+    add_adjacency_objective(model, team_sessions, presence_var, top_field_ids)
+
+    solver = cp_model.CpSolver()
+    status = solver.Solve(model)
+
+    if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
+        solution_type = "OPTIMAL" if status == cp_model.OPTIMAL else "FEASIBLE (not optimal)"
+        print(f"Found a {solution_type} solution!")
         profiler.disable()
         stats = pstats.Stats(profiler).sort_stats('cumtime')
         stats.print_stats(10)
+
+        solution = []
+        for s in range(num_sessions):
+            sid, team_id, forced_field, req_capacity, length_15, req_field_id, c_start_time, c_day_of_week, partial_time, partial_cost, partial_field_id = all_sessions[s]
+            chosen_day = None
+            chosen_field = None
+            assigned_start_main = None
+            assigned_end_main = None
+            assigned_start_partial = None
+            assigned_end_partial = None
+            for f_id in top_field_ids:
+                for d in range(7):
+                    key = (s, f_id, d)
+                    if key in presence_var and solver.Value(presence_var[key]) == 1:
+                        chosen_field = f_id
+                        chosen_day   = d
+                        assigned_start_main = solver.Value(start_var_main[key])
+                        assigned_end_main   = solver.Value(end_var_main[key])
+                        
+                        if partial_time > 0 and key in start_var_partial:
+                            assigned_start_partial = solver.Value(start_var_partial[key])
+                            assigned_end_partial   = solver.Value(end_var_partial[key])
+                        break
+                if chosen_field is not None:
+                    break
+
+            # Main interval record
+            start_str_main = blocks_to_time_str(assigned_start_main)
+            end_str_main   = blocks_to_time_str(assigned_end_main)
+
+            main_session = {
+                "team_id": team_id,
+                "day_of_week": idx_to_day[chosen_day],
+                "start_time": start_str_main,
+                "end_time": end_str_main,
+                "field_id": chosen_field,
+                "required_cost": req_capacity,
+                "required_field": req_field_id
+            }
+            solution.append(main_session)
+
+            # Partial interval record
+            if partial_time > 0 and assigned_start_partial is not None:
+                start_str_part = blocks_to_time_str(assigned_start_partial)
+                end_str_part   = blocks_to_time_str(assigned_end_partial)
+
+                partial_session = {
+                    "team_id": team_id,
+                    "day_of_week": idx_to_day[chosen_day],
+                    "start_time": start_str_part,
+                    "end_time": end_str_part,
+                    "field_id": chosen_field,
+                    "required_cost": partial_cost,
+                    "required_field": partial_field_id
+                    
+                }
+                solution.append(partial_session)
+
+        solution = post_process_solution(solution, top_fields)
+        print(solution)
+        schedule_id = save_schedule(solution, club_id=club_id, facility_id=facility_id, name=schedule_name)
+        print(f"Schedule saved successfully with ID: {schedule_id}")
+
+        for sess in solution:
+            print(sess)
         return schedule_id
     else:
-        profiler.disable()
-        stats = pstats.Stats(profiler).sort_stats('cumtime')
-        stats.print_stats(10)
-        raise ValueError('No feasible solution found. Try losing constraints. More detailed error messages will be added in the future.')
+        print("No feasible solution found.")
+        return None

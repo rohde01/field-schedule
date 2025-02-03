@@ -8,8 +8,14 @@ const dayOfWeekEnum = z.enum(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
 // Field availability schema
 const fieldAvailabilitySchema = z.object({
     day_of_week: dayOfWeekEnum,
-    start_time: z.string().regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/),
-    end_time: z.string().regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/)
+    start_time: z.string().regex(
+        /^([0-1][0-9]|2[0-3]):(00|15|30|45)$/,
+        "Time must be in 15-minute increments (00, 15, 30, 45)"
+    ),
+    end_time: z.string().regex(
+        /^([0-1][0-9]|2[0-3]):(00|15|30|45)$/,
+        "Time must be in 15-minute increments (00, 15, 30, 45)"
+    )
 });
 
 // Sub-field creation schema (for half fields)

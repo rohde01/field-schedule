@@ -1,94 +1,62 @@
-'''
-Filename: objectives.py
-Objective functions for the scheduling model.
-Contains functions to add objectives to the CP-SAT model.
-'''
+# filename: objectives.py
 
+from typing import Dict, List, Tuple
 from ortools.sat.python import cp_model
-from typing import List, Dict, Any
-from database.teams import Team
 
-
-def add_objective_function(
+def add_adjacency_objective(
     model: cp_model.CpModel,
-    teams: List[Team],
-    interval_vars: Dict[int, Any],
-    time_slots: Dict[str, List[str]],
-    day_name_to_index: Dict[str, int]
+    team_sessions: Dict[int, List[int]],
+    presence_var: Dict[Tuple[int, int, int], cp_model.IntVar],
+    top_field_ids: List[int]
 ) -> None:
     """
-    Adds an objective function to the model to minimize penalties for undesirable scheduling patterns
-    and slightly discourage scheduling on Fridays.
+    Adds an objective to minimize, for each team, its longest chain of
+    back-to-back training days. I.e., if a team has sessions on consecutive 
+    days, we count them as part of the same chain. The objective is to minimize 
+    the sum of these 'longest chains' across all teams.
+    
+    Args:
+        model: The CP-SAT model instance
+        team_sessions: Dictionary mapping team IDs to a list of their session IDs
+        presence_var: Dictionary mapping (session_id, field_id, day) -> BoolVar
+                      that is 1 if session `session_id` is assigned to field `field_id`
+                      on day `day`.
+        top_field_ids: List of top-level field IDs to consider
     """
-    CONSECUTIVE_DAY_PENALTY = 100
-    PENALTY_PER_DAY_DEVIATION = 400
-    FRIDAY_PENALTY = 10
 
-    num_days = len(day_name_to_index)
-    penalties = []
+    NUM_DAYS = 7
 
-    preferred_days = {
-        2: [
-            [day_name_to_index['Mon'], day_name_to_index['Wed']],
-            [day_name_to_index['Tue'], day_name_to_index['Thu']],
-            [day_name_to_index['Wed'], day_name_to_index['Fri']]
-        ],
-        3: [
-            [day_name_to_index['Mon'], day_name_to_index['Wed'], day_name_to_index['Fri']]
-        ],
-        4: [
-            [day_name_to_index['Mon'], day_name_to_index['Tue'], day_name_to_index['Thu'], day_name_to_index['Fri']]
-        ]
-    }
+    has_session = {}
+    for t_id, sess_list in team_sessions.items():
+        for d in range(NUM_DAYS):
+            day_bools = []
+            for s in sess_list:
+                for f_id in top_field_ids:
+                    if (s, f_id, d) in presence_var:
+                        day_bools.append(presence_var[(s, f_id, d)])
+            
+            var = model.NewIntVar(0, 1, f'has_session_t{t_id}_d{d}')
+            model.Add(var == sum(day_bools))
+            
+            has_session[(t_id, d)] = var
 
-    for team in teams:
-        team_id = team.team_id
-        if team_id not in interval_vars:
-            continue 
-        team_sessions = [session for sessions in interval_vars[team_id].values() for session in sessions]
-        day_vars = [session['day_var'] for session in team_sessions]
-        num_sessions = len(day_vars)
-        for i in range(num_sessions - 1):
-            is_consecutive = model.NewBoolVar(f'is_consecutive_{team_id}_{i}')
-            model.Add(day_vars[i + 1] == day_vars[i] + 1).OnlyEnforceIf(is_consecutive)
-            model.Add(day_vars[i + 1] != day_vars[i] + 1).OnlyEnforceIf(is_consecutive.Not())
-            penalty = model.NewIntVar(0, CONSECUTIVE_DAY_PENALTY, f'penalty_consecutive_{team_id}_{i}')
-            model.Add(penalty == CONSECUTIVE_DAY_PENALTY * is_consecutive)
-            penalties.append(penalty)
-        if num_sessions in preferred_days:
-            pattern_matches = []
-            for pattern in preferred_days[num_sessions]:
-                pattern_str = '_'.join(map(str, pattern))
-                match = model.NewBoolVar(f'pattern_match_{team_id}_{pattern_str}')
-                model.AddAllowedAssignments(day_vars, [pattern]).OnlyEnforceIf(match)
-                model.AddForbiddenAssignments(day_vars, [pattern]).OnlyEnforceIf(match.Not())
-                pattern_matches.append(match)
+    chain = {}
+    for t_id in team_sessions:
+        for d in range(NUM_DAYS):
+            chain[(t_id, d)] = model.NewIntVar(0, NUM_DAYS, f'chain_t{t_id}_d{d}')
 
-            is_matching_any_pattern = model.NewBoolVar(f'is_matching_any_pattern_{team_id}')
-            model.AddBoolOr(pattern_matches).OnlyEnforceIf(is_matching_any_pattern)
-            model.AddBoolAnd([m.Not() for m in pattern_matches]).OnlyEnforceIf(is_matching_any_pattern.Not())
+    for t_id in team_sessions:
+        model.Add(chain[(t_id, 0)] == has_session[(t_id, 0)])
 
-            pattern_penalty = model.NewIntVar(0, PENALTY_PER_DAY_DEVIATION, f'pattern_penalty_{team_id}')
-            model.Add(pattern_penalty == 0).OnlyEnforceIf(is_matching_any_pattern)
-            model.Add(pattern_penalty == PENALTY_PER_DAY_DEVIATION).OnlyEnforceIf(is_matching_any_pattern.Not())
-            penalties.append(pattern_penalty)
-        else:
-            pattern_penalty = model.NewIntVar(0, PENALTY_PER_DAY_DEVIATION, f'pattern_penalty_{team_id}')
-            model.Add(pattern_penalty == PENALTY_PER_DAY_DEVIATION)
-            penalties.append(pattern_penalty)
-            is_matching_any_pattern = model.NewBoolVar(f'is_matching_any_pattern_{team_id}')
-            model.Add(is_matching_any_pattern == 0)
-
-        friday_index = day_name_to_index.get('Fri')
-        if friday_index is not None:
-            for idx, day_var in enumerate(day_vars):
-                is_friday = model.NewBoolVar(f'is_friday_{team_id}_{idx}')
-                model.Add(day_var == friday_index).OnlyEnforceIf(is_friday)
-                model.Add(day_var != friday_index).OnlyEnforceIf(is_friday.Not())
-
-                friday_penalty = model.NewIntVar(0, FRIDAY_PENALTY, f'friday_penalty_{team_id}_{idx}')
-                model.Add(friday_penalty == FRIDAY_PENALTY * is_friday)
-                penalties.append(friday_penalty)
-
-    total_penalty = sum(penalties)
-    model.Minimize(total_penalty)
+        for d in range(1, NUM_DAYS):
+            model.Add(chain[(t_id, d)] <= chain[(t_id, d-1)] + 1)
+            model.Add(chain[(t_id, d)] <= has_session[(t_id, d)] * NUM_DAYS)
+            model.Add(
+                chain[(t_id, d)] >= chain[(t_id, d-1)] + has_session[(t_id, d)] - NUM_DAYS * (1 - has_session[(t_id, d)])
+            )
+    chain_max = {}
+    for t_id in team_sessions:
+        chain_max[t_id] = model.NewIntVar(0, NUM_DAYS, f'chain_max_t{t_id}')
+        for d in range(NUM_DAYS):
+            model.Add(chain_max[t_id] >= chain[(t_id, d)])
+    model.Minimize(sum(chain_max[t_id] for t_id in team_sessions))

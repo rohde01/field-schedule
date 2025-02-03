@@ -3,52 +3,19 @@ Filename: schedules.py in routes folder
 '''
 
 from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List
 from main import generate_schedule
 from database.constraints import Constraint as ConstraintModel
 from database.schedules import get_club_schedules, delete_schedule, get_schedule_club_id
-from models.schedules import Schedule
+from models.schedule import Schedule
 from dependencies.auth import get_current_user
 from dependencies.permissions import require_club_access
-from models.users import User
+from models.user import User
 from database.constraints import get_constraints
+from models.schedule import GenerateScheduleRequest, Constraint
 
 router = APIRouter(prefix="/schedules", tags=["schedules"])
 
-class ConstraintSchema(BaseModel):
-    team_id: int
-    club_id: Optional[int] = None
-    required_size: Optional[str] = None
-    subfield_type: Optional[str] = None
-    required_cost: Optional[int] = None
-    sessions: int = Field(default=1)
-    length: int = Field(default=1)
-    partial_ses_space_size: Optional[str] = None
-    partial_ses_space_cost: Optional[int] = None
-    partial_ses_time: Optional[int] = None
-    start_time: Optional[str] = None
-
-class ConstraintResponse(BaseModel):
-    constraint_id: int
-    schedule_entry_id: Optional[int]
-    team_id: int
-    required_size: Optional[str]
-    subfield_type: Optional[str]
-    required_cost: Optional[int]
-    sessions: int
-    length: int
-    partial_ses_space_size: Optional[str]
-    partial_ses_space_cost: Optional[int]
-    partial_ses_time: Optional[int]
-    start_time: Optional[str]
-
-class GenerateScheduleRequest(BaseModel):
-    facility_id: int
-    team_ids: List[int]
-    constraints: List[ConstraintSchema]
-    club_id: int
-    schedule_name: str = Field(default="Generated Schedule")
 
 @router.post("/generate", response_model=dict)
 async def generate_schedule_route(
@@ -87,7 +54,7 @@ async def fetch_club_schedules(
     schedules = get_club_schedules(club_id)
     return schedules
 
-@router.get("/{club_id}/constraints", response_model=List[ConstraintResponse])
+@router.get("/{club_id}/constraints", response_model=List[Constraint])
 async def fetch_club_constraints(
     club_id: int,
     current_user: User = Depends(get_current_user)
@@ -108,7 +75,7 @@ async def fetch_club_constraints(
             }
             if constraint_dict.get('start_time'):
                 constraint_dict['start_time'] = constraint_dict['start_time'].strftime('%H:%M:%S')
-            response.append(ConstraintResponse(**constraint_dict))
+            response.append(Constraint(**constraint_dict))
             
         return response
     except Exception as e:

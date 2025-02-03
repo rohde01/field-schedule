@@ -1,26 +1,19 @@
-import logging
 from fastapi import APIRouter, HTTPException, Depends
 from database.facilities import (
-    create_facility, get_facilities, Facility,
+    create_facility, get_facilities,
     FacilityError, DuplicatePrimaryFacilityError, DuplicateFacilityNameError
 )
-from typing import List, Optional
-from pydantic import BaseModel, Field
+from typing import List
 from dependencies.auth import get_current_user
 from dependencies.permissions import require_club_access, validate_facility_access
-from models.users import User
+from models.user import User
+from models.facility import Facility
 
 router = APIRouter(
     prefix="/facilities",
     tags=["facilities"]
 )
 
-logger = logging.getLogger(__name__)
-
-class FacilityCreate(BaseModel):
-    club_id: int
-    name: str = Field(min_length=1, max_length=255)
-    is_primary: bool = False
 
 @router.get("/club/{club_id}")
 async def get_club_facilities(
@@ -50,7 +43,7 @@ async def get_club_facilities(
 
 @router.post("")
 async def create_new_facility(
-    facility_create: FacilityCreate,
+    facility_create: Facility,
     current_user: User = Depends(get_current_user),
 ) -> dict:
     # Validate club access

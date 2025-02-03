@@ -13,7 +13,7 @@
     import DisplayCard, { type Column } from '$lib/components/DisplayCard.svelte';
     import { constraints } from '$stores/constraints';
     import type { Constraint } from '$lib/schemas/schedule';
-
+    import SuperDebug from 'sveltekit-superforms';
 
     let { data }: { data: PageData } = $props();
     const { form: rawForm } = data;
@@ -124,15 +124,15 @@
                 { label: 'Sessions', value: field.sessions },
                 { label: 'Length', value: field.length },
                 { label: 'Start Time', value: field.start_time },
-                { label: 'Partial Size', value: field.partial_ses_space_cost },
-                { label: 'Partial Size', value: field.partial_ses_space_size }
+                { label: 'Partial Size', value: field.partial_cost },
+                { label: 'Partial Size', value: field.partial_field }
             ].filter(item => item.value != null).map(item => ({ ...item, value: item.value ?? '' }));
 
             const column2Fields = [
                 { label: 'Required Size', value: field.required_size, style: 'pill' },
                 { label: 'Required Size', value: field.required_cost, style: 'pill' },
                 { label: 'Subfield Type', value: field.subfield_type, style: 'pill' },
-                { label: 'Partial Time', value: field.partial_ses_time, style: 'pill' }
+                { label: 'Partial Time', value: field.partial_time, style: 'pill' }
             ].filter(item => item.value != null).map(item => ({ ...item, value: item.value ?? '' }));
 
             displayColumns = [
@@ -201,4 +201,9 @@
             Select a schedule or create a new one
         </div>
     {/if}
+</div>
+<div class="mt-8">
+    <div class="debug-container">
+        <SuperDebug data={$form} collapsible={true} />
+    </div>
 </div>

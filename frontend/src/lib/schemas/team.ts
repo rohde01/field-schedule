@@ -15,11 +15,10 @@ export const teamSchema = z.object({
             { message: 'Field size must be one of: 125, 250, 500, 1000' }),
     preferred_field_size: z.number()
         .refine((size): size is ValidFieldSize => validFieldSizes.includes(size as ValidFieldSize), 
-            { message: 'Field size must be one of: 125, 250, 500, 1000' })
-        .nullable(),
+            { message: 'Field size must be one of: 125, 250, 500, 1000' }),
     level: z.number().int().min(1).max(5),
     is_active: z.boolean().default(true),
-    weekly_trainings: z.number().int().min(1).max(5)
+    weekly_trainings: z.number().int().min(1).max(7)
 });
 
 export type Team = z.infer<typeof teamSchema>;

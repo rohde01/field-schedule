@@ -8,3 +8,7 @@ class User(BaseModel):
     last_name: Optional[str] = None
     role: str = "member"
     primary_club_id: Optional[int] = None
+
+class UserClubCreate(BaseModel):
+    user_id: int
+    is_primary: bool = False

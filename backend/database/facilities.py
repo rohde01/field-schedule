@@ -1,14 +1,7 @@
-from dataclasses import dataclass
+from models.facility import Facility
 from typing import List, Optional
 from .index import with_db_connection
 import psycopg2
-
-@dataclass
-class Facility:
-    facility_id: int
-    club_id: int
-    name: str
-    is_primary: bool
 
 class FacilityError(Exception):
     """Base exception for facility-related errors"""

@@ -69,10 +69,6 @@ export const load: LayoutServerLoad = async ({ locals, fetch }) => {
         const teams: Team[] = await teamsResponse.json();
         const constraints: Constraint[] = await constraintsResponse.json();
         
-        console.log('Fetched facilities:', facilities);
-        console.log('Fetched fields:', fields);
-        console.log('Fetched teams:', teams);
-
         return {
             user: locals.user,
             facilities,
