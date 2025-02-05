@@ -7,6 +7,9 @@
     import { writable } from 'svelte/store';
     import { fields } from '../../stores/fields';
     
+    let autoModeAppliedTeams = writable<Set<number>>(new Set());
+    let autoConstraintSessions = writable<Record<number, number>>({});
+    
     let { form, errors } = $props<{ 
         form: Writable<GenerateScheduleRequest>,
         errors: Writable<ValidationErrors<GenerateScheduleRequest>>
@@ -40,7 +43,7 @@
         if (!$form.constraints) return -1;
         let count = -1;
         return $form.constraints.findIndex((c: Constraint) => {
-            if (c.team_id === selectedTeam?.team_id) {
+            if (c.team_id === selectedTeam?.team_id && c.constraint_type !== 'flexible' && c.constraint_type !== 'auto') {
                 count++;
                 return count === visibleIndex;
             }
@@ -73,14 +76,163 @@
             return newExpanded;
         });
     }
+
+    function updateAutoConstraintSessions(teamId: number, sessions: number): void {
+        if (!teamId) return;
+        
+        autoConstraintSessions.update((map: Record<number, number>) => ({...map, [teamId]: sessions}));
+        
+        // Find and update the auto constraint for this team
+        form.update((f: GenerateScheduleRequest) => {
+            const constraints = f.constraints || [];
+            const autoConstraintIndex = constraints.findIndex((c: Constraint) => 
+                c.team_id === teamId && c.constraint_type === 'auto'
+            );
+            
+            if (autoConstraintIndex !== -1) {
+                constraints[autoConstraintIndex] = {
+                    ...constraints[autoConstraintIndex],
+                    sessions
+                };
+            }
+            
+            return {
+                ...f,
+                constraints
+            };
+        });
+    }
+
+    function removeAutoConstraint(teamId: number): void {
+        if (!teamId) return;
+
+        // Remove from the form
+        form.update((f: GenerateScheduleRequest) => {
+            const constraints = f.constraints || [];
+            const newConstraints = constraints.filter((c: Constraint) => 
+                !(c.team_id === teamId && c.constraint_type === 'auto')
+            );
+            
+            return {
+                ...f,
+                constraints: newConstraints
+            };
+        });
+
+        // Remove from tracking stores
+        autoModeAppliedTeams.update((teams: Set<number>) => {
+            teams.delete(teamId);
+            return teams;
+        });
+        
+        autoConstraintSessions.update((map: Record<number, number>) => {
+            const newMap = {...map};
+            delete newMap[teamId];
+            return newMap;
+        });
+    }
+
+    async function autoGenerateConstraint(): Promise<void> {
+        if (!selectedTeam?.team_id) return;
+        const teamId = selectedTeam.team_id;
+        const sessions = selectedTeam.weekly_trainings;
+        
+        const newConstraint: Constraint = {
+            team_id: teamId,
+            required_field: null,
+            required_cost: selectedTeam.preferred_field_size || selectedTeam.minimum_field_size || null,
+            sessions: sessions,
+            length: 4,
+            day_of_week: null,
+            partial_field: null,
+            partial_cost: null,
+            partial_time: null,
+            start_time: null,
+            constraint_type: 'auto'
+        };
+
+        form.update((f: GenerateScheduleRequest) => ({
+            ...f,
+            constraints: [...(f.constraints || []), newConstraint]
+        }));
+
+        autoModeAppliedTeams.update((teams: Set<number>) => {
+            teams.add(teamId);
+            return teams;
+        });
+        
+        // Initialize the sessions for this team
+        autoConstraintSessions.update((map: Record<number, number>) => ({...map, [teamId]: sessions}));
+    }
 </script>
 
 <div class="detail-card">
     {#if selectedTeam}
+        {@const teamId = selectedTeam.team_id}  <!-- Create a constant to help TypeScript infer type -->
         <div class="mb-4">
-            <h3 class="text-lg font-semibold mb-2">Constraints for {selectedTeam.name}</h3>
+            <div class="flex flex-col gap-3">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-semibold">Constraints for {selectedTeam.name}</h3>
+                </div>
+                <div class="mb-6">
+                    {#if teamId !== undefined && $autoModeAppliedTeams.has(teamId)}
+                        <div class="flex items-center gap-3">
+                            <div class="flex items-center">
+                                <button 
+                                    class="px-2 py-1 border border-mint-200 rounded-l hover:bg-mint-50 text-mint-700"
+                                    onclick={() => {
+                                        const currentSessions = $autoConstraintSessions[teamId] || 1;
+                                        if (currentSessions > 1) {
+                                            updateAutoConstraintSessions(teamId, currentSessions - 1);
+                                        }
+                                    }}
+                                >
+                                    −
+                                </button>
+                                <div class="px-3 py-1 border-t border-b border-mint-200 min-w-[2.5rem] text-center text-mint-700">
+                                    {$autoConstraintSessions[teamId] || 1}
+                                </div>
+                                <button 
+                                    class="px-2 py-1 border border-mint-200 rounded-r hover:bg-mint-50 text-mint-700"
+                                    onclick={() => {
+                                        const currentSessions = $autoConstraintSessions[teamId] || 1;
+                                        if (currentSessions < 7) {
+                                            updateAutoConstraintSessions(teamId, currentSessions + 1);
+                                        }
+                                    }}
+                                >
+                                    +
+                                </button>
+                            </div>
+                            <div class="flex items-center px-3 py-1.5 bg-mint-100 text-mint-700 rounded-full w-fit">
+                                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                                Auto mode applied
+                            </div>
+                            <button 
+                                class="p-2 text-red-500 hover:text-red-600 transition-colors duration-200"
+                                onclick={() => removeAutoConstraint(teamId)}
+                                aria-label="Remove auto constraint"
+                            >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        </div>
+                    {/if}
+                    {#if teamId !== undefined && !$autoModeAppliedTeams.has(teamId)}
+                        <button 
+                            class="btn-secondary text-sm"
+                            onclick={() => autoGenerateConstraint()}
+                        >
+                            Auto generate
+                        </button>
+                    {/if}
+                </div>
+            </div>
             {#if $form.constraints}
-                {#each $form.constraints.filter((c: Constraint) => c.team_id === selectedTeam.team_id) as constraint, visibleIndex}
+                {#each $form.constraints.filter((c: Constraint) => c.team_id === selectedTeam.team_id && c.constraint_type !== 'auto') as constraint, visibleIndex}
                     <div class="bg-gray-50 p-4 rounded-lg mb-4">
                         <div class="flex justify-between items-center mb-4">
                             <h4 class="font-medium">Constraint {visibleIndex + 1}</h4>
@@ -348,8 +500,8 @@
                 {/each}
             {/if}
             
-            {#if !$form.constraints?.filter((c: Constraint) => c.team_id === selectedTeam.team_id).length 
-                || $form.constraints?.filter((c: Constraint) => c.team_id === selectedTeam.team_id).length < 7}
+            {#if !$form.constraints?.filter((c: Constraint) => c.team_id === selectedTeam.team_id && c.constraint_type !== 'auto').length 
+                || $form.constraints?.filter((c: Constraint) => c.team_id === selectedTeam.team_id && c.constraint_type !== 'auto').length < 7}
                 <div class="relative inline-block">
                     <button 
                         class="btn-add"

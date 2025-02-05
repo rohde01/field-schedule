@@ -31,7 +31,7 @@ export const constraintSchema = z.object({
     constraint_id: z.number().int().positive().optional(),
     schedule_entry_id: z.number().int().positive().nullable().optional(),
     team_id: z.number().int().nonnegative(),
-    constraint_type: z.enum(['specific', 'flexible']),
+    constraint_type: z.enum(['specific', 'flexible', 'auto']),
     sessions: z.number().int().min(1).max(7),
     start_time: z
       .string()
