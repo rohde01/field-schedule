@@ -43,7 +43,7 @@
         if (!$form.constraints) return -1;
         let count = -1;
         return $form.constraints.findIndex((c: Constraint) => {
-            if (c.team_id === selectedTeam?.team_id && c.constraint_type !== 'flexible' && c.constraint_type !== 'auto') {
+            if (c.team_id === selectedTeam?.team_id && c.constraint_type !== 'auto') {
                 count++;
                 return count === visibleIndex;
             }
@@ -233,119 +233,33 @@
             </div>
             {#if $form.constraints}
                 {#each $form.constraints.filter((c: Constraint) => c.team_id === selectedTeam.team_id && c.constraint_type !== 'auto') as constraint, visibleIndex}
-                    <div class="bg-gray-50 p-4 rounded-lg mb-4">
-                        <div class="flex justify-between items-center mb-4">
-                            <h4 class="font-medium">Constraint {visibleIndex + 1}</h4>
-                            <button 
-                                class="text-red-500 hover:text-red-700"
-                                onclick={() => removeConstraint(visibleIndex)}
-                            >
-                                Remove
-                            </button>
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            {#if constraint.constraint_type === 'specific'}
-                                {@const actualIndex = getActualIndex(visibleIndex)}
-                                <EditableField
-                                    {form}
-                                    errors={$errors}
-                                    name="constraints[{actualIndex}].sessions"
-                                    label="Sessions for this constraint"
-                                    type="select"
-                                    options={[
-                                        { value: 1, label: '1' },
-                                        { value: 2, label: '2' },
-                                        { value: 3, label: '3' },
-                                        { value: 4, label: '4' },
-                                        { value: 5, label: '5' },
-                                        { value: 6, label: '6' },
-                                        { value: 7, label: '7' }
-                                    ]}
-                                    required
-                                />
-                                <EditableField
-                                    {form}
-                                    errors={$errors}
-                                    name="constraints[{actualIndex}].required_field"
-                                    label="Required Field"
-                                    type="select"
-                                    options={$fields.flatMap(field => [
-                                        { value: field.field_id, label: `${field.name} (${field.field_type})` },
-                                        ...field.half_subfields.map(half => ({ 
-                                            value: half.field_id, 
-                                            label: `${half.name} (half of ${field.name})` 
-                                        })),
-                                        ...field.quarter_subfields.map(quarter => ({ 
-                                            value: quarter.field_id, 
-                                            label: `${quarter.name} (quarter of ${field.name})` 
-                                        }))
-                                    ])}
-                                />
-                            
-                                <EditableField
-                                    {form}
-                                    errors={$errors}
-                                    name="constraints[{actualIndex}].length"
-                                    label="Length"
-                                    type="select"
-                                    options={[
-                                        { value: 1, label: '15 minutes' },
-                                        { value: 2, label: '30 minutes' },
-                                        { value: 3, label: '45 minutes' },
-                                        { value: 4, label: '60 minutes (1 hour)' },
-                                        { value: 5, label: '75 minutes' },
-                                        { value: 6, label: '90 minutes (1,5 hours)' },
-                                        { value: 7, label: '105 minutes' },
-                                        { value: 8, label: '120 minutes (2 hours' },
-                                        { value: 9, label: '135 minutes' },
-                                        { value: 10, label: '150 minutes (2,5 hours)' }
-                                    ]}
-                                    required
-                                />
-
-                                <EditableField
-                                    {form}
-                                    errors={$errors}
-                                    name="constraints[{actualIndex}].start_time"
-                                    label="Start Time"
-                                    type="text"
-                                    placeholder="HH:MM:SS"
-                                    hide_label_in_view={false}
-                                />
-
-                                <EditableField
-                                    {form}
-                                    errors={$errors}
-                                    name="constraints[{actualIndex}].day_of_week"
-                                    label="Day of Week"
-                                    type="select"
-                                    options={[
-                                        { value: 0, label: 'Monday' },
-                                        { value: 1, label: 'Tuesday' },
-                                        { value: 2, label: 'Wednesday' },
-                                        { value: 3, label: 'Thursday' },
-                                        { value: 4, label: 'Friday' },
-                                        { value: 5, label: 'Saturday' },
-                                        { value: 6, label: 'Sunday' }
-                                    ]}
-                                />
-
-                                <div class="col-span-2 flex justify-end">
-                                    <button
-                                        class="flex items-center text-mint-600 hover:text-mint-700 mt-2"
-                                        onclick={() => togglePartialFields(visibleIndex)}
-                                    >
-                                        <span class="mr-1">{$expandedConstraints.has(visibleIndex) ? '−' : '+'}</span>
-                                        Partial Session Options
-                                    </button>
-                                </div>
-                                
-                                {#if $expandedConstraints.has(visibleIndex)}
-                                        <EditableField
+                    <div class="flex items-center gap-2 mb-4">
+                        <div class="constraint-card">
+                            <div class="flex flex-row gap-14 flex-wrap items-end">
+                                {#if constraint.constraint_type === 'specific'}
+                                    {@const actualIndex = getActualIndex(visibleIndex)}
+                                    <EditableField
                                         {form}
                                         errors={$errors}
-                                        name="constraints[{actualIndex}].partial_field"
-                                        label="Partial Field"
+                                        name="constraints[{actualIndex}].sessions"
+                                        label="Sessions for this constraint"
+                                        type="select"
+                                        options={[
+                                            { value: 1, label: '1' },
+                                            { value: 2, label: '2' },
+                                            { value: 3, label: '3' },
+                                            { value: 4, label: '4' },
+                                            { value: 5, label: '5' },
+                                            { value: 6, label: '6' },
+                                            { value: 7, label: '7' }
+                                        ]}
+                                        required
+                                    />
+                                    <EditableField
+                                        {form}
+                                        errors={$errors}
+                                        name="constraints[{actualIndex}].required_field"
+                                        label="Required Field"
                                         type="select"
                                         options={$fields.flatMap(field => [
                                             { value: field.field_id, label: `${field.name} (${field.field_type})` },
@@ -359,11 +273,12 @@
                                             }))
                                         ])}
                                     />
+                                
                                     <EditableField
                                         {form}
                                         errors={$errors}
-                                        name="constraints[{actualIndex}].partial_time"
-                                        label="Partial Time"
+                                        name="constraints[{actualIndex}].length"
+                                        label="Length"
                                         type="select"
                                         options={[
                                             { value: 1, label: '15 minutes' },
@@ -371,130 +286,219 @@
                                             { value: 3, label: '45 minutes' },
                                             { value: 4, label: '60 minutes (1 hour)' },
                                             { value: 5, label: '75 minutes' },
-                                            { value: 6, label: '90 minutes (1,5 hours)' }]}
+                                            { value: 6, label: '90 minutes (1,5 hours)' },
+                                            { value: 7, label: '105 minutes' },
+                                            { value: 8, label: '120 minutes (2 hours' },
+                                            { value: 9, label: '135 minutes' },
+                                            { value: 10, label: '150 minutes (2,5 hours)' }
+                                        ]}
+                                        required
                                     />
-                                {/if}
-                            {:else if constraint.constraint_type === 'flexible'}
-                                {@const actualIndex = getActualIndex(visibleIndex)}
-                                <EditableField
-                                    {form}
-                                    errors={$errors}
-                                    name="constraints[{actualIndex}].sessions"
-                                    label="Sessions for this constraint"
-                                    type="select"
-                                    options={[
-                                        { value: 1, label: '1' },
-                                        { value: 2, label: '2' },
-                                        { value: 3, label: '3' },
-                                        { value: 4, label: '4' },
-                                        { value: 5, label: '5' },
-                                        { value: 6, label: '6' },
-                                        { value: 7, label: '7' }
-                                    ]}
-                                    required
-                                />
-                                <EditableField
-                                    {form}
-                                    errors={$errors}
-                                    name="constraints[{actualIndex}].start_time"
-                                    label="Start Time"
-                                    type="text"
-                                    placeholder="HH:MM:SS"
-                                />
 
-                                <EditableField
-                                    {form}
-                                    errors={$errors}
-                                    name="constraints[{actualIndex}].day_of_week"
-                                    label="Day of Week"
-                                    type="select"
-                                    options={[
-                                        { value: 0, label: 'Monday' },
-                                        { value: 1, label: 'Tuesday' },
-                                        { value: 2, label: 'Wednesday' },
-                                        { value: 3, label: 'Thursday' },
-                                        { value: 4, label: 'Friday' },
-                                        { value: 5, label: 'Saturday' },
-                                        { value: 6, label: 'Sunday' }
-                                    ]}
-                                />
-
-                                <EditableField
-                                    {form}
-                                    errors={$errors}
-                                    name="constraints[{actualIndex}].length"
-                                    label="Length"
-                                    type="select"
-                                    options={[
-                                        { value: 1, label: '15 minutes' },
-                                        { value: 2, label: '30 minutes' },
-                                        { value: 3, label: '45 minutes' },
-                                        { value: 4, label: '60 minutes (1 hour)' },
-                                        { value: 5, label: '75 minutes' },
-                                        { value: 6, label: '90 minutes (1,5 hours)' },
-                                        { value: 7, label: '105 minutes' },
-                                        { value: 8, label: '120 minutes (2 hours' },
-                                        { value: 9, label: '135 minutes' },
-                                        { value: 10, label: '150 minutes (2,5 hours)' }
-                                    ]}
-                                    required
-                                />
-                                <EditableField
-                                    {form}
-                                    errors={$errors}
-                                    name="constraints[{actualIndex}].required_cost"
-                                    label="Required Size"
-                                    type="select"
-                                    options={[
-                                        { value: 1000, label: '11v11' },
-                                        { value: 500, label: '8v8, Half 11v11' },
-                                        { value: 250, label: '5v5, Half 8v8, Quarter 11v11' },
-                                        { value: 125, label: '3v3, Half 5v5, Quarter 8v8' }
-                                    ]}
-                                    view_mode_style="pill"
-                                    required
-                                />
-                                <div class="col-span-2 flex justify-end">
-                                    <button
-                                        class="flex items-center text-mint-600 hover:text-mint-700 mt-2"
-                                        onclick={() => togglePartialFields(visibleIndex)}
-                                    >
-                                        <span class="mr-1">{$expandedConstraints.has(visibleIndex) ? '−' : '+'}</span>
-                                        Partial Session Options
-                                    </button>
-                                </div>
-                                
-                                {#if $expandedConstraints.has(visibleIndex)}
                                     <EditableField
                                         {form}
                                         errors={$errors}
-                                        name="constraints[{actualIndex}].partial_cost"
-                                        label="Partial Size"
+                                        name="constraints[{actualIndex}].start_time"
+                                        label="Start Time"
+                                        type="text"
+                                        placeholder="HH:MM:SS"
+                                        hide_label_in_view={false}
+                                    />
+
+                                    <EditableField
+                                        {form}
+                                        errors={$errors}
+                                        name="constraints[{actualIndex}].day_of_week"
+                                        label="Day of Week"
+                                        type="select"
+                                        options={[
+                                            { value: 0, label: 'Monday' },
+                                            { value: 1, label: 'Tuesday' },
+                                            { value: 2, label: 'Wednesday' },
+                                            { value: 3, label: 'Thursday' },
+                                            { value: 4, label: 'Friday' },
+                                            { value: 5, label: 'Saturday' },
+                                            { value: 6, label: 'Sunday' }
+                                        ]}
+                                    />
+
+                                    <div class="flex justify-end">
+                                        <button
+                                            class="flex items-center text-mint-600 hover:text-mint-700 mt-2"
+                                            onclick={() => togglePartialFields(visibleIndex)}
+                                        >
+                                            <span class="mr-1">{$expandedConstraints.has(visibleIndex) ? '−' : '+'}</span>
+                                            Partial Session Options
+                                        </button>
+                                    </div>
+                                    
+                                    {#if $expandedConstraints.has(visibleIndex)}
+                                            <EditableField
+                                            {form}
+                                            errors={$errors}
+                                            name="constraints[{actualIndex}].partial_field"
+                                            label="Partial Field"
+                                            type="select"
+                                            options={$fields.flatMap(field => [
+                                                { value: field.field_id, label: `${field.name} (${field.field_type})` },
+                                                ...field.half_subfields.map(half => ({ 
+                                                    value: half.field_id, 
+                                                    label: `${half.name} (half of ${field.name})` 
+                                                })),
+                                                ...field.quarter_subfields.map(quarter => ({ 
+                                                    value: quarter.field_id, 
+                                                    label: `${quarter.name} (quarter of ${field.name})` 
+                                                }))
+                                            ])}
+                                        />
+                                        <EditableField
+                                            {form}
+                                            errors={$errors}
+                                            name="constraints[{actualIndex}].partial_time"
+                                            label="Partial Time"
+                                            type="select"
+                                            options={[
+                                                { value: 1, label: '15 minutes' },
+                                                { value: 2, label: '30 minutes' },
+                                                { value: 3, label: '45 minutes' },
+                                                { value: 4, label: '60 minutes (1 hour)' },
+                                                { value: 5, label: '75 minutes' },
+                                                { value: 6, label: '90 minutes (1,5 hours)' }]}
+                                        />
+                                    {/if}
+                                {:else if constraint.constraint_type === 'flexible'}
+                                    {@const actualIndex = getActualIndex(visibleIndex)}
+                                    <EditableField
+                                        {form}
+                                        errors={$errors}
+                                        name="constraints[{actualIndex}].sessions"
+                                        label="Sessions for this constraint"
+                                        type="select"
+                                        options={[
+                                            { value: 1, label: '1' },
+                                            { value: 2, label: '2' },
+                                            { value: 3, label: '3' },
+                                            { value: 4, label: '4' },
+                                            { value: 5, label: '5' },
+                                            { value: 6, label: '6' },
+                                            { value: 7, label: '7' }
+                                        ]}
+                                        required
+                                    />
+                                    <EditableField
+                                        {form}
+                                        errors={$errors}
+                                        name="constraints[{actualIndex}].start_time"
+                                        label="Start Time"
+                                        type="text"
+                                        placeholder="HH:MM:SS"
+                                    />
+
+                                    <EditableField
+                                        {form}
+                                        errors={$errors}
+                                        name="constraints[{actualIndex}].day_of_week"
+                                        label="Day of Week"
+                                        type="select"
+                                        options={[
+                                            { value: 0, label: 'Monday' },
+                                            { value: 1, label: 'Tuesday' },
+                                            { value: 2, label: 'Wednesday' },
+                                            { value: 3, label: 'Thursday' },
+                                            { value: 4, label: 'Friday' },
+                                            { value: 5, label: 'Saturday' },
+                                            { value: 6, label: 'Sunday' }
+                                        ]}
+                                    />
+
+                                    <EditableField
+                                        {form}
+                                        errors={$errors}
+                                        name="constraints[{actualIndex}].length"
+                                        label="Length"
+                                        type="select"
+                                        options={[
+                                            { value: 1, label: '15 minutes' },
+                                            { value: 2, label: '30 minutes' },
+                                            { value: 3, label: '45 minutes' },
+                                            { value: 4, label: '60 minutes (1 hour)' },
+                                            { value: 5, label: '75 minutes' },
+                                            { value: 6, label: '90 minutes (1,5 hours)' },
+                                            { value: 7, label: '105 minutes' },
+                                            { value: 8, label: '120 minutes (2 hours' },
+                                            { value: 9, label: '135 minutes' },
+                                            { value: 10, label: '150 minutes (2,5 hours)' }
+                                        ]}
+                                        required
+                                    />
+                                    <EditableField
+                                        {form}
+                                        errors={$errors}
+                                        name="constraints[{actualIndex}].required_cost"
+                                        label="Required Size"
                                         type="select"
                                         options={[
                                             { value: 1000, label: '11v11' },
                                             { value: 500, label: '8v8, Half 11v11' },
-                                            { value: 250, label: '5v5, Half 8v8, Quarter 11v11' }
+                                            { value: 250, label: '5v5, Half 8v8, Quarter 11v11' },
+                                            { value: 125, label: '3v3, Half 5v5, Quarter 8v8' }
                                         ]}
                                         view_mode_style="pill"
+                                        required
                                     />
-                                    <EditableField
-                                        {form}
-                                        errors={$errors}
-                                        name="constraints[{actualIndex}].partial_time"
-                                        label="Partial Time"
-                                        type="select"
-                                        options={[
-                                            { value: 1, label: '15 minutes' },
-                                            { value: 2, label: '30 minutes' },
-                                            { value: 3, label: '45 minutes' },
-                                            { value: 4, label: '60 minutes (1 hour)' },
-                                            { value: 5, label: '75 minutes' },
-                                            { value: 6, label: '90 minutes (1,5 hours)' }
-                                    ]}
-                                    />
+                                    <div class="flex justify-end">
+                                        <button
+                                            class="flex items-center text-mint-600 hover:text-mint-700 mt-2"
+                                            onclick={() => togglePartialFields(visibleIndex)}
+                                        >
+                                            <span class="mr-1">{$expandedConstraints.has(visibleIndex) ? '−' : '+'}</span>
+                                            Partial Session Options
+                                        </button>
+                                    </div>
+                                    
+                                    {#if $expandedConstraints.has(visibleIndex)}
+                                        <EditableField
+                                            {form}
+                                            errors={$errors}
+                                            name="constraints[{actualIndex}].partial_cost"
+                                            label="Partial Size"
+                                            type="select"
+                                            options={[
+                                                { value: 1000, label: '11v11' },
+                                                { value: 500, label: '8v8, Half 11v11' },
+                                                { value: 250, label: '5v5, Half 8v8, Quarter 11v11' }
+                                            ]}
+                                            view_mode_style="pill"
+                                        />
+                                        <EditableField
+                                            {form}
+                                            errors={$errors}
+                                            name="constraints[{actualIndex}].partial_time"
+                                            label="Partial Time"
+                                            type="select"
+                                            options={[
+                                                { value: 1, label: '15 minutes' },
+                                                { value: 2, label: '30 minutes' },
+                                                { value: 3, label: '45 minutes' },
+                                                { value: 4, label: '60 minutes (1 hour)' },
+                                                { value: 5, label: '75 minutes' },
+                                                { value: 6, label: '90 minutes (1,5 hours)' }
+                                            ]}
+                                        />
+                                    {/if}
                                 {/if}
-                            {/if}
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <button 
+                                class="p-2 text-red-500 hover:text-red-600 transition-colors duration-200"
+                                onclick={() => removeConstraint(visibleIndex)}
+                                aria-label="Remove constraint"
+                            >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
                         </div>
                     </div>
                 {/each}
@@ -502,7 +506,7 @@
             
             {#if !$form.constraints?.filter((c: Constraint) => c.team_id === selectedTeam.team_id && c.constraint_type !== 'auto').length 
                 || $form.constraints?.filter((c: Constraint) => c.team_id === selectedTeam.team_id && c.constraint_type !== 'auto').length < 7}
-                <div class="relative inline-block">
+                <div class="relative inline-block mt-6">
                     <button 
                         class="btn-add"
                         onclick={() => {
