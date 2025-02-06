@@ -37,6 +37,13 @@
             ...f,
             constraints: [...(f.constraints || []), newConstraint]
         }));
+
+        if (selectedTeam?.team_id) {
+            form.update((f: GenerateScheduleRequest) => ({
+                ...f,
+                team_ids: Array.from(new Set([...(f.team_ids || []), selectedTeam.team_id]))
+            }));
+        }
     }
 
     function getActualIndex(visibleIndex: number): number {
@@ -57,7 +64,20 @@
 
         form.update((f: GenerateScheduleRequest) => {
             const constraints = [...(f.constraints || [])];
+            const removedConstraint = constraints[actualIndex];
             constraints.splice(actualIndex, 1);
+
+            const hasRemainingConstraints = constraints.some(
+                c => c.team_id === removedConstraint.team_id
+            );
+            if (!hasRemainingConstraints) {
+                return {
+                    ...f,
+                    constraints,
+                    team_ids: (f.team_ids || []).filter(id => id !== removedConstraint.team_id)
+                };
+            }
+
             return {
                 ...f,
                 constraints
@@ -113,6 +133,20 @@
                 !(c.team_id === teamId && c.constraint_type === 'auto')
             );
             
+            // Check if this was the last constraint for this team
+            const hasRemainingConstraints = newConstraints.some(
+                c => c.team_id === teamId
+            );
+
+            // If no remaining constraints, remove team from team_ids
+            if (!hasRemainingConstraints) {
+                return {
+                    ...f,
+                    constraints: newConstraints,
+                    team_ids: (f.team_ids || []).filter(id => id !== teamId)
+                };
+            }
+
             return {
                 ...f,
                 constraints: newConstraints
@@ -151,9 +185,16 @@
             constraint_type: 'auto'
         };
 
+        // Add the constraint
         form.update((f: GenerateScheduleRequest) => ({
             ...f,
             constraints: [...(f.constraints || []), newConstraint]
+        }));
+
+        // Ensure the team is selected in the sidebar
+        form.update((f: GenerateScheduleRequest) => ({
+            ...f,
+            team_ids: Array.from(new Set([...(f.team_ids || []), teamId]))
         }));
 
         autoModeAppliedTeams.update((teams: Set<number>) => {
