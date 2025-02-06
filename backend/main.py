@@ -311,7 +311,8 @@ def generate_schedule(facility_id: int, team_ids: List[int], club_id: int, sched
 
         solution = post_process_solution(solution, top_fields)
         print(solution)
-        schedule_id = save_schedule(solution, club_id=club_id, facility_id=facility_id, name=schedule_name)
+        schedule_id = save_schedule(solution, club_id=club_id, facility_id=facility_id, 
+                                  name=schedule_name, constraints_list=constraints_list)
         print(f"Schedule saved successfully with ID: {schedule_id}")
 
         for sess in solution:

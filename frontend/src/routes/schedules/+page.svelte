@@ -129,9 +129,7 @@
             ].filter(item => item.value != null).map(item => ({ ...item, value: item.value ?? '' }));
 
             const column2Fields = [
-                { label: 'Required Size', value: field.required_size, style: 'pill' },
                 { label: 'Required Size', value: field.required_cost, style: 'pill' },
-                { label: 'Subfield Type', value: field.subfield_type, style: 'pill' },
                 { label: 'Partial Time', value: field.partial_time, style: 'pill' }
             ].filter(item => item.value != null).map(item => ({ ...item, value: item.value ?? '' }));
 

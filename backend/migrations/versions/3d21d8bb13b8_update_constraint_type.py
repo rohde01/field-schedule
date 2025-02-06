@@ -1,8 +1,8 @@
-"""rename partial field notation
+"""update constraint type
 
-Revision ID: fd93ea4f4dcf
-Revises: b14542ca848e
-Create Date: 2025-01-18 23:03:01.750013
+Revision ID: 3d21d8bb13b8
+Revises: fd93ea4f4dcf
+Create Date: 2025-02-06 19:51:33.776786
 
 """
 from typing import Sequence, Union
@@ -12,16 +12,14 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'fd93ea4f4dcf'
-down_revision: Union[str, None] = 'b14542ca848e'
+revision: str = '3d21d8bb13b8'
+down_revision: Union[str, None] = 'fd93ea4f4dcf'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Rename partial_ses_space_size to partial_field
-    op.alter_column('constraints', 'partial_ses_space_size', new_column_name='partial_field')
-    
+
     # Drop the old columns
     op.drop_column('constraints', 'required_size')
     op.drop_column('constraints', 'subfield_type')
@@ -46,5 +44,3 @@ def downgrade() -> None:
     op.add_column('constraints', sa.Column('required_size', sa.String(), nullable=True))
     op.add_column('constraints', sa.Column('subfield_type', sa.String(), nullable=True))
     
-    # Rename partial_field back to partial_ses_space_size
-    op.alter_column('constraints', 'partial_field', new_column_name='partial_ses_space_size')

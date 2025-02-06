@@ -3,12 +3,13 @@
 from typing import List, Optional
 from collections import defaultdict
 from .index import with_db_connection
+from database.constraints import save_constraints
 
 
 @with_db_connection
-def save_schedule(conn, solution: List[dict], club_id: int, facility_id: int, name: str) -> int:
+def save_schedule(conn, solution: List[dict], club_id: int, facility_id: int, name: str, constraints_list=None) -> int:
     """
-    Save the generated schedule to the database.
+    Save the generated schedule and its constraints to the database.
     
     Args:
         conn: Database connection from decorator
@@ -16,6 +17,7 @@ def save_schedule(conn, solution: List[dict], club_id: int, facility_id: int, na
         club_id: ID of the club the schedule belongs to
         facility_id: ID of the facility
         name: Name of the schedule
+        constraints_list: Optional list of constraints to save
         
     Returns:
         schedule_id: ID of the created schedule
@@ -32,17 +34,29 @@ def save_schedule(conn, solution: List[dict], club_id: int, facility_id: int, na
         )
         schedule_id = cur.fetchone()[0]
         
+        entries_by_team = defaultdict(list)
+        for entry in solution:
+            entries_by_team[entry['team_id']].append(entry)
+
+        parent_entries = {}
+        team_first_entries = {}
+        
         # Insert all entries
         for entry in solution:
-            # Convert day of week from string to integer (0 = Monday, 6 = Sunday)
             day_mapping = {'Mon': 0, 'Tue': 1, 'Wed': 2, 'Thu': 3, 'Fri': 4, 'Sat': 5, 'Sun': 6}
             week_day = day_mapping[entry['day_of_week']]
+            
+            parent_id = None
+            entry_key = (entry['team_id'], entry['start_time'], entry['day_of_week'])
+            if entry_key in parent_entries:
+                parent_id = parent_entries[entry_key]
             
             cur.execute(
                 """
                 INSERT INTO schedule_entries 
                 (schedule_id, team_id, field_id, start_time, end_time, week_day)
                 VALUES (%s, %s, %s, %s, %s, %s)
+                RETURNING schedule_entry_id
                 """,
                 (
                     schedule_id,
@@ -53,6 +67,19 @@ def save_schedule(conn, solution: List[dict], club_id: int, facility_id: int, na
                     week_day
                 )
             )
+            entry_id = cur.fetchone()[0]
+            
+            if entry_key not in parent_entries:
+                parent_entries[entry_key] = entry_id
+                
+            if entry['team_id'] not in team_first_entries:
+                team_first_entries[entry['team_id']] = entry_id
+
+        if constraints_list:
+            for constraint in constraints_list:
+                if constraint.team_id in team_first_entries:
+                    save_constraints(cur, team_first_entries[constraint.team_id], 
+                                  constraint.team_id, constraint, club_id)
         
         conn.commit()
         return schedule_id
@@ -79,8 +106,7 @@ def get_club_schedules(conn, club_id: int):
     schedule_ids = [row[0] for row in schedule_rows]
     
     entries_query = """
-    SELECT schedule_id, schedule_entry_id, team_id, field_id, 
-           parent_schedule_entry_id, start_time, 
+    SELECT schedule_id, schedule_entry_id, team_id, field_id, start_time, 
            end_time, week_day
     FROM schedule_entries
     WHERE schedule_id = ANY(%s)
@@ -95,10 +121,9 @@ def get_club_schedules(conn, club_id: int):
             'schedule_entry_id': entry[1],
             'team_id': entry[2],
             'field_id': entry[3],
-            'parent_schedule_entry_id': entry[4],
-            'start_time': entry[5],
-            'end_time': entry[6],
-            'week_day': entry[7]
+            'start_time': entry[4],
+            'end_time': entry[5],
+            'week_day': entry[6]
         })
     
     return [

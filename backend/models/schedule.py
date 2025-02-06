@@ -6,7 +6,6 @@ class ScheduleEntry(BaseModel):
     schedule_entry_id: int
     team_id: Optional[int]
     field_id: Optional[int]
-    parent_schedule_entry_id: Optional[int]
     start_time: time
     end_time: time
     week_day: int
@@ -23,14 +22,14 @@ class Constraint(BaseModel):
     team_id: int
     sessions: int
     length: int
-    day_of_week: Optional[Literal[0, 1, 2, 3, 4, 5, 6]]
+    day_of_week: Optional[Literal[0, 1, 2, 3, 4, 5, 6]] = None
     club_id: Optional[int] = None
     constraint_id: Optional[int] = None
     schedule_entry_id: Optional[int] = None
     required_cost: Optional[int] = None
-    required_field: Optional[int] = None  
+    required_field: Optional[int] = None
     start_time: Optional[str] = None
-    partial_field: Optional[str] = None
+    partial_field: Optional[int] = None
     partial_cost: Optional[int] = None
     partial_time: Optional[int] = None
 

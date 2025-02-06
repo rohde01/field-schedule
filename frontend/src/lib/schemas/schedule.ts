@@ -5,7 +5,6 @@ export const scheduleEntrySchema = z.object({
     schedule_entry_id: z.number().int().positive(),
     team_id: z.number().int().positive().nullable(),
     field_id: z.number().int().positive().nullable(),
-    parent_schedule_entry_id: z.number().int().positive().nullable(),
     start_time: z.string().regex(timeStringRegex, { 
         message: "Time must be in HH:MM or HH:MM:SS format" 
     }),
@@ -42,9 +41,7 @@ export const constraintSchema = z.object({
       .optional(),
     length: z.number().int().min(1).max(10),
     day_of_week: z.number().int().min(0).max(6).nullable(),
-    required_size: z.enum(['11v11', '8v8', '5v5', '3v3']).nullable().optional(),
     required_field : z.number().int().positive().nullable().optional(),
-    subfield_type: z.enum(['full', 'half', 'quarter']).nullable().optional(),
     partial_field: z.number().int().positive().nullable().optional(),
     required_cost: z.number()
       .refine((val) => [1000, 500, 250, 125].includes(val), {

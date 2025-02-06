@@ -7,7 +7,7 @@ def get_constraints(conn, club_id: int) -> List[Constraint]:
     """Returns a list of Constraint instances for a specific club from the database."""
     cursor = conn.cursor()
     select_query = """
-    SELECT constraint_id, schedule_entry_id, team_id, club_id, required_size, subfield_type, 
+    SELECT constraint_id, schedule_entry_id, team_id, club_id, 
            required_cost, sessions, length, partial_field, partial_cost,
            partial_time, start_time, day_of_week
     FROM constraints
@@ -23,16 +23,14 @@ def get_constraints(conn, club_id: int) -> List[Constraint]:
             'schedule_entry_id': row[1],
             'team_id': row[2],
             'club_id': row[3],
-            'required_size': row[4],
-            'subfield_type': row[5],
-            'required_cost': row[6],
-            'sessions': row[7],
-            'length': row[8],
-            'partial_field': row[9],
-            'partial_cost': row[10],
-            'partial_time': row[11],
-            'start_time': row[12],
-            'day_of_week': row[13]
+            'required_cost': row[4],
+            'sessions': row[5],
+            'length': row[6],
+            'partial_field': row[7],
+            'partial_cost': row[8],
+            'partial_time': row[9],
+            'start_time': row[10],
+            'day_of_week': row[11]
         }
         constraints.append(Constraint(**constraint_data))
     cursor.close()
@@ -42,16 +40,26 @@ def save_constraints(cursor: Any, schedule_entry_id: int, team_id: int, constrai
     """Saves a constraint to the constraints table."""
     insert_constraint_query = """
     INSERT INTO constraints (
-        schedule_entry_id, team_id, club_id, required_size, subfield_type, required_cost,
-        sessions, length, partial_field, partial_cost,
+        schedule_entry_id, team_id, club_id, sessions, length,
+        required_cost, required_field, partial_field, partial_cost,
         partial_time, start_time, day_of_week
     )
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
     cursor.execute(
         insert_constraint_query,
-        (schedule_entry_id, team_id, constraint.club_id, constraint.required_size, constraint.subfield_type,
-         constraint.required_cost, constraint.sessions, constraint.length,
-         constraint.partial_field, constraint.partial_cost,
-         constraint.partial_time, constraint.start_time, constraint.day_of_week)
+        (
+            schedule_entry_id, 
+            team_id, 
+            club_id,
+            constraint.sessions,
+            constraint.length,
+            constraint.required_cost,
+            constraint.required_field,
+            constraint.partial_field,
+            constraint.partial_cost,
+            constraint.partial_time,
+            constraint.start_time,
+            constraint.day_of_week
+        )
     )

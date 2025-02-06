@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { SuperForm, SuperValidated, ValidationErrors } from 'sveltekit-superforms';
+    import type { ValidationErrors } from 'sveltekit-superforms';
     import EditableField from './EditableField.svelte';
     import type { GenerateScheduleRequest, Constraint } from '$lib/schemas/schedule';
     import { SidebarDropdownState } from '../../stores/ScheduleSidebarState';
