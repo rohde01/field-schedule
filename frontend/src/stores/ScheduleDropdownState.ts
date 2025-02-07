@@ -1,4 +1,4 @@
-import type { Schedule, Constraint } from '$lib/schemas/schedule';
+import type { Schedule } from '$lib/schemas/schedule';
 import { writable } from 'svelte/store';
 import { SidebarDropdownState as SidebarState } from './ScheduleSidebarState';
 
