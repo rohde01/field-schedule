@@ -12,8 +12,6 @@
       
       return allFields.filter(field => {
           if (field.facility_id !== selectedSchedule.facility_id) return false;
-          // if (field.is_active) return true; (this lines determines if active fields from the facility should be included
-          // despite not in the schedule
 
           const scheduleFieldIds = new Set(selectedSchedule.entries.map(entry => entry.field_id));
 
@@ -33,7 +31,7 @@
       });
   }
 
-  // Create a derived store for active fields based on selected schedule
+  // Derived store for active fields based on selected schedule
   const activeFields = derived([fields, dropdownState], ([$fields, $dropdownState]) => {
       const selectedSchedule = $dropdownState.selectedSchedule;
       return buildResources($fields, selectedSchedule);
@@ -77,6 +75,15 @@
     }, 0);
   }
 
+  // --- Modified: Add candidate type to CandidateState ---
+  interface CandidateState {
+    field_id: number;
+    colIndex: number;
+    width: number;
+    candidateType: 'main' | 'half' | 'quarter';
+  }
+
+  // Build a mapping from each field (and subfield) to its grid column start and span.
   function buildFieldToGridColumnMap(fields: Field[]) {
     const map = new Map<number, { colIndex: number; colSpan: number }>();
     let currentColIndex = 2;  // col 1 is reserved for Time
@@ -116,6 +123,72 @@
     }
 
     return map;
+  }
+
+  function getCandidateStatesForMainField(mainField: Field): CandidateState[] {
+    const candidates: CandidateState[] = [];
+    const mainMapping = fieldToGridColMap.get(mainField.field_id);
+    if (!mainMapping) return candidates;
+    // Full main field candidate
+    candidates.push({
+      field_id: mainField.field_id,
+      colIndex: mainMapping.colIndex,
+      width: mainMapping.colSpan,
+      candidateType: 'main'
+    });
+    // Add candidates from subfields, if any.
+    if (mainField.half_subfields.length > 0) {
+      for (const half of mainField.half_subfields) {
+        const halfMapping = fieldToGridColMap.get(half.field_id);
+        if (halfMapping) {
+          const quarters = getQuarterFieldsForHalf(mainField, half.field_id);
+          if (quarters.length > 0) {
+            // Each quarter candidate:
+            for (const q of quarters) {
+              const qMapping = fieldToGridColMap.get(q.field_id);
+              if (qMapping) {
+                candidates.push({
+                  field_id: q.field_id,
+                  colIndex: qMapping.colIndex,
+                  width: qMapping.colSpan,
+                  candidateType: 'quarter'
+                });
+              }
+            }
+            // Also add candidate for the half field (spanning both quarters)
+            candidates.push({
+              field_id: half.field_id,
+              colIndex: halfMapping.colIndex,
+              width: halfMapping.colSpan,
+              candidateType: 'half'
+            });
+          } else {
+            // If no quarters, just add the half candidate.
+            candidates.push({
+              field_id: half.field_id,
+              colIndex: halfMapping.colIndex,
+              width: halfMapping.colSpan,
+              candidateType: 'half'
+            });
+          }
+        }
+      }
+    }
+    // Sort candidates by colIndex and (for the same colIndex) by width
+    candidates.sort((a, b) => {
+      if (a.colIndex !== b.colIndex) return a.colIndex - b.colIndex;
+      return a.width - b.width;
+    });
+    return candidates;
+  }
+
+  // Helper: Given a main field and a field id (which might be main or a subfield),
+  // return its candidate type.
+  function getCandidateType(mainField: Field, fieldId: number): 'main' | 'half' | 'quarter' | null {
+    if (fieldId === mainField.field_id) return 'main';
+    if (mainField.half_subfields.some(h => h.field_id === fieldId)) return 'half';
+    if (mainField.quarter_subfields.some(q => q.field_id === fieldId)) return 'quarter';
+    return null;
   }
 
   // Grid layout setup
@@ -254,7 +327,6 @@
 
   $: filteredEvents = $activeEvents.filter((event: ScheduleEntry) => event.week_day === currentWeekDay);
 
-  // When dragging the top (start) edge:
   function handleTopDragMouseDown(e: MouseEvent, scheduleEntry: ScheduleEntry) {
       e.stopPropagation();
       e.preventDefault();
@@ -286,7 +358,6 @@
       window.addEventListener('mouseup', onMouseUp);
   }
 
-  // When dragging the bottom (end) edge:
   function handleBottomDragMouseDown(e: MouseEvent, scheduleEntry: ScheduleEntry) {
       e.stopPropagation();
       e.preventDefault();
@@ -326,9 +397,25 @@
       if (!timeCell) return;
       const rowHeight = timeCell.clientHeight;
       const initialClientY = e.clientY;
+      const initialClientX = e.clientX;
       const initialStartIndex = timeSlotsArr.indexOf(normalizeTime(scheduleEntry.start_time));
       const initialEndIndex = timeSlotsArr.indexOf(normalizeTime(scheduleEntry.end_time));
       const duration = initialEndIndex - initialStartIndex;
+
+      // Determine if horizontal dragging (field change) should be applied.
+      const mainField = getMainFieldForEvent(scheduleEntry.field_id!);
+      let candidateType: 'main' | 'half' | 'quarter' | null = null;
+      let filteredCandidates: CandidateState[] = [];
+      let originalCandidate: CandidateState | null = null;
+      if (mainField) {
+          candidateType = getCandidateType(mainField, scheduleEntry.field_id!);
+          // Only allow horizontal dragging if the event is on a subfield.
+          if (candidateType && candidateType !== 'main') {
+              const allCandidates = getCandidateStatesForMainField(mainField);
+              filteredCandidates = allCandidates.filter(c => c.candidateType === candidateType);
+              originalCandidate = filteredCandidates.find(c => c.field_id === scheduleEntry.field_id!) || null;
+          }
+      }
 
       function clamp(val: number, min: number, max: number) {
           return Math.max(min, Math.min(val, max));
@@ -342,7 +429,34 @@
           const newEndIndex = newStartIndex + duration;
           const newStartTime = timeSlotsArr[newStartIndex];
           const newEndTime = timeSlotsArr[newEndIndex];
-          updateScheduleEntry(scheduleEntry.schedule_entry_id, { start_time: newStartTime, end_time: newEndTime });
+
+          // Horizontal update for subfield events
+          let newFieldId = scheduleEntry.field_id;
+          if (filteredCandidates.length > 0 && originalCandidate) {
+              const gridElement = document.querySelector('.schedule-grid') as HTMLElement;
+              if (gridElement) {
+                  const gridRect = gridElement.getBoundingClientRect();
+                  const columnWidth = gridRect.width / totalColumns;
+                  let relativeX = moveEvent.clientX - gridRect.left;
+                  if (relativeX < 0) relativeX = 0;
+                  if (relativeX > gridRect.width) relativeX = gridRect.width;
+                  const targetCol = Math.floor(relativeX / columnWidth) + 1;
+                  // Pick the candidate whose center is closest to the target column.
+                  let chosenCandidate = originalCandidate;
+                  let minDiff = Infinity;
+                  for (const cand of filteredCandidates) {
+                      const candidateCenter = cand.colIndex + (cand.width - 1) / 2;
+                      const diff = Math.abs(candidateCenter - targetCol);
+                      if (diff < minDiff) {
+                          minDiff = diff;
+                          chosenCandidate = cand;
+                      }
+                  }
+                  newFieldId = chosenCandidate.field_id;
+              }
+          }
+
+          updateScheduleEntry(scheduleEntry.schedule_entry_id, { start_time: newStartTime, end_time: newEndTime, field_id: newFieldId });
       }
 
       function onMouseUp() {
@@ -352,6 +466,94 @@
 
       window.addEventListener('mousemove', onMouseMove);
       window.addEventListener('mouseup', onMouseUp);
+  }
+
+  function handleHorizontalDragMouseDown(e: MouseEvent, scheduleEntry: ScheduleEntry, direction: 'left' | 'right') {
+    e.stopPropagation();
+    e.preventDefault();
+    const gridElement = document.querySelector('.schedule-grid') as HTMLElement;
+    if (!gridElement) return;
+    const gridRect = gridElement.getBoundingClientRect();
+    const columnWidth = gridRect.width / totalColumns;
+    
+    const mainField = getMainFieldForEvent(scheduleEntry.field_id!);
+    if (!mainField) return;
+    const candidates = getCandidateStatesForMainField(mainField);
+    const originalCandidate = candidates.find(c => c.field_id === scheduleEntry.field_id);
+    if (!originalCandidate) return;
+    
+    if (direction === 'right') {
+      // Anchor the left boundary.
+      const originalLeft = originalCandidate.colIndex;
+      const originalRight = originalCandidate.colIndex + originalCandidate.width - 1;
+      function onMouseMove(moveEvent: MouseEvent) {
+         let relativeX = moveEvent.clientX - gridRect.left;
+         if (relativeX < 0) relativeX = 0;
+         if (relativeX > gridRect.width) relativeX = gridRect.width;
+         const targetRight = Math.floor(relativeX / columnWidth) + 1;
+         // Among candidates that share the same left boundary as the original candidate,
+         // choose the one whose right boundary (colIndex + width - 1) best matches the target.
+         const candidatesForSameLeft = candidates.filter(c => c.colIndex === originalLeft);
+         if (candidatesForSameLeft.length === 0) return;
+         candidatesForSameLeft.sort((a, b) => (a.colIndex + a.width) - (b.colIndex + b.width));
+         let chosenCandidate = originalCandidate;
+         for (const cand of candidatesForSameLeft) {
+            const candRight = cand.colIndex + cand.width - 1;
+            if (targetRight >= candRight) {
+                chosenCandidate = cand;
+            }
+         }
+         if (chosenCandidate && chosenCandidate.field_id !== scheduleEntry.field_id) {
+            updateScheduleEntry(scheduleEntry.schedule_entry_id, { field_id: chosenCandidate.field_id });
+         }
+      }
+      function onMouseUp() {
+         window.removeEventListener('mousemove', onMouseMove);
+         window.removeEventListener('mouseup', onMouseUp);
+      }
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('mouseup', onMouseUp);
+    } else if (direction === 'left') {
+      // Anchor the right boundary.
+      const originalRight = originalCandidate.colIndex + originalCandidate.width - 1;
+      function onMouseMove(moveEvent: MouseEvent) {
+         let relativeX = moveEvent.clientX - gridRect.left;
+         if (relativeX < 0) relativeX = 0;
+         if (relativeX > gridRect.width) relativeX = gridRect.width;
+         const targetLeft = Math.floor(relativeX / columnWidth) + 1;
+         // Among candidates that share the same right boundary as the original candidate,
+         // choose the one whose left boundary best matches the target.
+         const candidatesForSameRight = candidates.filter(c => (c.colIndex + c.width - 1) === originalRight);
+         if (candidatesForSameRight.length === 0) return;
+         candidatesForSameRight.sort((a, b) => b.colIndex - a.colIndex);
+         let chosenCandidate = originalCandidate;
+         for (const cand of candidatesForSameRight) {
+            if (targetLeft <= cand.colIndex) {
+               chosenCandidate = cand;
+            }
+         }
+         if (chosenCandidate && chosenCandidate.field_id !== scheduleEntry.field_id) {
+            updateScheduleEntry(scheduleEntry.schedule_entry_id, { field_id: chosenCandidate.field_id });
+         }
+      }
+      function onMouseUp() {
+         window.removeEventListener('mousemove', onMouseMove);
+         window.removeEventListener('mouseup', onMouseUp);
+      }
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('mouseup', onMouseUp);
+    }
+  }
+
+  // Given any field id (main or subfield), return the main field.
+  function getMainFieldForEvent(fieldId: number): Field | null {
+    const currentActive = get(activeFields);
+    for (const field of currentActive) {
+      if (field.field_id === fieldId) return field;
+      if (field.half_subfields.some(h => h.field_id === fieldId)) return field;
+      if (field.quarter_subfields.some(q => q.field_id === fieldId)) return field;
+    }
+    return null;
   }
 </script>
 
@@ -403,6 +605,8 @@
               {@const mapping = fieldToGridColMap.get(event.field_id!)!}
               <div
                   class="schedule-event"
+                  role="button"
+				  tabindex="0"
                   on:mousedown={(e) => handleEventDragMouseDown(e, event)}
                   style="
                       grid-row-start: {rowForTime(event.start_time)};
@@ -412,10 +616,29 @@
                       position: relative;
                   "
               >
+                  <!-- Horizontal resize handles -->
+                  <div 
+                      class="resize-handle left" 
+                      role="button"
+					  tabindex="0"
+                      aria-label="Resize event horizontally (left edge)"
+                      on:mousedown={(e) => handleHorizontalDragMouseDown(e, event, 'left')}
+                      style="position: absolute; left: 0; top: 0; bottom: 0; width: 5px; cursor: ew-resize; background: transparent;"
+                  ></div>
+                  <div 
+                      class="resize-handle right" 
+                      role="button"
+					  tabindex="0"
+                      aria-label="Resize event horizontally (right edge)"
+                      on:mousedown={(e) => handleHorizontalDragMouseDown(e, event, 'right')}
+                      style="position: absolute; right: 0; top: 0; bottom: 0; width: 5px; cursor: ew-resize; background: transparent;"
+                  ></div>
+
                   <!-- Top resize handle -->
                   <div 
                       class="resize-handle top" 
                       role="button"
+					  tabindex="0"
                       aria-label="Resize event start time"
                       on:mousedown={(e) => handleTopDragMouseDown(e, event)}
                       style="position: absolute; top: 0; left: 0; right: 0; height: 5px; cursor: ns-resize; background: transparent;"
@@ -434,6 +657,7 @@
                   <div 
                       class="resize-handle bottom" 
                       role="button"
+					  tabindex="0"
                       aria-label="Resize event end time"
                       on:mousedown={(e) => handleBottomDragMouseDown(e, event)}
                       style="position: absolute; bottom: 0; left: 0; right: 0; height: 5px; cursor: ns-resize; background: transparent;"
