@@ -254,8 +254,6 @@
 
   $: filteredEvents = $activeEvents.filter((event: ScheduleEntry) => event.week_day === currentWeekDay);
 
-  // Drag resizing functionality for schedule events
-
   // When dragging the top (start) edge:
   function handleTopDragMouseDown(e: MouseEvent, scheduleEntry: ScheduleEntry) {
       e.stopPropagation();
@@ -319,6 +317,42 @@
       window.addEventListener('mousemove', onMouseMove);
       window.addEventListener('mouseup', onMouseUp);
   }
+
+  function handleEventDragMouseDown(e: MouseEvent, scheduleEntry: ScheduleEntry) {
+      e.stopPropagation();
+      e.preventDefault();
+      const timeSlotsArr = get(timeSlots);
+      const timeCell = document.querySelector('.schedule-time') as HTMLElement;
+      if (!timeCell) return;
+      const rowHeight = timeCell.clientHeight;
+      const initialClientY = e.clientY;
+      const initialStartIndex = timeSlotsArr.indexOf(normalizeTime(scheduleEntry.start_time));
+      const initialEndIndex = timeSlotsArr.indexOf(normalizeTime(scheduleEntry.end_time));
+      const duration = initialEndIndex - initialStartIndex;
+
+      function clamp(val: number, min: number, max: number) {
+          return Math.max(min, Math.min(val, max));
+      }
+
+      function onMouseMove(moveEvent: MouseEvent) {
+          const deltaY = moveEvent.clientY - initialClientY;
+          const deltaRows = Math.round(deltaY / rowHeight);
+          const maxStartIndex = timeSlotsArr.length - 1 - duration;
+          const newStartIndex = clamp(initialStartIndex + deltaRows, 0, maxStartIndex);
+          const newEndIndex = newStartIndex + duration;
+          const newStartTime = timeSlotsArr[newStartIndex];
+          const newEndTime = timeSlotsArr[newEndIndex];
+          updateScheduleEntry(scheduleEntry.schedule_entry_id, { start_time: newStartTime, end_time: newEndTime });
+      }
+
+      function onMouseUp() {
+          window.removeEventListener('mousemove', onMouseMove);
+          window.removeEventListener('mouseup', onMouseUp);
+      }
+
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('mouseup', onMouseUp);
+  }
 </script>
 
 <div class="schedule-container">
@@ -369,6 +403,7 @@
               {@const mapping = fieldToGridColMap.get(event.field_id!)!}
               <div
                   class="schedule-event"
+                  on:mousedown={(e) => handleEventDragMouseDown(e, event)}
                   style="
                       grid-row-start: {rowForTime(event.start_time)};
                       grid-row-end: {getEventEndRow(event.end_time) + 1};
@@ -381,7 +416,7 @@
                   <div 
                       class="resize-handle top" 
                       role="button"
-                      tabindex="0"
+                      aria-label="Resize event start time"
                       on:mousedown={(e) => handleTopDragMouseDown(e, event)}
                       style="position: absolute; top: 0; left: 0; right: 0; height: 5px; cursor: ns-resize; background: transparent;"
                   ></div>
@@ -399,7 +434,7 @@
                   <div 
                       class="resize-handle bottom" 
                       role="button"
-                      tabindex="0"
+                      aria-label="Resize event end time"
                       on:mousedown={(e) => handleBottomDragMouseDown(e, event)}
                       style="position: absolute; bottom: 0; left: 0; right: 0; height: 5px; cursor: ns-resize; background: transparent;"
                   ></div>
