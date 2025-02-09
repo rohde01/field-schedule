@@ -75,7 +75,7 @@
     }, 0);
   }
 
-  // --- Modified: Add candidate type to CandidateState ---
+  // --- CandidateState interface ---
   interface CandidateState {
     field_id: number;
     colIndex: number;
@@ -207,6 +207,7 @@
     label: string;
     colIndex: number;
     colSpan: number;
+    fieldId: number;
   }
   let headerCells: HeaderCell[] = [];
 
@@ -219,7 +220,8 @@
         headerCells.push({
           label: field.name,
           colIndex,
-          colSpan: 1
+          colSpan: 1,
+          fieldId: field.field_id
         });
         colIndex += 1;
       } else {
@@ -229,7 +231,8 @@
             headerCells.push({
               label: half.name,
               colIndex,
-              colSpan: 1
+              colSpan: 1,
+              fieldId: half.field_id
             });
             colIndex += 1;
           } else {
@@ -237,7 +240,8 @@
               headerCells.push({
                 label: q.name,
                 colIndex,
-                colSpan: 1
+                colSpan: 1,
+                fieldId: q.field_id
               });
               colIndex += 1;
             }
@@ -389,6 +393,7 @@
       window.addEventListener('mouseup', onMouseUp);
   }
 
+  // --- Revised: Allow dragging an event horizontally to change main fields ---
   function handleEventDragMouseDown(e: MouseEvent, scheduleEntry: ScheduleEntry) {
       e.stopPropagation();
       e.preventDefault();
@@ -401,21 +406,6 @@
       const initialStartIndex = timeSlotsArr.indexOf(normalizeTime(scheduleEntry.start_time));
       const initialEndIndex = timeSlotsArr.indexOf(normalizeTime(scheduleEntry.end_time));
       const duration = initialEndIndex - initialStartIndex;
-
-      // Determine if horizontal dragging (field change) should be applied.
-      const mainField = getMainFieldForEvent(scheduleEntry.field_id!);
-      let candidateType: 'main' | 'half' | 'quarter' | null = null;
-      let filteredCandidates: CandidateState[] = [];
-      let originalCandidate: CandidateState | null = null;
-      if (mainField) {
-          candidateType = getCandidateType(mainField, scheduleEntry.field_id!);
-          // Only allow horizontal dragging if the event is on a subfield.
-          if (candidateType && candidateType !== 'main') {
-              const allCandidates = getCandidateStatesForMainField(mainField);
-              filteredCandidates = allCandidates.filter(c => c.candidateType === candidateType);
-              originalCandidate = filteredCandidates.find(c => c.field_id === scheduleEntry.field_id!) || null;
-          }
-      }
 
       function clamp(val: number, min: number, max: number) {
           return Math.max(min, Math.min(val, max));
@@ -430,30 +420,26 @@
           const newStartTime = timeSlotsArr[newStartIndex];
           const newEndTime = timeSlotsArr[newEndIndex];
 
-          // Horizontal update for subfield events
+          // Horizontal update: Determine target header cell based on mouse X position.
           let newFieldId = scheduleEntry.field_id;
-          if (filteredCandidates.length > 0 && originalCandidate) {
-              const gridElement = document.querySelector('.schedule-grid') as HTMLElement;
-              if (gridElement) {
-                  const gridRect = gridElement.getBoundingClientRect();
-                  const columnWidth = gridRect.width / totalColumns;
-                  let relativeX = moveEvent.clientX - gridRect.left;
-                  if (relativeX < 0) relativeX = 0;
-                  if (relativeX > gridRect.width) relativeX = gridRect.width;
-                  const targetCol = Math.floor(relativeX / columnWidth) + 1;
-                  // Pick the candidate whose center is closest to the target column.
-                  let chosenCandidate = originalCandidate;
-                  let minDiff = Infinity;
-                  for (const cand of filteredCandidates) {
-                      const candidateCenter = cand.colIndex + (cand.width - 1) / 2;
-                      const diff = Math.abs(candidateCenter - targetCol);
-                      if (diff < minDiff) {
-                          minDiff = diff;
-                          chosenCandidate = cand;
-                      }
+          const gridElement = document.querySelector('.schedule-grid') as HTMLElement;
+          if (gridElement) {
+              const gridRect = gridElement.getBoundingClientRect();
+              const columnWidth = gridRect.width / totalColumns;
+              let relativeX = moveEvent.clientX - gridRect.left;
+              relativeX = clamp(relativeX, 0, gridRect.width);
+              const targetCol = Math.floor(relativeX / columnWidth) + 1;
+              // Pick the header cell whose colIndex is closest to the target column.
+              let chosenCell = headerCells[0];
+              let minDiff = Infinity;
+              for (const cell of headerCells) {
+                  const diff = Math.abs(cell.colIndex - targetCol);
+                  if (diff < minDiff) {
+                      minDiff = diff;
+                      chosenCell = cell;
                   }
-                  newFieldId = chosenCandidate.field_id;
               }
+              newFieldId = chosenCell.fieldId;
           }
 
           updateScheduleEntry(scheduleEntry.schedule_entry_id, { start_time: newStartTime, end_time: newEndTime, field_id: newFieldId });
