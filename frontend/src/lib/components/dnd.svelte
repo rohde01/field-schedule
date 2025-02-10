@@ -285,9 +285,12 @@
     return selectedSchedule.entries;
   });
 
-  const timeSlots = derived(activeEvents, ($activeEvents) => {
+  const timeSlotGranularity = writable(15);
+
+  // Update timeSlots derived store to use the selected granularity
+  const timeSlots = derived([activeEvents, timeSlotGranularity], ([$activeEvents, $timeSlotGranularity]) => {
     const { earliestStart, latestEnd } = getScheduleTimeRange($activeEvents);
-    return generateTimeSlots(earliestStart, latestEnd, 15);
+    return generateTimeSlots(earliestStart, latestEnd, $timeSlotGranularity);
   });
   
   function rowForTime(time: string): number {
@@ -572,11 +575,34 @@
     }
     return null;
   }
+
+  // Function to handle timeslot granularity change with proper typing
+  function handleGranularityChange(e: Event) {
+    const select = e.target as HTMLSelectElement;
+    timeSlotGranularity.set(parseInt(select.value));
+  }
 </script>
 
 <div class="schedule-container">
-  <!-- View mode toggle -->
-  <div class="view-toggle-container">
+  <!-- Combined controls header with day navigation always visible -->
+  <div class="schedule-controls" style="margin: 0.5rem 0; padding: 0.5rem 0; display: flex; justify-content: space-between; align-items: center;">
+    <div class="timeslot-selector">
+      <select
+        id="timeslot-granularity"
+        class="form-input-sm"
+        on:change={handleGranularityChange}
+      >
+        <option value="15">15 Minutes</option>
+        <option value="30">30 Minutes</option>
+      </select>
+    </div>
+
+    <div class="weekday-navigation" style="display: flex; align-items: center; gap: 0.5rem; {$viewMode === 'week' ? 'visibility: hidden;' : ''}">
+      <button on:click={previousDay} class="nav-button" disabled={$viewMode === 'week'}>‹</button>
+      <span class="current-day">{weekDays[currentWeekDay]}</span>
+      <button on:click={nextDay} class="nav-button" disabled={$viewMode === 'week'}>›</button>
+    </div>
+
     <div class="view-toggle">
       <button
         class="view-toggle-btn left-btn"
@@ -596,12 +622,6 @@
   </div>
 
   {#if $viewMode === 'day'}
-    <div class="weekday-navigation">
-      <button on:click={previousDay} class="nav-button">‹</button>
-      <span class="current-day">{weekDays[currentWeekDay]}</span>
-      <button on:click={nextDay} class="nav-button">›</button>
-    </div>
-  
     <div 
       class="schedule-grid"
       style="--total-columns: {totalColumns}; --total-rows: {$timeSlots.length + 1};"
@@ -709,9 +729,6 @@
     <!-- Continuous View Mode: Render a schedule grid for each day stacked vertically -->
     {#each weekDays as day, dayIndex}
       <div class="day-section">
-        <div class="weekday-navigation">
-          <span class="current-day">{day}</span>
-        </div>
         <div 
           class="schedule-grid"
           style="--total-columns: {totalColumns}; --total-rows: {$timeSlots.length + 1}; margin-bottom: 2rem;"

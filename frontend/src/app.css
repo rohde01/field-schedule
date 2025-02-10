@@ -385,6 +385,12 @@
   .right-btn {
     @apply rounded-r-md;
   }
-  
+
+  .schedule-controls {
+    @apply flex justify-between items-center mb-4;
+  }
+
+  .timeslot-selector {
+    @apply flex items-center gap-2;
+  }
 }
- 
