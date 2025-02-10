@@ -262,7 +262,7 @@
   
   function getScheduleTimeRange(entries: ScheduleEntry[]): { earliestStart: string; latestEnd: string } {
     if (!entries || entries.length === 0) {
-      return { earliestStart: "14:45", latestEnd: "22:30" };
+      return { earliestStart: "15:00", latestEnd: "22:30" }; // Changed from 14:45
     }
   
     let earliestStart = "23:59";
@@ -273,13 +273,8 @@
       if (entry.end_time > latestEnd) latestEnd = entry.end_time;
     });
   
-    const [hours, minutes] = normalizeTime(earliestStart).split(':').map(Number);
-    const totalMinutes = hours * 60 + minutes - 15;
-    const adjustedHours = Math.floor(totalMinutes / 60).toString().padStart(2, '0');
-    const adjustedMinutes = (totalMinutes % 60).toString().padStart(2, '0');
-    
     return { 
-      earliestStart: `${adjustedHours}:${adjustedMinutes}`,
+      earliestStart: normalizeTime(earliestStart),
       latestEnd: normalizeTime(latestEnd) 
     };
   }
