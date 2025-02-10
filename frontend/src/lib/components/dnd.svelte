@@ -393,7 +393,6 @@
       window.addEventListener('mouseup', onMouseUp);
   }
 
-  // --- Revised: Allow dragging an event horizontally to change main fields ---
   function handleEventDragMouseDown(e: MouseEvent, scheduleEntry: ScheduleEntry) {
       e.stopPropagation();
       e.preventDefault();
@@ -402,11 +401,10 @@
       if (!timeCell) return;
       const rowHeight = timeCell.clientHeight;
       const initialClientY = e.clientY;
-      const initialClientX = e.clientX;
       const initialStartIndex = timeSlotsArr.indexOf(normalizeTime(scheduleEntry.start_time));
       const initialEndIndex = timeSlotsArr.indexOf(normalizeTime(scheduleEntry.end_time));
       const duration = initialEndIndex - initialStartIndex;
-
+    
       function clamp(val: number, min: number, max: number) {
           return Math.max(min, Math.min(val, max));
       }
@@ -420,7 +418,6 @@
           const newStartTime = timeSlotsArr[newStartIndex];
           const newEndTime = timeSlotsArr[newEndIndex];
 
-          // Horizontal update: Determine target header cell based on mouse X position.
           let newFieldId = scheduleEntry.field_id;
           const gridElement = document.querySelector('.schedule-grid') as HTMLElement;
           if (gridElement) {
@@ -429,17 +426,43 @@
               let relativeX = moveEvent.clientX - gridRect.left;
               relativeX = clamp(relativeX, 0, gridRect.width);
               const targetCol = Math.floor(relativeX / columnWidth) + 1;
-              // Pick the header cell whose colIndex is closest to the target column.
-              let chosenCell = headerCells[0];
-              let minDiff = Infinity;
+              // Determine which header cell is closest to the target column.
+              let chosenHeader = headerCells[0];
+              let minHeaderDiff = Math.abs(chosenHeader.colIndex - targetCol);
               for (const cell of headerCells) {
                   const diff = Math.abs(cell.colIndex - targetCol);
-                  if (diff < minDiff) {
-                      minDiff = diff;
-                      chosenCell = cell;
+                  if (diff < minHeaderDiff) {
+                      chosenHeader = cell;
+                      minHeaderDiff = diff;
                   }
               }
-              newFieldId = chosenCell.fieldId;
+              // Get the main field for that header cell.
+              const newMainField = getMainFieldForEvent(chosenHeader.fieldId);
+              if (newMainField) {
+                  const candidates = getCandidateStatesForMainField(newMainField);
+                  // Get the original candidate's width from the original main field.
+                  let originalCandidate = null;
+                  const originalMainField = scheduleEntry.field_id ? getMainFieldForEvent(scheduleEntry.field_id) : null;
+                  if (originalMainField) {
+                      const originalCandidates = getCandidateStatesForMainField(originalMainField);
+                      originalCandidate = originalCandidates.find(c => c.field_id === scheduleEntry.field_id);
+                  }
+                  const desiredWidth = originalCandidate ? originalCandidate.width : 1;
+                  let validCandidates = candidates.filter(c => c.width === desiredWidth);
+                  if (validCandidates.length === 0) {
+                      validCandidates = candidates;
+                  }
+                  let chosenCandidate = validCandidates[0];
+                  let minDiff = Math.abs(chosenCandidate.colIndex - targetCol);
+                  for (const cand of validCandidates) {
+                      const diff = Math.abs(cand.colIndex - targetCol);
+                      if (diff < minDiff) {
+                          chosenCandidate = cand;
+                          minDiff = diff;
+                      }
+                  }
+                  newFieldId = chosenCandidate.field_id;
+              }
           }
 
           updateScheduleEntry(scheduleEntry.schedule_entry_id, { start_time: newStartTime, end_time: newEndTime, field_id: newFieldId });
