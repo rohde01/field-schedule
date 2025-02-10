@@ -4,7 +4,7 @@
   import type { Schedule, ScheduleEntry } from '$lib/schemas/schedule';
   import { fields } from '$stores/fields';
   import { teams } from '$stores/teams';
-  import { derived, get } from 'svelte/store';
+  import { derived, get, writable } from 'svelte/store';
   import { updateScheduleEntry } from '$stores/schedules';
 
   function buildResources(allFields: Field[], selectedSchedule: Schedule | null): Field[] {
@@ -329,11 +329,11 @@
     return `Field ${fieldId}`;
   }
   
-  // View modes
-  let viewMode: 'day' | 'continuous' = 'day';
+  // View mode state
+  let viewMode = writable('day');
   
   function toggleViewMode() {
-    viewMode = viewMode === 'day' ? 'continuous' : 'day';
+    $viewMode = $viewMode === 'day' ? 'week' : 'day';
   }
   
   function handleTopDragMouseDown(e: MouseEvent, scheduleEntry: ScheduleEntry) {
@@ -580,14 +580,27 @@
 </script>
 
 <div class="schedule-container">
-  <!-- View mode toggle button -->
-  <div class="view-mode-toggle">
-    <button on:click={toggleViewMode}>
-      {viewMode === 'day' ? 'Switch to Continuous View' : 'Switch to Day View'}
-    </button>
+  <!-- View mode toggle -->
+  <div class="view-toggle-container">
+    <div class="view-toggle">
+      <button
+        class="view-toggle-btn left-btn"
+        class:active={$viewMode === 'day'}
+        on:click={() => $viewMode = 'day'}
+      >
+        Day
+      </button>
+      <button
+        class="view-toggle-btn right-btn"
+        class:active={$viewMode === 'week'}
+        on:click={() => $viewMode = 'week'}
+      >
+        Week
+      </button>
+    </div>
   </div>
-  
-  {#if viewMode === 'day'}
+
+  {#if $viewMode === 'day'}
     <div class="weekday-navigation">
       <button on:click={previousDay} class="nav-button">‹</button>
       <span class="current-day">{weekDays[currentWeekDay]}</span>
@@ -701,7 +714,9 @@
     <!-- Continuous View Mode: Render a schedule grid for each day stacked vertically -->
     {#each weekDays as day, dayIndex}
       <div class="day-section">
-        <h2>{day}</h2>
+        <div class="weekday-navigation">
+          <span class="current-day">{day}</span>
+        </div>
         <div 
           class="schedule-grid"
           style="--total-columns: {totalColumns}; --total-rows: {$timeSlots.length + 1}; margin-bottom: 2rem;"
