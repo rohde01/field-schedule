@@ -5,9 +5,9 @@
   import { fields } from '$stores/fields';
   import { teams } from '$stores/teams';
   import { derived, get, writable } from 'svelte/store';
-  import { updateScheduleEntry } from '$stores/schedules';
+  import { updateScheduleEntry, addScheduleEntry } from '$stores/schedules';
   import { buildResources, normalizeTime, weekDays, handleGranularityChange, timeSlots, activeEvents, 
-          nextDay, previousDay, currentWeekDay, getRowForTimeWithSlots, getEventRowEndWithSlots } from '$lib/utils/calendarUtils';
+          nextDay, previousDay, currentWeekDay, getRowForTimeWithSlots, getEventRowEndWithSlots, addMinutes } from '$lib/utils/calendarUtils';
   import InfoCard from '$lib/components/InfoCard.svelte';
   import { getFieldColumns, buildFieldToGridColumnMap, generateHeaderCells, getFieldName, generateFieldOptions } from '$lib/utils/fieldUtils';
   import { initializeTopDrag, initializeBottomDrag, initializeEventDrag, initializeHorizontalDrag } from '$lib/utils/dndUtils';
@@ -108,6 +108,20 @@
   // View mode state
   let viewMode = writable('day');
 
+  function handleEmptyCellDblClick(e: MouseEvent, time: string, cell: { fieldId: number }) {
+    e.stopPropagation();
+    const newEntry = {
+      schedule_entry_id: Date.now(),
+      team_id: null,
+      field_id: cell.fieldId,
+      week_day: $currentWeekDay,
+      start_time: time,
+      end_time: addMinutes(time, 60)
+    };
+    addScheduleEntry(newEntry);
+    infoCardStore.openEventInfoCard(e, newEntry, containerElement);
+  }
+
 </script>
 
 <svelte:window on:click={handleWindowClick} />
@@ -179,14 +193,18 @@
         {#each headerCells as cell}
           <div
             class="schedule-cell"
+            role="button" 
+            tabindex="0"
+            aria-label="Create new event"
             style="grid-column: {cell.colIndex} / span {cell.colSpan}; grid-row: {rowIndex + 2};"
+            on:dblclick={(e) => handleEmptyCellDblClick(e, time, cell)}
           ></div>
         {/each}
       {/each}
   
       <!-- EVENTS -->
       {#each $activeEvents.filter(event => event.week_day === $currentWeekDay) as event (event.schedule_entry_id)}
-        {#if fieldToGridColMap.has(event.field_id!) && event.team_id !== null}
+        {#if fieldToGridColMap.has(event.field_id!)}
           {@const mapping = fieldToGridColMap.get(event.field_id!)!}
           <div
             class="schedule-event"
@@ -231,7 +249,9 @@
             ></div>
             <!-- Event content -->
             <div class="event-team font-bold text-[1.15em]">
-              {$teamNameLookup.get(event.team_id) ?? `Team ${event.team_id}`}
+              { event.team_id !== null 
+                  ? ($teamNameLookup.get(event.team_id) ?? `Team ${event.team_id}`) 
+                  : "Select a team" }
             </div>
             <div class="event-field flex items-center gap-1 text-[1.12em] text-gray-600">
               📍 {getFieldName(event.field_id!, $activeFields)}
@@ -287,14 +307,18 @@
             {#each headerCells as cell}
               <div
                 class="schedule-cell"
+                role="button" 
+                tabindex="0"
+                aria-label="Create new event"
                 style="grid-column: {cell.colIndex} / span {cell.colSpan}; grid-row: {rowIndex + 2};"
+                on:dblclick={(e) => handleEmptyCellDblClick(e, time, cell)}
               ></div>
             {/each}
           {/each}
   
           <!-- EVENTS for this day -->
           {#each $activeEvents.filter(event => event.week_day === dayIndex) as event (event.schedule_entry_id)}
-            {#if fieldToGridColMap.has(event.field_id!) && event.team_id !== null}
+            {#if fieldToGridColMap.has(event.field_id!)}
               {@const mapping = fieldToGridColMap.get(event.field_id!)!}
               <div
                 class="schedule-event"
@@ -339,7 +363,9 @@
                 ></div>
                 <!-- Event content -->
                 <div class="event-team font-bold text-[1.15em]">
-                  {$teamNameLookup.get(event.team_id) ?? `Team ${event.team_id}`}
+                  { event.team_id !== null 
+                      ? ($teamNameLookup.get(event.team_id) ?? `Team ${event.team_id}`) 
+                      : "Select a team" }
                 </div>
                 <div class="event-field flex items-center gap-1 text-[1.12em] text-gray-600">
                   📍 {getFieldName(event.field_id!, $activeFields)}

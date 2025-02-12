@@ -129,4 +129,12 @@ export function previousDay() {
   currentWeekDay.update(day => (day - 1 + 7) % 7);
 }
 
+export function addMinutes(time: string, minutes: number): string {
+  const [h, m] = time.split(':').map(Number);
+  const total = h * 60 + m + minutes;
+  const nh = Math.floor(total / 60) % 24;
+  const nm = total % 60;
+  return `${nh.toString().padStart(2, '0')}:${nm.toString().padStart(2, '0')}`;
+}
+
 

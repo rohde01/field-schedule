@@ -50,3 +50,17 @@ export function updateScheduleEntry(entryId: number, changes: Partial<ScheduleEn
         });
     });
 }
+
+export function addScheduleEntry(newEntry: ScheduleEntry) {
+    schedules.update(schedulesList => {
+        const currentDropdown = get(dropdownState);
+        const selectedSchedule = currentDropdown.selectedSchedule;
+        if (!selectedSchedule) return schedulesList;
+        return schedulesList.map(schedule => {
+            if (schedule.schedule_id === selectedSchedule.schedule_id) {
+                return { ...schedule, entries: [...schedule.entries, newEntry] };
+            }
+            return schedule;
+        });
+    });
+}
