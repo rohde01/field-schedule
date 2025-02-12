@@ -4,8 +4,9 @@
   import type { Schedule, ScheduleEntry } from '$lib/schemas/schedule';
   import { fields } from '$stores/fields';
   import { teams } from '$stores/teams';
-  import { derived, get, writable } from 'svelte/store';
+  import { derived, get, writable, type Writable } from 'svelte/store';
   import { updateScheduleEntry } from '$stores/schedules';
+  import EditableField from './EditableField.svelte';
 
   function buildResources(allFields: Field[], selectedSchedule: Schedule | null): Field[] {
     if (!selectedSchedule) return [];
@@ -275,7 +276,7 @@
   
     return { 
       earliestStart: normalizeTime(earliestStart),
-      latestEnd: normalizeTime(latestEnd) 
+      latestEnd: normalizeTime(latestEnd)
     };
   }
   
@@ -581,11 +582,97 @@
     const select = e.target as HTMLSelectElement;
     timeSlotGranularity.set(parseInt(select.value));
   }
+
+  let editingEvent: ScheduleEntry | null = null;
+  // We'll create a writable store for the info card form data.
+  let infoCardForm: Writable<Record<string, any>> | null = null;
+  let infoCardFormUnsubscribe: () => void = () => {};
+  let editingEventPosition = { top: 0, left: 0 };
+
+  // Reference to the schedule container element (to position the info card)
+  let containerElement: HTMLElement;
+
+  function openEventInfoCard(e: MouseEvent, event: ScheduleEntry) {
+    e.stopPropagation();
+    const containerRect = containerElement.getBoundingClientRect();
+    const targetRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const INFO_CARD_WIDTH = 400;
+    const INFO_CARD_HEIGHT = 220;
+    const spaceOnRight = containerRect.right - targetRect.right;
+    
+    // Calculate vertical center position
+    const eventCenterY = targetRect.top + (targetRect.height / 2);
+    const top = eventCenterY - containerRect.top - (INFO_CARD_HEIGHT / 2);
+    
+    // Determine left position based on available space
+    const left = spaceOnRight >= (INFO_CARD_WIDTH + 10)
+      ? targetRect.right - containerRect.left + 10 
+      : targetRect.left - containerRect.left - INFO_CARD_WIDTH - 10; 
+      
+    editingEventPosition = { top, left };
+    
+    // Rest of the existing function
+    editingEvent = event;
+    const initialData = {
+      schedule_entry_id: event.schedule_entry_id,
+      team_id: event.team_id!,
+      field_id: event.field_id!,
+      week_day: event.week_day,
+      start_time: normalizeTime(event.start_time),
+      end_time: normalizeTime(event.end_time)
+    };
+    infoCardForm = writable(initialData);
+    if (infoCardFormUnsubscribe) infoCardFormUnsubscribe();
+    infoCardFormUnsubscribe = infoCardForm.subscribe(val => {
+      updateScheduleEntry(val.schedule_entry_id, {
+        team_id: val.team_id,
+        field_id: val.field_id,
+        week_day: val.week_day,
+        start_time: val.start_time,
+        end_time: val.end_time
+      });
+    });
+  }
+
+  function closeInfoCard() {
+    editingEvent = null;
+    if (infoCardFormUnsubscribe) infoCardFormUnsubscribe();
+    infoCardForm = null;
+  }
+
+  // Clicking anywhere outside the info card closes it.
+  function handleWindowClick() {
+    if (editingEvent) {
+      closeInfoCard();
+    }
+  }
+
+  function generateFieldOptions(fields: Field[]): { value: number; label: string }[] {
+    const options: { value: number; label: string }[] = [];
+    
+    for (const field of fields) {
+      options.push({ value: field.field_id, label: field.name });
+      
+      for (const half of field.half_subfields) {
+        options.push({ value: half.field_id, label: half.name });
+        
+        const quarters = field.quarter_subfields.filter(q => q.parent_field_id === half.field_id);
+        for (const quarter of quarters) {
+          options.push({ value: quarter.field_id, label: quarter.name });
+        }
+      }
+    }
+    
+    return options;
+  }
 </script>
 
-<div class="schedule-container">
-  <!-- Combined controls header with day navigation always visible -->
-  <div class="schedule-controls" style="margin: 0.5rem 0; padding: 0.5rem 0; display: flex; justify-content: space-between; align-items: center;">
+<!-- Listen for clicks on the window -->
+<svelte:window on:click={handleWindowClick} />
+
+<!-- Set containerElement as a reference and ensure position relative -->
+<div class="schedule-container" bind:this={containerElement} style="position: relative;">
+  <div class="schedule-controls flex justify-between items-center my-2 py-2">
     <div class="timeslot-selector">
       <select
         id="timeslot-granularity"
@@ -597,23 +684,21 @@
       </select>
     </div>
 
-    <div class="weekday-navigation" style="display: flex; align-items: center; gap: 0.5rem; {$viewMode === 'week' ? 'visibility: hidden;' : ''}">
+    <div class="weekday-navigation flex items-center gap-2" style="{$viewMode === 'week' ? 'visibility: hidden;' : ''}">
       <button on:click={previousDay} class="nav-button" disabled={$viewMode === 'week'}>‹</button>
-      <span class="current-day">{weekDays[currentWeekDay]}</span>
+      <span class="current-day text-lg font-medium text-sage-800">{weekDays[currentWeekDay]}</span>
       <button on:click={nextDay} class="nav-button" disabled={$viewMode === 'week'}>›</button>
     </div>
 
     <div class="view-toggle">
       <button
-        class="view-toggle-btn left-btn"
-        class:active={$viewMode === 'day'}
+        class="view-toggle-btn left-btn { $viewMode === 'day' ? 'active' : '' }"
         on:click={() => $viewMode = 'day'}
       >
         Day
       </button>
       <button
-        class="view-toggle-btn right-btn"
-        class:active={$viewMode === 'week'}
+        class="view-toggle-btn right-btn { $viewMode === 'week' ? 'active' : '' }"
         on:click={() => $viewMode = 'week'}
       >
         Week
@@ -665,6 +750,7 @@
             class="schedule-event"
             role="button"
             tabindex="0"
+            on:dblclick={(e) => openEventInfoCard(e, event)}
             on:mousedown={(e) => handleEventDragMouseDown(e, event)}
             style="
               grid-row-start: {rowForTime(event.start_time)};
@@ -702,13 +788,13 @@
               style="position: absolute; top: 0; left: 0; right: 0; height: 5px; cursor: ns-resize; background: transparent;"
             ></div>
             <!-- Event content -->
-            <div class="event-team">
+            <div class="event-team font-bold text-[1.15em]">
               {$teamNameLookup.get(event.team_id) ?? `Team ${event.team_id}`}
             </div>
-            <div class="event-field">
+            <div class="event-field flex items-center gap-1 text-[1.12em] text-gray-600">
               📍 {getFieldName(event.field_id!)}
             </div>
-            <div class="event-time">
+            <div class="event-time flex items-center gap-1 text-[1.12em] text-gray-600">
               🕐 {normalizeTime(event.start_time)} - {normalizeTime(event.end_time)}
             </div>
             <!-- Bottom resize handle -->
@@ -772,6 +858,7 @@
                 class="schedule-event"
                 role="button"
                 tabindex="0"
+                on:dblclick={(e) => openEventInfoCard(e, event)}
                 on:mousedown={(e) => handleEventDragMouseDown(e, event)}
                 style="
                   grid-row-start: {rowForTime(event.start_time)};
@@ -809,13 +896,13 @@
                   style="position: absolute; top: 0; left: 0; right: 0; height: 5px; cursor: ns-resize; background: transparent;"
                 ></div>
                 <!-- Event content -->
-                <div class="event-team">
+                <div class="event-team font-bold text-[1.15em]">
                   {$teamNameLookup.get(event.team_id) ?? `Team ${event.team_id}`}
                 </div>
-                <div class="event-field">
+                <div class="event-field flex items-center gap-1 text-[1.12em] text-gray-600">
                   📍 {getFieldName(event.field_id!)}
                 </div>
-                <div class="event-time">
+                <div class="event-time flex items-center gap-1 text-[1.12em] text-gray-600">
                   🕐 {normalizeTime(event.start_time)} - {normalizeTime(event.end_time)}
                 </div>
                 <!-- Bottom resize handle -->
@@ -833,5 +920,78 @@
         </div>
       </div>
     {/each}
+  {/if}
+
+  <!--  INFO CARD -->
+  {#if editingEvent && infoCardForm}
+    <div 
+      role="button"
+      tabindex="0"
+      on:keydown={(e) => { if(e.key === "Enter" || e.key === " ") e.stopPropagation(); }}
+      on:click|stopPropagation
+      class="event-info-card"
+      style="position: absolute; top: {editingEventPosition.top}px; left: {editingEventPosition.left}px;"
+    >
+      <div class="event-info-card-header">
+        <EditableField
+           form={infoCardForm}
+           errors={{}}
+           name="team_id"
+           label=""
+           type="select"
+           view_mode_style="title"
+           options={$teams
+             .filter(team => team.team_id !== undefined)
+             .map(team => ({ value: team.team_id!, label: team.name }))}
+           required={true}
+        />
+      </div>
+      <div class="event-info-card-content">
+        <div class="event-info-card-grid">
+          <EditableField
+            form={infoCardForm}
+            errors={{}}
+            name="field_id"
+            label="Location"
+            type="select"
+            view_mode_style="pill"
+            options={generateFieldOptions($activeFields)}
+            required={true}
+          />
+          <EditableField
+            form={infoCardForm}
+            errors={{}}
+            name="week_day"
+            label="Day"
+            type="select"
+            view_mode_style="normal"
+            options={weekDays.map((day, index) => ({ value: index, label: day }))}
+            required={true}
+          />
+        </div>
+        <div class="event-info-card-grid">
+          <EditableField
+            form={infoCardForm}
+            errors={{}}
+            name="start_time"
+            label="Start Time"
+            type="text"
+            placeholder="HH:MM"
+            view_mode_style="normal"
+            required={true}
+          />
+          <EditableField
+            form={infoCardForm}
+            errors={{}}
+            name="end_time"
+            label="End Time"
+            type="text"
+            placeholder="HH:MM"
+            view_mode_style="normal"
+            required={true}
+          />
+        </div>
+      </div>
+    </div>
   {/if}
 </div>

@@ -393,4 +393,14 @@
   .timeslot-selector {
     @apply flex items-center gap-2;
   }
+
+  @layer components {
+    .event-info-card {
+      @apply bg-white rounded-lg shadow-md p-6 z-50 min-w-[400px];
+    }
+    .event-info-card-grid {
+      @apply grid grid-cols-2 gap-4;
+    }
+  }
+  
 }
