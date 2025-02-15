@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 from main import generate_schedule
 from database.constraints import Constraint as ConstraintModel
-from database.schedules import get_club_schedules, delete_schedule, get_schedule_club_id
+from database.schedules import get_club_schedules, delete_schedule, get_schedule_club_id, update_schedule_entry, get_schedule_entry_schedule_id
 from models.schedule import Schedule
 from dependencies.auth import get_current_user
 from dependencies.permissions import require_club_access
@@ -112,3 +112,30 @@ async def delete_schedule_route(
         raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@router.put("/entry/{entry_id}")
+async def update_entry(
+    entry_id: int,
+    changes: dict,
+    current_user: User = Depends(get_current_user)
+):
+    try:
+        schedule_id = get_schedule_entry_schedule_id(entry_id)
+        if not schedule_id:
+            raise HTTPException(status_code=404, detail="Schedule entry not found")
+            
+        club_id = get_schedule_club_id(schedule_id)
+        if not club_id:
+            raise HTTPException(status_code=404, detail="Schedule not found")
+            
+        await require_club_access(club_id)(current_user)
+        
+        success = update_schedule_entry(entry_id, changes)
+        if not success:
+            raise HTTPException(status_code=400, detail="Failed to update schedule entry")
+            
+        return {"success": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

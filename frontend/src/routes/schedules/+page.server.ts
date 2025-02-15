@@ -127,6 +127,38 @@ export const actions = {
                 error: 'Failed to delete schedule' 
             });
         }
+    },
+
+    updateEntry: async ({ request, fetch, locals }) => {
+        const formData = await request.formData();
+        const entryId = parseInt(formData.get('entryId') as string);
+        
+        const changes: Record<string, any> = {};
+        formData.forEach((value, key) => {
+            if (key !== 'entryId') {
+                changes[key] = value;
+            }
+        });
+
+        try {
+            const response = await fetch(`${API_URL}/schedules/entry/${entryId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${locals.token}`
+                },
+                body: JSON.stringify(changes)
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                return fail(response.status, { error: error.detail });
+            }
+
+            return { success: true };
+        } catch (err) {
+            return fail(500, { error: 'Failed to update schedule entry' });
+        }
     }
 } satisfies Actions;
 

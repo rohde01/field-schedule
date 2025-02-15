@@ -162,3 +162,38 @@ def get_schedule_club_id(conn, schedule_id: int) -> Optional[int]:
     cursor.execute(query, (schedule_id,))
     result = cursor.fetchone()
     return result[0] if result else None
+
+@with_db_connection
+def update_schedule_entry(conn, entry_id: int, changes: dict) -> bool:
+    """Updates a schedule entry with the given changes"""
+    cursor = conn.cursor()
+    
+    allowed_fields = {'team_id', 'field_id', 'start_time', 'end_time', 'week_day'}
+    valid_changes = {k: v for k, v in changes.items() if k in allowed_fields}
+    
+    if not valid_changes:
+        return False
+
+    set_clause = ", ".join([f"{k} = %s" for k in valid_changes.keys()])
+    values = list(valid_changes.values()) + [entry_id]
+    
+    query = f"""
+    UPDATE schedule_entries
+    SET {set_clause}
+    WHERE schedule_entry_id = %s
+    RETURNING schedule_entry_id
+    """
+    
+    cursor.execute(query, values)
+    success = cursor.fetchone() is not None
+    conn.commit()
+    return success
+
+@with_db_connection
+def get_schedule_entry_schedule_id(conn, entry_id: int) -> Optional[int]:
+    """Gets the schedule_id for a given schedule entry"""
+    cursor = conn.cursor()
+    query = "SELECT schedule_id FROM schedule_entries WHERE schedule_entry_id = %s"
+    cursor.execute(query, (entry_id,))
+    result = cursor.fetchone()
+    return result[0] if result else None
