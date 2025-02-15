@@ -40,3 +40,14 @@ class GenerateScheduleRequest(BaseModel):
     club_id: int
     schedule_name: str = Field(default="Generated Schedule")
 
+class CreateScheduleEntry(BaseModel):
+    schedule_id: int
+    entry: dict
+
+class ScheduleEntryCreate(BaseModel):
+    team_id: Optional[int]
+    field_id: int
+    start_time: str
+    end_time: str
+    week_day: int = Field(ge=0, le=6)
+

@@ -1,8 +1,8 @@
 import { writable, get } from 'svelte/store';
 import type { Schedule, ScheduleEntry } from '$lib/schemas/schedule';
-import { selectSchedule } from './ScheduleDropdownState';
-import { dropdownState } from './ScheduleDropdownState';
+import { selectSchedule, dropdownState } from './ScheduleDropdownState';
 import { invalidateAll } from '$app/navigation';
+import { syncScheduleEntry } from '$lib/utils/scheduleSync';
 
 export const schedules = writable<Schedule[]>([]);
 
@@ -40,53 +40,68 @@ export function addSchedule(schedule: Schedule) {
 
 export async function updateScheduleEntry(entryId: number, changes: Partial<ScheduleEntry>) {
     const previousState = get(schedules);
+    const currentSchedules = get(schedules);
+    const entry = currentSchedules.flatMap(s => s.entries).find(e => e.schedule_entry_id === entryId);
     
-    schedules.update(schedulesList => {
-        return schedulesList.map(schedule => {
-            const updatedEntries = schedule.entries.map(entry => {
-                if (entry.schedule_entry_id === entryId) {
-                    return { ...entry, ...changes };
-                }
-                return entry;
-            });
-            return { ...schedule, entries: updatedEntries };
-        });
-    });
+    if (!entry) return;
 
-    // Try to sync with server
-    try {
-        const formData = new FormData();
-        formData.append('entryId', entryId.toString());
-        Object.entries(changes).forEach(([key, value]) => {
-            formData.append(key, value?.toString() ?? '');
-        });
+    const updatedEntry = { ...entry, ...changes };
+    schedules.update(schedulesList => 
+        schedulesList.map(schedule => ({
+            ...schedule,
+            entries: schedule.entries.map(e => 
+                e.schedule_entry_id === entryId ? updatedEntry : e
+            )
+        }))
+    );
 
-        const response = await fetch('/schedules?/updateEntry', {
-            method: 'POST',
-            body: formData
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to update schedule entry');
+    // Sync with server if needed
+    if (entry.isTemporary && changes.team_id) {
+        const currentDropdown = get(dropdownState);
+        if (currentDropdown.selectedSchedule) {
+            const result = await syncScheduleEntry(updatedEntry, currentDropdown.selectedSchedule.schedule_id);
+            if (!result.success) {
+                schedules.set(previousState);
+                await invalidateAll();
+            }
         }
-    } catch (error) {
-        console.error('Error updating schedule entry:', error);
-        // Revert to previous state if server update fails
-        schedules.set(previousState);
-        await invalidateAll();
+    } else if (!entry.isTemporary) {
+        const result = await syncScheduleEntry(updatedEntry, 0, false);
+        if (!result.success) {
+            schedules.set(previousState);
+            await invalidateAll();
+        }
     }
 }
 
-export function addScheduleEntry(newEntry: ScheduleEntry) {
-    schedules.update(schedulesList => {
-        const currentDropdown = get(dropdownState);
-        const selectedSchedule = currentDropdown.selectedSchedule;
-        if (!selectedSchedule) return schedulesList;
-        return schedulesList.map(schedule => {
-            if (schedule.schedule_id === selectedSchedule.schedule_id) {
-                return { ...schedule, entries: [...schedule.entries, newEntry] };
-            }
-            return schedule;
-        });
-    });
+export async function addScheduleEntry(newEntry: ScheduleEntry) {
+    const currentDropdown = get(dropdownState);
+    const selectedSchedule = currentDropdown.selectedSchedule;
+    if (!selectedSchedule) return;
+
+    const entryWithFlag = { ...newEntry, isTemporary: !newEntry.team_id };
+    // Update local state
+    schedules.update(schedulesList => 
+        schedulesList.map(schedule => 
+            schedule.schedule_id === selectedSchedule.schedule_id
+                ? { ...schedule, entries: [...schedule.entries, entryWithFlag] }
+                : schedule
+        )
+    );
+    // Only sync with server if entry has a team
+    if (!entryWithFlag.isTemporary) {
+        const result = await syncScheduleEntry(entryWithFlag, selectedSchedule.schedule_id);
+        if (!result.success) {
+            // Remove entry if sync failed
+            schedules.update(schedulesList => 
+                schedulesList.map(schedule => ({
+                    ...schedule,
+                    entries: schedule.entries.filter(e => 
+                        e.schedule_entry_id !== newEntry.schedule_entry_id
+                    )
+                }))
+            );
+            await invalidateAll();
+        }
+    }
 }

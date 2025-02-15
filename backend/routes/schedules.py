@@ -6,13 +6,14 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 from main import generate_schedule
 from database.constraints import Constraint as ConstraintModel
-from database.schedules import get_club_schedules, delete_schedule, get_schedule_club_id, update_schedule_entry, get_schedule_entry_schedule_id
+from database.schedules import get_club_schedules, delete_schedule, get_schedule_club_id, update_schedule_entry, get_schedule_entry_schedule_id, create_schedule_entry
 from models.schedule import Schedule
 from dependencies.auth import get_current_user
 from dependencies.permissions import require_club_access
 from models.user import User
 from database.constraints import get_constraints
 from models.schedule import GenerateScheduleRequest, Constraint
+from models.schedule import CreateScheduleEntry, ScheduleEntryCreate
 
 router = APIRouter(prefix="/schedules", tags=["schedules"])
 
@@ -137,3 +138,22 @@ async def update_entry(
         )
         
     return {"success": True}
+
+@router.post("/entry")
+async def create_entry(
+    request: CreateScheduleEntry,
+    current_user: User = Depends(get_current_user)
+):
+    club_id = get_schedule_club_id(request.schedule_id)
+    if not club_id:
+        raise HTTPException(status_code=404, detail="Schedule not found")
+        
+    await require_club_access(club_id)(current_user)
+    
+    try:
+        entry_data = ScheduleEntryCreate(**request.entry)
+        entry_id = create_schedule_entry(request.schedule_id, entry_data.dict())
+        return {"success": True, "schedule_entry_id": entry_id} if entry_id else \
+               HTTPException(status_code=400, detail="Failed to create schedule entry")
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))

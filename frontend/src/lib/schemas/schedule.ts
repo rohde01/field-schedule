@@ -11,7 +11,8 @@ export const scheduleEntrySchema = z.object({
     end_time: z.string().regex(timeStringRegex, { 
         message: "Time must be in HH:MM or HH:MM:SS format" 
     }),
-    week_day: z.number().int().min(0).max(6)
+    week_day: z.number().int().min(0).max(6),
+    isTemporary: z.boolean().optional()
 });
 
 export const scheduleSchema = z.object({

@@ -197,3 +197,30 @@ def get_schedule_entry_schedule_id(conn, entry_id: int) -> Optional[int]:
     cursor.execute(query, (entry_id,))
     result = cursor.fetchone()
     return result[0] if result else None
+
+@with_db_connection
+def create_schedule_entry(conn, schedule_id: int, entry: dict) -> Optional[int]:
+    """Creates a new schedule entry and returns its ID"""
+    cursor = conn.cursor()
+    query = """
+    INSERT INTO schedule_entries 
+    (schedule_id, team_id, field_id, start_time, end_time, week_day)
+    VALUES (%s, %s, %s, %s, %s, %s)
+    RETURNING schedule_entry_id
+    """
+    try:
+        cursor.execute(query, (
+            schedule_id,
+            entry.get('team_id'),
+            entry.get('field_id'),
+            entry.get('start_time'),
+            entry.get('end_time'),
+            entry.get('week_day')
+        ))
+        result = cursor.fetchone()
+        conn.commit()
+        return result[0] if result else None
+    except Exception as e:
+        print(f"Error creating schedule entry: {e}")
+        conn.rollback()
+        return None
