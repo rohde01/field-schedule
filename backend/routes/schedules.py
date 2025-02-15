@@ -119,23 +119,21 @@ async def update_entry(
     changes: dict,
     current_user: User = Depends(get_current_user)
 ):
-    try:
-        schedule_id = get_schedule_entry_schedule_id(entry_id)
-        if not schedule_id:
-            raise HTTPException(status_code=404, detail="Schedule entry not found")
-            
-        club_id = get_schedule_club_id(schedule_id)
-        if not club_id:
-            raise HTTPException(status_code=404, detail="Schedule not found")
-            
-        await require_club_access(club_id)(current_user)
+    schedule_id = get_schedule_entry_schedule_id(entry_id)
+    if not schedule_id:
+        raise HTTPException(status_code=404, detail="Schedule entry not found")
         
-        success = update_schedule_entry(entry_id, changes)
-        if not success:
-            raise HTTPException(status_code=400, detail="Failed to update schedule entry")
-            
-        return {"success": True}
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    club_id = get_schedule_club_id(schedule_id)
+    if not club_id:
+        raise HTTPException(status_code=404, detail="Schedule not found")
+        
+    await require_club_access(club_id)(current_user)
+    
+    success = update_schedule_entry(entry_id, changes)
+    if not success:
+        raise HTTPException(
+            status_code=400, 
+            detail="Failed to update schedule entry"
+        )
+        
+    return {"success": True}
