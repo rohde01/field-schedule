@@ -108,3 +108,28 @@ export async function addScheduleEntry(newEntry: ScheduleEntry) {
         }
     }
 }
+
+export function createEmptySchedule(name: string, facilityId: number, clubId: number): Schedule {
+    const emptySchedule: Schedule = {
+        schedule_id: -Date.now(),
+        name,
+        facility_id: facilityId,
+        club_id: clubId,
+        entries: [],
+        is_active: true
+    };
+    
+    schedules.update(currentSchedules => [...currentSchedules, emptySchedule]);
+    selectSchedule(emptySchedule);
+    return emptySchedule;
+}
+
+export function deleteSchedule(scheduleId: number) {
+    schedules.update(currentSchedules => 
+        currentSchedules.filter(schedule => schedule.schedule_id !== scheduleId)
+    );
+    const currentDropdown = get(dropdownState);
+    if (currentDropdown.selectedSchedule?.schedule_id === scheduleId) {
+        selectSchedule(null);
+    }
+}

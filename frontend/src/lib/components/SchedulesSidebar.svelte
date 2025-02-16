@@ -9,6 +9,7 @@
     import { page } from '$app/stores';
     import { constraints } from '$stores/constraints';
     import { teams } from '$stores/teams'; 
+    import { createEmptySchedule, deleteSchedule } from '$stores/schedules';
 
     let { teams: propTeams, form } = $props<{ 
         teams: Team[], 
@@ -126,6 +127,13 @@
                 club_id: $page.data.user?.primary_club_id ?? 0,
                 schedule_name: ''
             });
+            
+            // Delete temporary schedule if one exists
+            const selectedSchedule = $dropdownState.selectedSchedule;
+            if (selectedSchedule && selectedSchedule.schedule_id < 0) {
+                deleteSchedule(selectedSchedule.schedule_id);
+            }
+            
             showFacilityMenu = false;
             showNameInput = false;
             toggleCreateSchedule();
@@ -143,12 +151,10 @@
     }
 
     function handleNameSubmit() {
+        const clubId = $page.data.user?.primary_club_id ?? 0;
+        createEmptySchedule(scheduleName, $form.facility_id, clubId);
         $form.schedule_name = scheduleName;
         showNameInput = false;
-    }
-
-    function handleConstraintClick(constraint: Constraint) {
-        console.log('Constraint clicked:', constraint);
     }
 </script>
 

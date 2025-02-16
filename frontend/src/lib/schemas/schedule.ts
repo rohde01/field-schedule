@@ -16,11 +16,12 @@ export const scheduleEntrySchema = z.object({
 });
 
 export const scheduleSchema = z.object({
-    schedule_id: z.number().int().positive(),
+    schedule_id: z.number().int(),
     club_id: z.number().int().positive(),
     name: z.string().min(1),
-    facility_id: z.number().int().positive().nullable(),
-    entries: z.array(scheduleEntrySchema)
+    facility_id: z.number().int().positive(),
+    entries: z.array(scheduleEntrySchema),
+    is_active: z.boolean()
 });
 
 export type ScheduleEntry = z.infer<typeof scheduleEntrySchema>;
