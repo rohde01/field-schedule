@@ -168,37 +168,41 @@
         </div>
     </div>
 
-    {#if $SidebarDropdownState.selectedTeam || $SidebarDropdownState.showCreateSchedule || $dropdownState.selectedSchedule || $SidebarDropdownState.selectedConstraint}
-        <div class="main-content">
-            {#if $SidebarDropdownState.showCreateSchedule}
+    <div class="main-content">
+        {#if $SidebarDropdownState.showCreateSchedule}
+            <div class="create-schedule-section">
                 {#if $form.schedule_name}
                     <CreateConstraints {form} {errors} />
                 {/if}
                 <CreateSchedule {form} {enhance} {errors} />
-            {/if}
-            
-            {#if $SidebarDropdownState.selectedConstraint}
-                <DisplayCard 
-                    title={constraintTitle}
-                    columns={displayColumns}
-                    deleteConfig={{
-                        enabled: true,
-                        itemId: $SidebarDropdownState.selectedConstraint.constraint_id,
-                        itemName: constraintTitle,
-                        onDelete: handleFieldDelete
-                    }}
-                />
-            {/if}
+            </div>
+        {/if}
+        
+        {#if $SidebarDropdownState.selectedConstraint}
+            <DisplayCard 
+                title={constraintTitle}
+                columns={displayColumns}
+                deleteConfig={{
+                    enabled: true,
+                    itemId: $SidebarDropdownState.selectedConstraint.constraint_id,
+                    itemName: constraintTitle,
+                    onDelete: handleFieldDelete
+                }}
+            />
+        {/if}
 
-            {#if $dropdownState.selectedSchedule}
+        {#if $dropdownState.selectedSchedule}
+            <div class="selected-schedule-section">
                 <Dnd />
-            {/if}
-        </div>
-    {:else}
-        <div class="main-content text-center p-8 text-sage-500">
-            Select a schedule or create a new one
-        </div>
-    {/if}
+            </div>
+        {/if}
+
+        {#if !$SidebarDropdownState.showCreateSchedule && !$dropdownState.selectedSchedule && !$SidebarDropdownState.selectedConstraint}
+            <div class="text-center p-8 text-sage-500">
+                Select a schedule or create a new one
+            </div>
+        {/if}
+    </div>
 </div>
 <div class="mt-8">
     <div class="debug-container">
