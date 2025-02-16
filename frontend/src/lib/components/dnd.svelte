@@ -15,15 +15,21 @@
 
   let containerElement: HTMLElement;
   const activeFields = derived([fields, dropdownState], ([$fields, $dropdownState]) => {
-  const selectedSchedule = $dropdownState.selectedSchedule;
-  
-    return buildResources($fields, selectedSchedule);
+    const selectedSchedule = $dropdownState.selectedSchedule;
+    if (!selectedSchedule) {
+      if ($dropdownState.selectedFacility) {
+        return $fields.filter(field => field.facility_id === $dropdownState.selectedFacility?.facility_id);
+      }
+      return [];
+    }
+        return $fields.filter(field => field.facility_id === selectedSchedule.facility_id);
   });
 
-  $: headerCells = generateHeaderCells($activeFields, fieldToGridColMap);
-  
-  // Total columns = 1 (Time label) + sum of all field columns
-  $: totalColumns = 1 + $activeFields.reduce((acc: number, f: Field) => acc + getFieldColumns(f), 0);
+  $: headerCells = $activeFields.length > 0 
+    ? generateHeaderCells($activeFields, fieldToGridColMap)
+    : [];
+
+  $: totalColumns = Math.max(2, 1 + $activeFields.reduce((acc: number, f: Field) => acc + getFieldColumns(f), 0));
   
   $: fieldToGridColMap = buildFieldToGridColumnMap($activeFields);
   

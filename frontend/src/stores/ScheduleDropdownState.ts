@@ -1,17 +1,18 @@
 import type { Schedule } from '$lib/schemas/schedule';
+import type { Facility } from '$lib/schemas/facility';
 import { writable } from 'svelte/store';
 
-type ScheduleDropdownState = {
-    isOpen: boolean;
-    selectedSchedule: Schedule | null;
-};
+export interface ScheduleDropdownState {
+  selectedSchedule: Schedule | null;
+  selectedFacility: Facility | null;
+  isOpen: boolean;
+}
 
-const initialState: ScheduleDropdownState = {
-    isOpen: false,
-    selectedSchedule: null,
-};
-
-export const dropdownState = writable<ScheduleDropdownState>(initialState);
+export const dropdownState = writable<ScheduleDropdownState>({
+  selectedSchedule: null,
+  selectedFacility: null,
+  isOpen: false
+});
 
 export function toggleDropdown(key: keyof Pick<ScheduleDropdownState, 'isOpen'>) {
     dropdownState.update(state => ({

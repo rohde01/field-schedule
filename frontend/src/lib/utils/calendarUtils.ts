@@ -17,7 +17,11 @@ export const activeEvents = derived(dropdownState, ($dropdownState): ScheduleEnt
 });
 
 export const timeSlots = derived([activeEvents, timeSlotGranularity], ([$activeEvents, $timeSlotGranularity]) => {
-  const { earliestStart, latestEnd } = getScheduleTimeRange($activeEvents);
+  const defaultRange = { earliestStart: "16:00", latestEnd: "22:30" };
+  const { earliestStart, latestEnd } = $activeEvents.length > 0 
+    ? getScheduleTimeRange($activeEvents)
+    : defaultRange;
+    
   return generateTimeSlots(earliestStart, latestEnd, $timeSlotGranularity);
 });
 
@@ -73,7 +77,7 @@ export function normalizeTime(time: string): string {
 
 export function getScheduleTimeRange(entries: ScheduleEntry[]): { earliestStart: string; latestEnd: string } {
   if (!entries || entries.length === 0) {
-    return { earliestStart: "15:00", latestEnd: "22:30" };
+    return { earliestStart: "16:00", latestEnd: "22:30" };
   }
   
   let earliestStart = "23:59";
