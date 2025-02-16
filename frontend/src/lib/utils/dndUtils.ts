@@ -92,7 +92,7 @@ export function calculateNewFieldId(
 }
 
 interface DragCallbacks {
-  onUpdate: (updates: Partial<ScheduleEntry>) => void;
+  onUpdate: (updates: Partial<ScheduleEntry>, isLocal?: boolean) => void;
 }
 
 export function initializeTopDrag(
@@ -112,16 +112,21 @@ export function initializeTopDrag(
   const initialClientY = e.clientY;
   const initialStartIndex = timeSlots.indexOf(normalizeTime(scheduleEntry.start_time));
   const initialEndIndex = timeSlots.indexOf(normalizeTime(scheduleEntry.end_time));
+  let lastUpdate: Partial<ScheduleEntry> | null = null;
 
   function onMouseMove(moveEvent: MouseEvent) {
     const deltaY = moveEvent.clientY - initialClientY;
     const result = handleTopDragMove(deltaY, rowHeight, initialStartIndex, initialEndIndex, timeSlots);
     if (result && result.newStartTime !== scheduleEntry.start_time) {
-      callbacks.onUpdate({ start_time: result.newStartTime });
+      lastUpdate = { start_time: result.newStartTime };
+      callbacks.onUpdate(lastUpdate, true);
     }
   }
 
   function onMouseUp() {
+    if (lastUpdate) {
+      callbacks.onUpdate(lastUpdate, false);
+    }
     window.removeEventListener('mousemove', onMouseMove);
     window.removeEventListener('mouseup', onMouseUp);
   }
@@ -147,16 +152,21 @@ export function initializeBottomDrag(
   const initialClientY = e.clientY;
   const initialStartIndex = timeSlots.indexOf(normalizeTime(scheduleEntry.start_time));
   const initialEndIndex = timeSlots.indexOf(normalizeTime(scheduleEntry.end_time));
+  let lastUpdate: Partial<ScheduleEntry> | null = null;
 
   function onMouseMove(moveEvent: MouseEvent) {
     const deltaY = moveEvent.clientY - initialClientY;
     const result = handleBottomDragMove(deltaY, rowHeight, initialStartIndex, initialEndIndex, timeSlots);
     if (result && result.newEndTime !== scheduleEntry.end_time) {
-      callbacks.onUpdate({ end_time: result.newEndTime });
+      lastUpdate = { end_time: result.newEndTime };
+      callbacks.onUpdate(lastUpdate, true);
     }
   }
 
   function onMouseUp() {
+    if (lastUpdate) {
+      callbacks.onUpdate(lastUpdate, false);
+    }
     window.removeEventListener('mousemove', onMouseMove);
     window.removeEventListener('mouseup', onMouseUp);
   }
@@ -189,6 +199,7 @@ export function initializeEventDrag(
   const duration = initialEndIndex - initialStartIndex;
 
   const gridRect = gridElement.getBoundingClientRect();
+  let lastUpdate: Partial<ScheduleEntry> | null = null;
 
   function clamp(val: number, min: number, max: number) {
     return Math.max(min, Math.min(val, max));
@@ -216,14 +227,18 @@ export function initializeEventDrag(
       fieldToGridColMap
     );
 
-    callbacks.onUpdate({ 
+    lastUpdate = { 
       start_time: newStartTime, 
       end_time: newEndTime, 
       field_id: newFieldId 
-    });
+    };
+    callbacks.onUpdate(lastUpdate, true);
   }
 
   function onMouseUp() {
+    if (lastUpdate) {
+      callbacks.onUpdate(lastUpdate, false);
+    }
     window.removeEventListener('mousemove', onMouseMove);
     window.removeEventListener('mouseup', onMouseUp);
   }
@@ -255,6 +270,8 @@ export function initializeHorizontalDrag(
   const originalCandidate = candidates.find(c => c.field_id === scheduleEntry.field_id);
   if (!originalCandidate) return;
 
+  let lastUpdate: Partial<ScheduleEntry> | null = null;
+
   if (direction === 'right') {
     const originalLeft = originalCandidate.colIndex;
     
@@ -277,11 +294,15 @@ export function initializeHorizontalDrag(
       }
       
       if (chosenCandidate && chosenCandidate.field_id !== scheduleEntry.field_id) {
-        callbacks.onUpdate({ field_id: chosenCandidate.field_id });
+        lastUpdate = { field_id: chosenCandidate.field_id };
+        callbacks.onUpdate(lastUpdate, true);
       }
     }
 
     const cleanup = () => {
+      if (lastUpdate) {
+        callbacks.onUpdate(lastUpdate, false);
+      }
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', cleanup);
     };
@@ -309,11 +330,15 @@ export function initializeHorizontalDrag(
       }
       
       if (chosenCandidate && chosenCandidate.field_id !== scheduleEntry.field_id) {
-        callbacks.onUpdate({ field_id: chosenCandidate.field_id });
+        lastUpdate = { field_id: chosenCandidate.field_id };
+        callbacks.onUpdate(lastUpdate, true);
       }
     }
 
     const cleanup = () => {
+      if (lastUpdate) {
+        callbacks.onUpdate(lastUpdate, false);
+      }
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', cleanup);
     };

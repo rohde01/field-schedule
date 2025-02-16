@@ -38,7 +38,7 @@ export function addSchedule(schedule: Schedule) {
     });
 }
 
-export async function updateScheduleEntry(entryId: number, changes: Partial<ScheduleEntry>) {
+export async function updateScheduleEntry(entryId: number, changes: Partial<ScheduleEntry>, isLocal: boolean = false) {
     const previousState = get(schedules);
     const currentSchedules = get(schedules);
     const entry = currentSchedules.flatMap(s => s.entries).find(e => e.schedule_entry_id === entryId);
@@ -54,6 +54,9 @@ export async function updateScheduleEntry(entryId: number, changes: Partial<Sche
             )
         }))
     );
+
+    // Skip server sync for local updates during drag
+    if (isLocal) return;
 
     // Sync with server if needed
     if (entry.isTemporary && changes.team_id) {

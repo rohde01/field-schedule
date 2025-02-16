@@ -41,7 +41,7 @@
     if (!gridElement) return;
     
     initializeTopDrag(e, scheduleEntry, gridElement as HTMLElement, get(timeSlots), {
-      onUpdate: (updates) => updateScheduleEntry(scheduleEntry.schedule_entry_id, updates)
+      onUpdate: (updates, isLocal) => updateScheduleEntry(scheduleEntry.schedule_entry_id, updates, isLocal)
     });
   }
 
@@ -50,7 +50,7 @@
     if (!gridElement) return;
     
     initializeBottomDrag(e, scheduleEntry, gridElement as HTMLElement, get(timeSlots), {
-      onUpdate: (updates) => updateScheduleEntry(scheduleEntry.schedule_entry_id, updates)
+      onUpdate: (updates, isLocal) => updateScheduleEntry(scheduleEntry.schedule_entry_id, updates, isLocal)
     });
   }
 
@@ -68,7 +68,7 @@
       $activeFields,
       fieldToGridColMap,
       {
-        onUpdate: (updates) => updateScheduleEntry(scheduleEntry.schedule_entry_id, updates)
+        onUpdate: (updates, isLocal) => updateScheduleEntry(scheduleEntry.schedule_entry_id, updates, isLocal)
       }
     );
   }
@@ -86,7 +86,7 @@
       $activeFields,
       fieldToGridColMap,
       {
-        onUpdate: (updates) => updateScheduleEntry(scheduleEntry.schedule_entry_id, updates)
+        onUpdate: (updates, isLocal) => updateScheduleEntry(scheduleEntry.schedule_entry_id, updates, isLocal)
       }
     );
   }
