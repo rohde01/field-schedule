@@ -159,6 +159,38 @@ export const actions = {
         } catch (err) {
             return fail(500, { error: 'Failed to update schedule entry' });
         }
+    },
+
+    createEntry: async ({ request, fetch, locals }: RequestEvent) => {
+        const formData = await request.formData();
+        const scheduleId = Number(formData.get('scheduleId'));
+        const entry: Record<string, any> = {};
+        formData.forEach((value, key) => {
+            if (key.startsWith('entry.')) {
+                entry[key.replace('entry.', '')] = value;
+            }
+        });
+
+        try {
+            const response = await fetch(`${API_URL}/schedules/entry`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${locals.token}`
+                },
+                body: JSON.stringify({ schedule_id: scheduleId, entry })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                return fail(response.status, { error: errorData.detail || 'Failed to create schedule entry' });
+            }
+
+            const result = await response.json();
+            return { success: true, schedule_entry_id: result.schedule_entry_id };
+        } catch (err) {
+            return fail(500, { error: 'Failed to create schedule entry' });
+        }
     }
 } satisfies Actions;
 
