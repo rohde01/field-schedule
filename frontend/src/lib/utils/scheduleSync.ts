@@ -16,7 +16,7 @@ export async function syncScheduleEntry(
     if (isNew) {
         formData.append('scheduleId', scheduleId.toString());
         Object.entries(entry).forEach(([key, value]) => {
-            if (key !== 'isTemporary' && value !== null) {
+            if (key !== 'isTemporary' && key !== 'schedule_entry_id' && value !== null) {
                 formData.append(`entry.${key}`, value.toString());
             }
         });
@@ -36,12 +36,22 @@ export async function syncScheduleEntry(
         });
 
         if (!response.ok) {
-            throw new Error('Failed to sync schedule entry');
+            const errorData = await response.json();
+            return { 
+                success: false, 
+                error: errorData.error || 'Failed to sync schedule entry' 
+            };
         }
 
         const result = await response.json();
-        return { success: true, schedule_entry_id: result.schedule_entry_id };
+        return { 
+            success: true, 
+            schedule_entry_id: result.schedule_entry_id 
+        };
     } catch (error) {
-        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+        return { 
+            success: false, 
+            error: error instanceof Error ? error.message : 'Unknown error' 
+        };
     }
 }

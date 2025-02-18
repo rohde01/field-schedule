@@ -38,6 +38,13 @@ export function addSchedule(schedule: Schedule) {
     });
 }
 
+interface TempEntry {
+    tempId: number;
+    permanentId?: number;
+}
+
+const tempEntries = new Map<number, TempEntry>();
+
 export async function updateScheduleEntry(entryId: number, changes: Partial<ScheduleEntry>, isLocal: boolean = false) {
     const previousState = get(schedules);
     const currentSchedules = get(schedules);
@@ -58,21 +65,24 @@ export async function updateScheduleEntry(entryId: number, changes: Partial<Sche
     // Skip server sync for local updates during drag
     if (isLocal) return;
 
-    // Sync with server if needed
-    if (entry.isTemporary && changes.team_id) {
-        const currentDropdown = get(dropdownState);
-        if (currentDropdown.selectedSchedule) {
-            const result = await syncScheduleEntry(updatedEntry, currentDropdown.selectedSchedule.schedule_id);
-            if (!result.success) {
-                schedules.set(previousState);
-                await invalidateAll();
-            }
-        }
-    } else if (!entry.isTemporary) {
+    // Only sync with server if the entry is NOT temporary or if it's being converted to permanent
+    if (!entry.isTemporary) {
         const result = await syncScheduleEntry(updatedEntry, 0, false);
         if (!result.success) {
             schedules.set(previousState);
             await invalidateAll();
+        }
+    } else if (entry.isTemporary && changes.team_id) {
+        // Convert temporary entry to permanent
+        const currentDropdown = get(dropdownState);
+        if (currentDropdown.selectedSchedule) {
+            const result = await syncScheduleEntry(updatedEntry, currentDropdown.selectedSchedule.schedule_id);
+            if (result.success && result.schedule_entry_id) {
+                updateEntryId(entryId, result.schedule_entry_id);
+            } else {
+                schedules.set(previousState);
+                await invalidateAll();
+            }
         }
     }
 }
@@ -82,7 +92,16 @@ export async function addScheduleEntry(newEntry: ScheduleEntry) {
     const selectedSchedule = currentDropdown.selectedSchedule;
     if (!selectedSchedule) return;
 
-    const entryWithFlag = { ...newEntry, isTemporary: !newEntry.team_id };
+    const tempId = Date.now();
+    const entryWithFlag = { 
+        ...newEntry, 
+        schedule_entry_id: tempId,
+        isTemporary: true
+    };
+
+    // Track the temporary entry
+    tempEntries.set(tempId, { tempId });
+
     // Update local state
     schedules.update(schedulesList => 
         schedulesList.map(schedule => 
@@ -91,22 +110,26 @@ export async function addScheduleEntry(newEntry: ScheduleEntry) {
                 : schedule
         )
     );
-    // Only sync with server if entry has a team
-    if (!entryWithFlag.isTemporary) {
-        const result = await syncScheduleEntry(entryWithFlag, selectedSchedule.schedule_id);
-        if (!result.success) {
-            // Remove entry if sync failed
-            schedules.update(schedulesList => 
-                schedulesList.map(schedule => ({
-                    ...schedule,
-                    entries: schedule.entries.filter(e => 
-                        e.schedule_entry_id !== newEntry.schedule_entry_id
-                    )
-                }))
-            );
-            await invalidateAll();
-        }
+
+    // If entry already has a team, update it immediately to convert to permanent
+    if (newEntry.team_id) {
+        await updateScheduleEntry(tempId, { team_id: newEntry.team_id });
     }
+}
+
+function updateEntryId(tempId: number, permanentId: number) {
+    tempEntries.set(tempId, { tempId, permanentId });
+    
+    schedules.update(schedulesList =>
+        schedulesList.map(schedule => ({
+            ...schedule,
+            entries: schedule.entries.map(entry =>
+                entry.schedule_entry_id === tempId
+                    ? { ...entry, schedule_entry_id: permanentId, isTemporary: false }
+                    : entry
+            )
+        }))
+    );
 }
 
 export function createEmptySchedule(name: string, facilityId: number, clubId: number): Schedule {
