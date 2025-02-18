@@ -114,13 +114,13 @@
   // View mode state
   let viewMode = writable('day');
 
-  function handleEmptyCellDblClick(e: MouseEvent, time: string, cell: { fieldId: number }) {
+  function handleEmptyCellDblClick(e: MouseEvent, time: string, cell: { fieldId: number }, weekDay: number) {
     e.stopPropagation();
     const newEntry = {
       schedule_entry_id: Date.now(),
       team_id: null,
       field_id: cell.fieldId,
-      week_day: $currentWeekDay,
+      week_day: weekDay,
       start_time: time,
       end_time: addMinutes(time, 60)
     };
@@ -203,7 +203,7 @@
             tabindex="0"
             aria-label="Create new event"
             style="grid-column: {cell.colIndex} / span {cell.colSpan}; grid-row: {rowIndex + 2};"
-            on:dblclick={(e) => handleEmptyCellDblClick(e, time, cell)}
+            on:dblclick={(e) => handleEmptyCellDblClick(e, time, cell, $currentWeekDay)}
           ></div>
         {/each}
       {/each}
@@ -317,7 +317,7 @@
                 tabindex="0"
                 aria-label="Create new event"
                 style="grid-column: {cell.colIndex} / span {cell.colSpan}; grid-row: {rowIndex + 2};"
-                on:dblclick={(e) => handleEmptyCellDblClick(e, time, cell)}
+                on:dblclick={(e) => handleEmptyCellDblClick(e, time, cell, dayIndex)}
               ></div>
             {/each}
           {/each}
