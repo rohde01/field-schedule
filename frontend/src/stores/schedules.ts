@@ -2,25 +2,24 @@ import { writable, get } from 'svelte/store';
 import type { Schedule, ScheduleEntry } from '$lib/schemas/schedule';
 import { selectSchedule, dropdownState } from './ScheduleDropdownState';
 import { invalidateAll } from '$app/navigation';
-import { syncScheduleEntry } from '$lib/utils/scheduleSync';
 
 export const schedules = writable<Schedule[]>([]);
 
 schedules.subscribe((schedulesList) => {
-  if (schedulesList.length === 0) return;
+    if (schedulesList.length === 0) return;
 
-  const currentDropdown = get(dropdownState);
-  if (currentDropdown.selectedSchedule) {
-    const currentId = currentDropdown.selectedSchedule.schedule_id;
-    const updatedSchedule = schedulesList.find(s => s.schedule_id === currentId);
-    if (updatedSchedule) {
-      selectSchedule(updatedSchedule);
+    const currentDropdown = get(dropdownState);
+    if (currentDropdown.selectedSchedule) {
+        const currentId = currentDropdown.selectedSchedule.schedule_id;
+        const updatedSchedule = schedulesList.find(s => s.schedule_id === currentId);
+        if (updatedSchedule) {
+            selectSchedule(updatedSchedule);
+        } else {
+            selectSchedule(schedulesList[schedulesList.length - 1]);
+        }
     } else {
-      selectSchedule(schedulesList[schedulesList.length - 1]);
+        selectSchedule(schedulesList[schedulesList.length - 1]);
     }
-  } else {
-    selectSchedule(schedulesList[schedulesList.length - 1]);
-  }
 });
 
 export function setSchedules(newSchedules: Schedule[]) {
@@ -37,13 +36,6 @@ export function addSchedule(schedule: Schedule) {
         return updatedSchedules;
     });
 }
-
-interface TempEntry {
-    tempId: number;
-    permanentId?: number;
-}
-
-const tempEntries = new Map<number, TempEntry>();
 
 export async function updateScheduleEntry(entryId: number, changes: Partial<ScheduleEntry>, isLocal: boolean = false) {
     const previousState = get(schedules);
@@ -62,28 +54,61 @@ export async function updateScheduleEntry(entryId: number, changes: Partial<Sche
         }))
     );
 
-    // Skip server sync for local updates during drag
-    if (isLocal) return;
+    // Skip server sync for local updates during drag or if entry is temporary
+    if (isLocal || entry.isTemporary) {
+        // If entry is temporary and we're setting a team_id, create it on the server
+        if (entry.isTemporary && changes.team_id) {
+            const currentDropdown = get(dropdownState);
+            if (!currentDropdown.selectedSchedule) return;
 
-    // Only sync with server if the entry is NOT temporary or if it's being converted to permanent
-    if (!entry.isTemporary) {
-        const result = await syncScheduleEntry(updatedEntry, 0, false);
-        if (!result.success) {
-            schedules.set(previousState);
-            await invalidateAll();
-        }
-    } else if (entry.isTemporary && changes.team_id) {
-        // Convert temporary entry to permanent
-        const currentDropdown = get(dropdownState);
-        if (currentDropdown.selectedSchedule) {
-            const result = await syncScheduleEntry(updatedEntry, currentDropdown.selectedSchedule.schedule_id);
-            if (result.success && result.schedule_entry_id) {
-                updateEntryId(entryId, result.schedule_entry_id);
-            } else {
-                schedules.set(previousState);
+            try {
+                const formData = new FormData();
+                formData.append('scheduleId', currentDropdown.selectedSchedule.schedule_id.toString());
+                const finalEntry = { ...entry, ...changes };
+                Object.entries(finalEntry).forEach(([key, value]) => {
+                    if (value !== null && key !== 'isTemporary' && key !== 'schedule_entry_id') {
+                        formData.append(`entry.${key}`, value.toString());
+                    }
+                });
+
+                const response = await fetch('?/createEntry', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    await invalidateAll();
+                } else {
+                    await invalidateAll();
+                }
+            } catch (error) {
                 await invalidateAll();
             }
         }
+        return;
+    }
+
+    try {
+        const formData = new FormData();
+        formData.append('entryId', entryId.toString());
+        Object.entries(changes).forEach(([key, value]) => {
+            if (value !== null) {
+                formData.append(key, value.toString());
+            }
+        });
+
+        const response = await fetch('?/updateEntry', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            schedules.set(previousState);
+            await invalidateAll();
+        }
+    } catch (error) {
+        schedules.set(previousState);
+        await invalidateAll();
     }
 }
 
@@ -99,36 +124,12 @@ export async function addScheduleEntry(newEntry: ScheduleEntry) {
         isTemporary: true
     };
 
-    // Track the temporary entry
-    tempEntries.set(tempId, { tempId });
-
-    // Update local state
     schedules.update(schedulesList => 
         schedulesList.map(schedule => 
             schedule.schedule_id === selectedSchedule.schedule_id
                 ? { ...schedule, entries: [...schedule.entries, entryWithFlag] }
                 : schedule
         )
-    );
-
-    // If entry already has a team, update it immediately to convert to permanent
-    if (newEntry.team_id) {
-        await updateScheduleEntry(tempId, { team_id: newEntry.team_id });
-    }
-}
-
-function updateEntryId(tempId: number, permanentId: number) {
-    tempEntries.set(tempId, { tempId, permanentId });
-    
-    schedules.update(schedulesList =>
-        schedulesList.map(schedule => ({
-            ...schedule,
-            entries: schedule.entries.map(entry =>
-                entry.schedule_entry_id === tempId
-                    ? { ...entry, schedule_entry_id: permanentId, isTemporary: false }
-                    : entry
-            )
-        }))
     );
 }
 
