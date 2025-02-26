@@ -54,10 +54,11 @@ export async function updateScheduleEntry(entryId: number, changes: Partial<Sche
         }))
     );
 
-    // Skip server sync for local updates during drag or if entry is temporary
-    if (isLocal || entry.isTemporary) {
-        // If entry is temporary and we're setting a team_id, create it on the server
-        if (entry.isTemporary && changes.team_id) {
+    const parentSchedule = currentSchedules.find(s => 
+        s.entries.some(e => e.schedule_entry_id === entryId)
+    );
+    if (isLocal || entry.isTemporary || (parentSchedule && parentSchedule.schedule_id < 0)) {
+        if (entry.isTemporary && changes.team_id && parentSchedule && parentSchedule.schedule_id > 0) {
             const currentDropdown = get(dropdownState);
             if (!currentDropdown.selectedSchedule) return;
 

@@ -12,8 +12,9 @@
     import Dnd from '$lib/components/dnd.svelte'
     import DisplayCard, { type Column } from '$lib/components/DisplayCard.svelte';
     import { constraints } from '$stores/constraints';
-    import type { Constraint } from '$lib/schemas/schedule';
+    import type { Constraint, ScheduleEntry } from '$lib/schemas/schedule';
     import SuperDebug from 'sveltekit-superforms';
+    import { onDestroy } from 'svelte';
 
     let { data }: { data: PageData } = $props();
     const { form: rawForm } = data;
@@ -101,6 +102,77 @@
             showErrorModal = true;
         }
     });
+
+    // Function to convert schedule entry to a constraint
+    function entryToConstraint(entry: ScheduleEntry): Constraint {
+
+        const startTime = parseTimeToMinutes(entry.start_time);
+        const endTime = parseTimeToMinutes(entry.end_time);
+        
+        let durationMinutes = endTime - startTime;
+        if (durationMinutes < 0) {
+            durationMinutes += 24 * 60;
+        }
+        const length = Math.max(1, Math.round(durationMinutes / 15));
+        
+        return {
+            team_id: entry.team_id || 0,
+            required_field: entry.field_id || null,
+            required_cost: null,
+            sessions: 1,
+            length,
+            day_of_week: entry.week_day,
+            partial_field: null,
+            partial_cost: null,
+            partial_time: null,
+            start_time: entry.start_time,
+            constraint_type: 'specific',
+            schedule_entry_id: entry.schedule_entry_id
+        };
+    }
+
+    function parseTimeToMinutes(timeString: string): number {
+        const [hours, minutes] = timeString.split(':').map(Number);
+        return hours * 60 + minutes;
+    }
+
+    // Subscribe to schedules store and sync entries to form constraints
+    const unsubscribe = schedules.subscribe(currentSchedules => {
+        const tempSchedules = currentSchedules.filter(s => s.schedule_id < 0);
+        
+        if (tempSchedules.length === 0) {
+            return;
+        }
+        
+        const allEntries = tempSchedules.flatMap(s => s.entries);
+        const specificConstraints = allEntries.map(entryToConstraint);
+        const teamIds = Array.from(new Set(
+            allEntries
+                .filter(entry => entry.team_id !== null && entry.team_id !== undefined)
+                .map(entry => entry.team_id!)
+        ));
+        
+        // Update form with constraints from entries
+        form.update(currentForm => {
+            const existingConstraints = currentForm.constraints || [];
+            const manualConstraints = existingConstraints.filter(
+                (c: Constraint) => c.schedule_entry_id === undefined || c.schedule_entry_id === null
+            );
+            
+            return {
+                ...currentForm,
+                team_ids: Array.from(new Set([
+                    ...(currentForm.team_ids || []),
+                    ...teamIds
+                ])),
+                constraints: [
+                    ...manualConstraints,
+                    ...specificConstraints
+                ]
+            };
+        });
+    });
+    onDestroy(unsubscribe);
 
     function closeErrorModal() {
         showErrorModal = false;
