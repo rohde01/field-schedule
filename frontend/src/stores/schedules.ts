@@ -160,6 +160,21 @@ export function deleteSchedule(scheduleId: number) {
 }
 
 export async function deleteScheduleEntry(entryId: number): Promise<boolean> {
+    const currentSchedules = get(schedules);
+    const entry = currentSchedules.flatMap(s => s.entries).find(e => e.schedule_entry_id === entryId);
+    
+    if (!entry) {
+        return false;
+    }
+    if (entry.isTemporary) {
+        schedules.update(schedulesList => 
+            schedulesList.map(schedule => ({
+                ...schedule,
+                entries: schedule.entries.filter(entry => entry.schedule_entry_id !== entryId)
+            }))
+        );
+        return true;
+    }
     try {
         const formData = new FormData();
         formData.append('entryId', entryId.toString());
