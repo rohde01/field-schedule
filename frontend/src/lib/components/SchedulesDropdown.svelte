@@ -2,26 +2,15 @@
     import { schedules } from '$stores/schedules';
     import { dropdownState, toggleDropdown, selectSchedule } from '$stores/ScheduleDropdownState';
     import type { Schedule } from '$lib/schemas/schedule';
-    import { fade } from 'svelte/transition';
     import type { SubmitFunction } from '@sveltejs/kit';
-    import { enhance } from '$app/forms';
     import { invalidateAll } from '$app/navigation';
 
-    let { deleteForm } = $props<{
-        deleteForm: any;
-    }>();
-
-    let dropdownContainer: HTMLDivElement;
-    let showDeleteConfirm = $state(false);
     let isDeleting = $state(false);
-    let scheduleToDelete: number | null = $state(null);
 
     const handleDelete: SubmitFunction = () => {
         isDeleting = true;
         return async ({ result }) => {
             if (result.type === 'success') {
-                showDeleteConfirm = false;
-                scheduleToDelete = null;
                 await invalidateAll();
             }
             isDeleting = false;
@@ -31,6 +20,23 @@
     function handleSelect(schedule: Schedule) {
         selectSchedule(schedule);
         dropdownState.update(state => ({ ...state, isOpen: false }));
+    }
+    
+    function confirmDelete(scheduleId: number, scheduleName: string) {
+        if (confirm(`Are you sure you want to delete the schedule "${scheduleName}"? This action cannot be undone.`)) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '?/deleteSchedule';
+            
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'schedule_id';
+            input.value = scheduleId.toString();
+            
+            form.appendChild(input);
+            document.body.appendChild(form);
+            form.submit();
+        }
     }
 </script>
 
@@ -86,8 +92,7 @@
                                     class="btn-trash"
                                     onclick={(e) => {
                                         e.stopPropagation();
-                                        showDeleteConfirm = true;
-                                        scheduleToDelete = schedule.schedule_id;
+                                        confirmDelete(schedule.schedule_id, schedule.name);
                                     }}
                                     aria-label={`Delete schedule ${schedule.name}`}
                                 >
@@ -103,43 +108,4 @@
         {/if}
     </div>
 </div>
-
-{#if showDeleteConfirm}
-    <div class="modal-overlay" transition:fade={{ duration: 200 }}>
-        <div class="modal-container">
-            <h3 class="modal-title">Delete Schedule</h3>
-            <p class="modal-description">
-                Are you sure you want to delete this schedule? This action cannot be undone.
-            </p>
-            <div class="modal-actions">
-                <button
-                    type="button"
-                    class="btn-secondary"
-                    onclick={() => {
-                        showDeleteConfirm = false;
-                        scheduleToDelete = null;
-                    }}
-                    disabled={isDeleting}
-                >
-                    Cancel
-                </button>
-                <form
-                    method="POST"
-                    action="?/deleteSchedule"
-                    use:enhance={handleDelete}
-                    class="inline-block"
-                >
-                    <input type="hidden" name="schedule_id" value={scheduleToDelete} />
-                    <button
-                        type="submit"
-                        class="btn-danger"
-                        disabled={isDeleting}
-                    >
-                        {isDeleting ? 'Deleting...' : 'Delete'}
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-{/if}
 
