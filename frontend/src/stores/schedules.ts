@@ -158,3 +158,32 @@ export function deleteSchedule(scheduleId: number) {
         selectSchedule(null);
     }
 }
+
+export async function deleteScheduleEntry(entryId: number): Promise<boolean> {
+    try {
+        const formData = new FormData();
+        formData.append('entryId', entryId.toString());
+
+        const response = await fetch(`?/deleteEntry`, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            console.error('Failed to delete entry:', await response.json());
+            return false;
+        }
+
+        schedules.update(schedulesList => 
+            schedulesList.map(schedule => ({
+                ...schedule,
+                entries: schedule.entries.filter(entry => entry.schedule_entry_id !== entryId)
+            }))
+        );
+
+        return true;
+    } catch (error) {
+        console.error('Error deleting schedule entry:', error);
+        return false;
+    }
+}

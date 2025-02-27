@@ -192,14 +192,10 @@ export const actions = {
             return fail(500, { error: 'Failed to create schedule entry' });
         }
     },
-    
+
     deleteEntry: async ({ request, fetch, locals }: RequestEvent) => {
         const formData = await request.formData();
         const entryId = parseInt(formData.get('entryId') as string);
-        
-        if (!entryId || isNaN(entryId)) {
-            return fail(400, { error: 'Invalid entry ID' });
-        }
 
         try {
             const response = await fetch(`${API_URL}/schedules/entry/${entryId}`, {
@@ -210,21 +206,12 @@ export const actions = {
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                return fail(response.status, { 
-                    error: errorData.detail || 'Failed to delete schedule entry'
-                });
+                const error = await response.json();
+                return fail(response.status, { error: error.detail });
             }
 
-            const result = await response.json();
-            return { 
-                success: true,
-                message: result.message,
-                action: result.action,
-                entry_id: result.entry_id
-            };
+            return { success: true, entryId };
         } catch (err) {
-            console.error('Error deleting schedule entry:', err);
             return fail(500, { error: 'Failed to delete schedule entry' });
         }
     }
