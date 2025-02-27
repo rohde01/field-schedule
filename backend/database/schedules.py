@@ -224,3 +224,21 @@ def create_schedule_entry(conn, schedule_id: int, entry: dict) -> Optional[int]:
         print(f"Error creating schedule entry: {e}")
         conn.rollback()
         return None
+
+@with_db_connection
+def delete_schedule_entry(conn, entry_id: int) -> bool:
+    """
+    Deletes a single schedule entry by its ID.
+    Returns True if successful, False if the entry was not found.
+    """
+    cursor = conn.cursor()
+    
+    delete_query = """
+    DELETE FROM schedule_entries
+    WHERE schedule_entry_id = %s
+    RETURNING schedule_entry_id;
+    """
+    cursor.execute(delete_query, (entry_id,))
+    success = cursor.fetchone() is not None
+    conn.commit()
+    return success

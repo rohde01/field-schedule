@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 from main import generate_schedule
 from database.constraints import Constraint as ConstraintModel
-from database.schedules import get_club_schedules, delete_schedule, get_schedule_club_id, update_schedule_entry, get_schedule_entry_schedule_id, create_schedule_entry
+from database.schedules import get_club_schedules, delete_schedule, get_schedule_club_id, update_schedule_entry, get_schedule_entry_schedule_id, create_schedule_entry, delete_schedule_entry
 from models.schedule import Schedule
 from dependencies.auth import get_current_user
 from dependencies.permissions import require_club_access
@@ -157,3 +157,34 @@ async def create_entry(
                HTTPException(status_code=400, detail="Failed to create schedule entry")
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
+
+@router.delete("/entry/{entry_id}", response_model=dict)
+async def delete_schedule_entry_route(
+    entry_id: int,
+    current_user: User = Depends(get_current_user)
+) -> dict:
+    try:
+        schedule_id = get_schedule_entry_schedule_id(entry_id)
+        if schedule_id is None:
+            raise HTTPException(status_code=404, detail="Schedule entry not found")
+            
+        club_id = get_schedule_club_id(schedule_id)
+        if club_id is None:
+            raise HTTPException(status_code=404, detail="Schedule not found")
+            
+        await require_club_access(club_id)(current_user)
+        
+        success = delete_schedule_entry(entry_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Schedule entry not found")
+            
+        return {
+            "success": True,
+            "message": "Schedule entry deleted successfully",
+            "action": "delete",
+            "entry_id": entry_id
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
