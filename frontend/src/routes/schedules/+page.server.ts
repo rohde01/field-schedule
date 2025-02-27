@@ -191,6 +191,42 @@ export const actions = {
         } catch (err) {
             return fail(500, { error: 'Failed to create schedule entry' });
         }
+    },
+    
+    deleteEntry: async ({ request, fetch, locals }: RequestEvent) => {
+        const formData = await request.formData();
+        const entryId = parseInt(formData.get('entryId') as string);
+        
+        if (!entryId || isNaN(entryId)) {
+            return fail(400, { error: 'Invalid entry ID' });
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/schedules/entry/${entryId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${locals.token}`
+                }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                return fail(response.status, { 
+                    error: errorData.detail || 'Failed to delete schedule entry'
+                });
+            }
+
+            const result = await response.json();
+            return { 
+                success: true,
+                message: result.message,
+                action: result.action,
+                entry_id: result.entry_id
+            };
+        } catch (err) {
+            console.error('Error deleting schedule entry:', err);
+            return fail(500, { error: 'Failed to delete schedule entry' });
+        }
     }
 } satisfies Actions;
 
