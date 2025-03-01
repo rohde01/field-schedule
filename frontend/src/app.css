@@ -402,5 +402,39 @@
       @apply grid grid-cols-2 gap-4;
     }
   }
+
+    /* checkbox toggle*/
+  .form-checkbox {
+    @apply rounded border-sage-300 text-mint-600 shadow-sm focus:border-mint-500 focus:ring-mint-500;
+  }
   
+  .form-checkbox-label {
+    @apply ml-2 text-sm text-sage-700;
+  }
+
+  .checkbox-container {
+    @apply inline-flex items-center;
+  }
+
+  /* Tooltip styling*/
+  .tooltip-target {
+    position: relative;
+  }
+  
+  .tooltip-target:hover::before {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 180%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 100;
+    margin-bottom: 0.25rem;
+  }
 }

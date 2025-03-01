@@ -200,7 +200,7 @@
                 {/each}
             </select>
         {:else if type === 'checkbox'}
-            <div class="inline-flex items-center">
+            <div class="checkbox-container">
                 <input 
                     id={name}
                     name={name}
@@ -210,10 +210,10 @@
                         const target = e.target as HTMLInputElement;
                         updateFormValue(target.checked);
                     }}
-                    class="rounded border-sage-300 text-mint-600 shadow-sm focus:border-mint-500 focus:ring-mint-500"
+                    class="form-checkbox"
                     on:blur={handleBlur}
                 />
-                <span class="ml-2 text-sm text-sage-700">{label}</span>
+                <span class="form-checkbox-label">{label}</span>
             </div>
         {:else}
             <input 

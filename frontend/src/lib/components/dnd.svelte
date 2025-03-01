@@ -7,22 +7,28 @@
   import { derived, get, writable } from 'svelte/store';
   import { updateScheduleEntry, addScheduleEntry } from '$stores/schedules';
   import { buildResources, normalizeTime, weekDays, handleGranularityChange, timeSlots, activeEvents, 
-          nextDay, previousDay, currentWeekDay, getRowForTimeWithSlots, getEventRowEndWithSlots, addMinutes } from '$lib/utils/calendarUtils';
+          nextDay, previousDay, currentWeekDay, getRowForTimeWithSlots, getEventRowEndWithSlots, addMinutes,
+          includeActiveFields, handleIncludeActiveFieldsToggle } from '$lib/utils/calendarUtils';
   import InfoCard from '$lib/components/InfoCard.svelte';
   import { getFieldColumns, buildFieldToGridColumnMap, generateHeaderCells, getFieldName, generateFieldOptions } from '$lib/utils/fieldUtils';
   import { initializeTopDrag, initializeBottomDrag, initializeEventDrag, initializeHorizontalDrag } from '$lib/utils/dndUtils';
   import { infoCardStore } from '$lib/utils/infoCardUtils';
+  import { facilities } from '$stores/facilities';
 
   let containerElement: HTMLElement;
-  const activeFields = derived([fields, dropdownState], ([$fields, $dropdownState]) => {
-    const selectedSchedule = $dropdownState.selectedSchedule;
-    if (!selectedSchedule) {
-      if ($dropdownState.selectedFacility) {
-        return $fields.filter(field => field.facility_id === $dropdownState.selectedFacility?.facility_id);
-      }
-      return [];
+  
+  // Create derived store for getting the facility name from the selected schedule
+  const selectedFacilityName = derived([facilities, dropdownState], ([$facilities, $dropdownState]) => {
+    if (!$dropdownState.selectedSchedule || !$dropdownState.selectedSchedule.facility_id) {
+      return "this facility";
     }
-        return $fields.filter(field => field.facility_id === selectedSchedule.facility_id);
+    
+    const facility = $facilities.find(f => f.facility_id === $dropdownState.selectedSchedule?.facility_id);
+    return facility?.name || "this facility";
+  });
+  
+  const activeFields = derived([fields, dropdownState, includeActiveFields], ([$fields, $dropdownState, $includeActiveFields]) => {
+    return buildResources($fields, $dropdownState.selectedSchedule, $includeActiveFields);
   });
 
   $: headerCells = $activeFields.length > 0 
@@ -135,7 +141,7 @@
 <!-- Set containerElement as a reference and ensure position relative -->
 <div class="schedule-container" bind:this={containerElement} style="position: relative;">
   <div class="schedule-controls flex justify-between items-center my-2 py-2">
-    <div class="timeslot-selector">
+    <div class="timeslot-selector flex items-center gap-4">
       <select
         id="timeslot-granularity"
         class="form-input-sm"
@@ -144,6 +150,18 @@
         <option value="15">15 Minutes</option>
         <option value="30">30 Minutes</option>
       </select>
+      
+      <!-- Toggle for including active fields-->
+      <div class="checkbox-container">
+        <input 
+          id="include-active-fields"
+          type="checkbox"
+          checked={$includeActiveFields}
+          on:change={handleIncludeActiveFieldsToggle}
+          class="form-checkbox tooltip-target"
+          data-tooltip="Include all fields from {$selectedFacilityName}"
+        />
+      </div>
     </div>
 
     <div class="weekday-navigation flex items-center gap-2" style="{$viewMode === 'week' ? 'visibility: hidden;' : ''}">

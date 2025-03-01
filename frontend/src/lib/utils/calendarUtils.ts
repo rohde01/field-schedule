@@ -8,6 +8,7 @@ import { dropdownState } from '../../stores/ScheduleDropdownState';
 
 export const currentWeekDay = writable(0);
 export const timeSlotGranularity = writable(15);
+export const includeActiveFields = writable(true);
 export const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 export const activeEvents = derived(dropdownState, ($dropdownState): ScheduleEntry[] => {
@@ -23,12 +24,16 @@ export const timeSlots = derived([timeSlotGranularity], ([$timeSlotGranularity])
   return generateTimeSlots(earliestStart, latestEnd, $timeSlotGranularity);
 });
 
-export function buildResources(allFields: Field[], selectedSchedule: Schedule | null): Field[] {
+export function buildResources(allFields: Field[], selectedSchedule: Schedule | null, includeActive: boolean = true): Field[] {
     if (!selectedSchedule) return [];
     
     return allFields.filter(field => {
       if (field.facility_id !== selectedSchedule.facility_id) return false;
       
+      // Include fields that are active, if the toggle is enabled
+      if (includeActive && field.is_active === true) return true;
+      
+      // Include fields that are referenced in the schedule entries
       const scheduleFieldIds = new Set(selectedSchedule.entries.map(entry => entry.field_id));
       
       if (scheduleFieldIds.has(field.field_id)) return true;
@@ -118,6 +123,15 @@ export function addMinutes(time: string, minutes: number): string {
   const nh = Math.floor(total / 60) % 24;
   const nm = total % 60;
   return `${nh.toString().padStart(2, '0')}:${nm.toString().padStart(2, '0')}`;
+}
+
+export function handleIncludeActiveFieldsToggle(e?: Event) {
+  if (e) {
+    const target = e.target as HTMLInputElement;
+    includeActiveFields.set(target.checked);
+  } else {
+    includeActiveFields.update(value => !value);
+  }
 }
 
 
