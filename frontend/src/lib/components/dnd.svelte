@@ -10,6 +10,8 @@
           nextDay, previousDay, currentWeekDay, getRowForTimeWithSlots, getEventRowEndWithSlots, addMinutes,
           includeActiveFields, handleIncludeActiveFieldsToggle } from '$lib/utils/calendarUtils';
   import InfoCard from '$lib/components/InfoCard.svelte';
+  import { detectOverlappingEvents, 
+    calculateEventOffsets, getTotalOverlaps } from '$lib/utils/overlapUtils';
   import { getFieldColumns, buildFieldToGridColumnMap, generateHeaderCells, getFieldName, generateFieldOptions } from '$lib/utils/fieldUtils';
   import { initializeTopDrag, initializeBottomDrag, initializeEventDrag, initializeHorizontalDrag } from '$lib/utils/dndUtils';
   import { infoCardStore } from '$lib/utils/infoCardUtils';
@@ -134,6 +136,49 @@
     infoCardStore.openEventInfoCard(e, newEntry, containerElement);
   }
 
+  // Compute overlapping events for the current day
+  $: overlapMap = detectOverlappingEvents($activeEvents, $currentWeekDay, $activeFields);
+  $: eventOffsets = calculateEventOffsets(overlapMap);
+  $: weekOverlapMaps = weekDays.map((_, dayIndex) => 
+    detectOverlappingEvents($activeEvents, dayIndex, $activeFields)
+  );
+  $: weekEventOffsets = weekOverlapMaps.map(overlapMap => 
+    calculateEventOffsets(overlapMap)
+  );
+
+  // Function to calculate event style based on overlap information
+  function getEventStyle(
+    event: ScheduleEntry, 
+    mapping: { colIndex: number, colSpan: number }, 
+    startRow: number, 
+    endRow: number, 
+    offsetMap: Map<number, number>,
+    overlapMap: Map<number, number[]>
+  ) {
+    const offset = offsetMap.get(event.schedule_entry_id) || 0;
+    const totalOverlaps = getTotalOverlaps(event.schedule_entry_id, overlapMap);
+    
+    let widthPercentage = 100;
+    if (totalOverlaps > 0) {
+      widthPercentage = Math.max(65, 100 - (totalOverlaps * 10));
+    }
+    
+    const horizontalOffset = offset * 8;
+    
+    return `
+      grid-row-start: ${startRow};
+      grid-row-end: ${endRow + 1};
+      grid-column-start: ${mapping.colIndex};
+      grid-column-end: span ${mapping.colSpan};
+      position: relative;
+      width: ${widthPercentage}%;
+      margin-left: ${horizontalOffset}px;
+      z-index: ${10 + offset}; /* Layer overlapped events */
+      box-shadow: ${offset > 0 ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'};
+      border-left: ${offset > 0 ? '3px solid #38b2ac' : 'none'}; /* Teal border to indicate overlap */
+    `;
+  }
+
 </script>
 
 <svelte:window on:click={handleWindowClick} />
@@ -236,13 +281,14 @@
             tabindex="0"
             on:dblclick={(e) => handleEventInfoCard(e, event)}
             on:mousedown={(e) => handleEventDragMouseDown(e, event)}
-            style="
-              grid-row-start: {getRowForTimeWithSlots(event.start_time, $timeSlots)};
-              grid-row-end: {getEventRowEndWithSlots(event.end_time, $timeSlots) + 1};
-              grid-column-start: {mapping.colIndex};
-              grid-column-end: span {mapping.colSpan};
-              position: relative;
-            "
+            style={getEventStyle(
+              event,
+              mapping,
+              getRowForTimeWithSlots(event.start_time, $timeSlots),
+              getEventRowEndWithSlots(event.end_time, $timeSlots),
+              eventOffsets,
+              overlapMap
+            )}
           >
             <!-- Horizontal resize handles -->
             <div 
@@ -350,13 +396,14 @@
                 tabindex="0"
                 on:dblclick={(e) => handleEventInfoCard(e, event)}
                 on:mousedown={(e) => handleEventDragMouseDown(e, event)}
-                style="
-                  grid-row-start: {getRowForTimeWithSlots(event.start_time, $timeSlots)};
-                  grid-row-end: {getEventRowEndWithSlots(event.end_time, $timeSlots) + 1};
-                  grid-column-start: {mapping.colIndex};
-                  grid-column-end: span {mapping.colSpan};
-                  position: relative;
-                "
+                style={getEventStyle(
+                  event,
+                  mapping,
+                  getRowForTimeWithSlots(event.start_time, $timeSlots),
+                  getEventRowEndWithSlots(event.end_time, $timeSlots),
+                  weekEventOffsets[dayIndex],
+                  weekOverlapMaps[dayIndex]
+                )}
               >
                 <!-- Horizontal resize handles -->
                 <div 
