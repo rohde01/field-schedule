@@ -134,4 +134,14 @@ export function handleIncludeActiveFieldsToggle(e?: Event) {
   }
 }
 
+export function getEventContentVisibility(startRow: number, endRow: number) {
+  const rowsSpanned = endRow - startRow + 1;
+  
+  return {
+    showTeamName: true,
+    showField: rowsSpanned >= 2,
+    showTime: rowsSpanned >= 3
+  };
+}
+
 

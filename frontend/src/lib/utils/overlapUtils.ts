@@ -28,7 +28,13 @@ export function isSubfieldOf(potentialParentId: number, subfieldId: number, fiel
   
   // Function to check if two time ranges overlap
   export function doTimesOverlap(start1: string, end1: string, start2: string, end2: string): boolean {
-    return start1 < end2 && start2 < end1;
+    const formatTime = (time: string) => time.split(':').slice(0, 2).join(':');
+    const s1 = formatTime(start1);
+    const e1 = formatTime(end1);
+    const s2 = formatTime(start2);
+    const e2 = formatTime(end2);
+    
+    return s1 < e2 && s2 < e1 && e1 !== s2 && e2 !== s1;
   }
   
   // Function to check if two events overlap (considering time and field hierarchy)
@@ -96,4 +102,3 @@ export function isSubfieldOf(potentialParentId: number, subfieldId: number, fiel
     const overlaps = overlapMap.get(eventId) || [];
     return overlaps.length > 0 ? overlaps.length : 0;
   }
-  

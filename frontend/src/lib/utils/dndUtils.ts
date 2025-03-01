@@ -11,7 +11,10 @@ export function handleTopDragMove(
 ): { newStartIndex: number, newStartTime: string } | null {
   const deltaRows = Math.round(deltaY / rowHeight);
   let newStartIndex = initialStartIndex + deltaRows;
-  newStartIndex = Math.max(0, Math.min(newStartIndex, initialEndIndex - 1));
+  
+  const minimumEndIndex = initialEndIndex;
+  newStartIndex = Math.max(0, Math.min(newStartIndex, minimumEndIndex - 2));
+  
   const newStartTime = timeSlotsArr[newStartIndex];
   return { newStartIndex, newStartTime };
 }
@@ -25,7 +28,10 @@ export function handleBottomDragMove(
 ): { newEndIndex: number, newEndTime: string } | null {
   const deltaRows = Math.round(deltaY / rowHeight);
   let newEndIndex = initialEndIndex + deltaRows;
-  newEndIndex = Math.max(initialStartIndex + 1, Math.min(newEndIndex, timeSlotsArr.length - 1));
+  
+  const minimumStartIndex = initialStartIndex;
+  newEndIndex = Math.max(minimumStartIndex + 2, Math.min(newEndIndex, timeSlotsArr.length - 1));
+  
   const newEndTime = timeSlotsArr[newEndIndex];
   return { newEndIndex, newEndTime };
 }
@@ -197,6 +203,7 @@ export function initializeEventDrag(
   const initialStartIndex = timeSlots.indexOf(normalizeTime(scheduleEntry.start_time));
   const initialEndIndex = timeSlots.indexOf(normalizeTime(scheduleEntry.end_time));
   const duration = initialEndIndex - initialStartIndex;
+  const minDuration = Math.max(2, duration);
 
   const gridRect = gridElement.getBoundingClientRect();
   let lastUpdate: Partial<ScheduleEntry> | null = null;
@@ -208,9 +215,9 @@ export function initializeEventDrag(
   function onMouseMove(moveEvent: MouseEvent) {
     const deltaY = moveEvent.clientY - initialClientY;
     const deltaRows = Math.round(deltaY / rowHeight);
-    const maxStartIndex = timeSlots.length - 1 - duration;
+    const maxStartIndex = timeSlots.length - 1 - minDuration;
     const newStartIndex = clamp(initialStartIndex + deltaRows, 0, maxStartIndex);
-    const newEndIndex = newStartIndex + duration;
+    const newEndIndex = newStartIndex + minDuration;
     const newStartTime = timeSlots[newStartIndex];
     const newEndTime = timeSlots[newEndIndex];
 

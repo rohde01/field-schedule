@@ -8,7 +8,7 @@
   import { updateScheduleEntry, addScheduleEntry } from '$stores/schedules';
   import { buildResources, normalizeTime, weekDays, handleGranularityChange, timeSlots, activeEvents, 
           nextDay, previousDay, currentWeekDay, getRowForTimeWithSlots, getEventRowEndWithSlots, addMinutes,
-          includeActiveFields, handleIncludeActiveFieldsToggle } from '$lib/utils/calendarUtils';
+          includeActiveFields, handleIncludeActiveFieldsToggle, getEventContentVisibility } from '$lib/utils/calendarUtils';
   import InfoCard from '$lib/components/InfoCard.svelte';
   import { detectOverlappingEvents, 
     calculateEventOffsets, getTotalOverlaps } from '$lib/utils/overlapUtils';
@@ -175,7 +175,7 @@
       left: ${horizontalOffset}px;
       z-index: ${10 + offset};
       box-shadow: ${offset > 0 ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'};
-      border-left: ${offset > 0 ? '3px solid #38b2ac' : 'none'};
+      border-left: ${totalOverlaps > 0 ? '3px solid #e53e3e' : 'none'};none'};
     `;
   }
 
@@ -275,17 +275,22 @@
       {#each $activeEvents.filter(event => event.week_day === $currentWeekDay) as event (event.schedule_entry_id)}
         {#if fieldToGridColMap.has(event.field_id!)}
           {@const mapping = fieldToGridColMap.get(event.field_id!)!}
+          {@const hasOverlaps = getTotalOverlaps(event.schedule_entry_id, overlapMap) > 0}
+          {@const startRow = getRowForTimeWithSlots(event.start_time, $timeSlots)}
+          {@const endRow = getEventRowEndWithSlots(event.end_time, $timeSlots)}
+          {@const visibility = getEventContentVisibility(startRow, endRow)}
           <div
             class="schedule-event"
             role="button"
             tabindex="0"
+            data-overlapping={hasOverlaps}
             on:dblclick={(e) => handleEventInfoCard(e, event)}
             on:mousedown={(e) => handleEventDragMouseDown(e, event)}
             style={getEventStyle(
               event,
               mapping,
-              getRowForTimeWithSlots(event.start_time, $timeSlots),
-              getEventRowEndWithSlots(event.end_time, $timeSlots),
+              startRow,
+              endRow,
               eventOffsets,
               overlapMap
             )}
@@ -323,12 +328,16 @@
                   ? ($teamNameLookup.get(event.team_id) ?? `Team ${event.team_id}`) 
                   : "Select a team" }
             </div>
-            <div class="event-field flex items-center gap-1 text-[1.12em] text-gray-600">
-              📍 {getFieldName(event.field_id!, $activeFields)}
-            </div>
-            <div class="event-time flex items-center gap-1 text-[1.12em] text-gray-600">
-              🕐 {normalizeTime(event.start_time)} - {normalizeTime(event.end_time)}
-            </div>
+            {#if visibility.showField}
+              <div class="event-field flex items-center gap-1 text-[1.12em] text-gray-600">
+                📍 {getFieldName(event.field_id!, $activeFields)}
+              </div>
+            {/if}
+            {#if visibility.showTime}
+              <div class="event-time flex items-center gap-1 text-[1.12em] text-gray-600">
+                🕐 {normalizeTime(event.start_time)} - {normalizeTime(event.end_time)}
+              </div>
+            {/if}
             <!-- Bottom resize handle -->
             <div 
               class="resize-handle bottom" 
@@ -390,17 +399,22 @@
           {#each $activeEvents.filter(event => event.week_day === dayIndex) as event (event.schedule_entry_id)}
             {#if fieldToGridColMap.has(event.field_id!)}
               {@const mapping = fieldToGridColMap.get(event.field_id!)!}
+              {@const hasOverlaps = getTotalOverlaps(event.schedule_entry_id, weekOverlapMaps[dayIndex]) > 0}
+              {@const startRow = getRowForTimeWithSlots(event.start_time, $timeSlots)}
+              {@const endRow = getEventRowEndWithSlots(event.end_time, $timeSlots)}
+              {@const visibility = getEventContentVisibility(startRow, endRow)}
               <div
                 class="schedule-event"
                 role="button"
                 tabindex="0"
+                data-overlapping={hasOverlaps}
                 on:dblclick={(e) => handleEventInfoCard(e, event)}
                 on:mousedown={(e) => handleEventDragMouseDown(e, event)}
                 style={getEventStyle(
                   event,
                   mapping,
-                  getRowForTimeWithSlots(event.start_time, $timeSlots),
-                  getEventRowEndWithSlots(event.end_time, $timeSlots),
+                  startRow,
+                  endRow,
                   weekEventOffsets[dayIndex],
                   weekOverlapMaps[dayIndex]
                 )}
@@ -438,12 +452,16 @@
                       ? ($teamNameLookup.get(event.team_id) ?? `Team ${event.team_id}`) 
                       : "Select a team" }
                 </div>
-                <div class="event-field flex items-center gap-1 text-[1.12em] text-gray-600">
-                  📍 {getFieldName(event.field_id!, $activeFields)}
-                </div>
-                <div class="event-time flex items-center gap-1 text-[1.12em] text-gray-600">
-                  🕐 {normalizeTime(event.start_time)} - {normalizeTime(event.end_time)}
-                </div>
+                {#if visibility.showField}
+                  <div class="event-field flex items-center gap-1 text-[1.12em] text-gray-600">
+                    📍 {getFieldName(event.field_id!, $activeFields)}
+                  </div>
+                {/if}
+                {#if visibility.showTime}
+                  <div class="event-time flex items-center gap-1 text-[1.12em] text-gray-600">
+                    🕐 {normalizeTime(event.start_time)} - {normalizeTime(event.end_time)}
+                  </div>
+                {/if}
                 <!-- Bottom resize handle -->
                 <div 
                   class="resize-handle bottom" 
