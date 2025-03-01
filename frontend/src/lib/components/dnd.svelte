@@ -171,11 +171,11 @@
       grid-column-start: ${mapping.colIndex};
       grid-column-end: span ${mapping.colSpan};
       position: relative;
-      width: ${widthPercentage}%;
-      margin-left: ${horizontalOffset}px;
-      z-index: ${10 + offset}; /* Layer overlapped events */
+      width: calc(${widthPercentage}% - 10px); /* Account for margins on both sides */
+      left: ${horizontalOffset}px;
+      z-index: ${10 + offset};
       box-shadow: ${offset > 0 ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'};
-      border-left: ${offset > 0 ? '3px solid #38b2ac' : 'none'}; /* Teal border to indicate overlap */
+      border-left: ${offset > 0 ? '3px solid #38b2ac' : 'none'};
     `;
   }
 

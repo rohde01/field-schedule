@@ -286,8 +286,8 @@
   }
 
   .schedule-event {
-    @apply bg-mint-100 text-mint-800 p-2 rounded m-1 text-sm font-medium flex flex-col gap-1 absolute inset-0 z-10;
-    margin: 2px;
+    @apply bg-mint-100 text-mint-800 p-2.5 rounded text-sm font-medium flex flex-col gap-1 absolute inset-0 z-10;
+    margin: 4px;
     transition: transform 0.15s ease-out, box-shadow 0.15s ease-out, border-left 0.15s ease-out;
   }
 
