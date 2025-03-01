@@ -16,12 +16,10 @@ export const activeEvents = derived(dropdownState, ($dropdownState): ScheduleEnt
   return selectedSchedule.entries;
 });
 
-export const timeSlots = derived([activeEvents, timeSlotGranularity], ([$activeEvents, $timeSlotGranularity]) => {
-  const defaultRange = { earliestStart: "16:00", latestEnd: "22:30" };
-  const { earliestStart, latestEnd } = $activeEvents.length > 0 
-    ? getScheduleTimeRange($activeEvents)
-    : defaultRange;
-    
+export const timeSlots = derived([timeSlotGranularity], ([$timeSlotGranularity]) => {
+  const earliestStart = "16:00";
+  const latestEnd = "20:30";
+  
   return generateTimeSlots(earliestStart, latestEnd, $timeSlotGranularity);
 });
 
@@ -73,25 +71,6 @@ export function generateTimeSlots(
 
 export function normalizeTime(time: string): string {
   return time.slice(0, 5);
-}
-
-export function getScheduleTimeRange(entries: ScheduleEntry[]): { earliestStart: string; latestEnd: string } {
-  if (!entries || entries.length === 0) {
-    return { earliestStart: "16:00", latestEnd: "22:30" };
-  }
-  
-  let earliestStart = "23:59";
-  let latestEnd = "00:00";
-  
-  entries.forEach(entry => {
-    if (entry.start_time < earliestStart) earliestStart = entry.start_time;
-    if (entry.end_time > latestEnd) latestEnd = entry.end_time;
-  });
-  
-  return {
-    earliestStart: normalizeTime(earliestStart),
-    latestEnd: normalizeTime(latestEnd)
-  };
 }
 
 export function rowForTime(time: string, timeSlots: string[]): number {
