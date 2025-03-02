@@ -3,63 +3,51 @@ import type { Team } from '$lib/schemas/team';
 import type { Constraint } from '$lib/schemas/schedule';
 import { dropdownState } from './ScheduleDropdownState';
 
-type SidebarDropdownState = {
+interface SidebarState {
     teamsOpen: boolean;
     selectedTeam: Team | null;
     showCreateSchedule: boolean;
     selectedConstraint: Constraint | null;
-};
+}
 
-const initialState: SidebarDropdownState = {
+export const SidebarDropdownState = writable<SidebarState>({
     teamsOpen: true,
     selectedTeam: null,
     showCreateSchedule: false,
     selectedConstraint: null
-};
+});
 
-
-const store = writable<SidebarDropdownState>(initialState);
-export const SidebarDropdownState = store;
-
-export function toggleDropdown(key: keyof Pick<SidebarDropdownState, 'teamsOpen'>) {
-    SidebarDropdownState.update(state => {
-        const newState = {
-            ...state,
-            [key]: !state[key]
-        };
-        return newState;
-    });
-}
-
-export function selectTeam(team: Team) {
-    SidebarDropdownState.update(state => {
-        const newState = {
-            ...state,
-            selectedTeam: team,
-            showCreateTeam: false
-        };
-        return newState;
-    });
-}
-
-export function selectConstraint(constraint: Constraint | null) {
+export const toggleDropdown = (key: 'teamsOpen') => {
     SidebarDropdownState.update(state => ({
         ...state,
-        selectedConstraint: state.selectedConstraint?.constraint_id === constraint?.constraint_id ? null : constraint
+        [key]: !state[key]
     }));
-}
+};
 
-export function toggleCreateSchedule() {
-    SidebarDropdownState.update(state => {
-        const newState = {
-            ...state,
-            showCreateSchedule: !state.showCreateSchedule,
-            selectedConstraint: !state.showCreateSchedule ? null : state.selectedConstraint
-        };
-        return newState;
-    });
+export const toggleCreateSchedule = () => {
+    SidebarDropdownState.update(state => ({
+        ...state,
+        showCreateSchedule: !state.showCreateSchedule,
+        selectedTeam: null,
+        selectedConstraint: null
+    }));
     dropdownState.update(state => ({
         ...state,
         selectedSchedule: null
     }));
-}
+};
+
+export const selectTeam = (team: Team) => {
+    SidebarDropdownState.update(state => ({
+        ...state,
+        selectedTeam: state.selectedTeam?.team_id === team.team_id ? null : team,
+        selectedConstraint: null
+    }));
+};
+
+export const selectConstraint = (constraint: Constraint | null) => {
+    SidebarDropdownState.update(state => ({
+        ...state,
+        selectedConstraint: constraint
+    }));
+};

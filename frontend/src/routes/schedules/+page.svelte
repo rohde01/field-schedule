@@ -10,15 +10,13 @@
     import { superForm } from 'sveltekit-superforms/client';
     import CreateSchedule from '$lib/components/CreateSchedule.svelte';
     import Dnd from '$lib/components/dnd.svelte'
-    import DisplayCard, { type Column } from '$lib/components/DisplayCard.svelte';
-    import { constraints } from '$stores/constraints';
+    import StatCard from '$lib/components/StatCard.svelte';
     import type { Constraint, ScheduleEntry } from '$lib/schemas/schedule';
     import SuperDebug from 'sveltekit-superforms';
     import { onDestroy } from 'svelte';
 
     let { data }: { data: PageData } = $props();
     const { form: rawForm } = data;
-    let displayColumns: Column[] = $state([]);
     let constraintTitle: string = $state('');
 
     const deleteForm = superForm(data.deleteForm, {
@@ -178,39 +176,6 @@
         showErrorModal = false;
     }
 
-    const handleFieldDelete = async (constraintId: number) => {
-        // Future implementation for deleting a constraint
-        console.log('Deleting constraint:', constraintId);
-    };
-
-    $effect(() => {
-        if ($SidebarDropdownState.selectedConstraint) {
-            const field = $constraints.find((f: Constraint) => 
-                f.constraint_id === $SidebarDropdownState.selectedConstraint?.constraint_id
-            ) || $SidebarDropdownState.selectedConstraint;
-
-            const teamName = $teams.find(t => t.team_id === field.team_id)?.name || 'Unknown Team';
-            constraintTitle = `Constraint ID: ${field.constraint_id} | ${teamName}`;
-
-            const column1Fields = [
-                { label: 'Sessions', value: field.sessions },
-                { label: 'Length', value: field.length },
-                { label: 'Start Time', value: field.start_time },
-                { label: 'Partial Size', value: field.partial_cost },
-                { label: 'Partial Size', value: field.partial_field }
-            ].filter(item => item.value != null).map(item => ({ ...item, value: item.value ?? '' }));
-
-            const column2Fields = [
-                { label: 'Required Size', value: field.required_cost, style: 'pill' },
-                { label: 'Partial Time', value: field.partial_time, style: 'pill' }
-            ].filter(item => item.value != null).map(item => ({ ...item, value: item.value ?? '' }));
-
-            displayColumns = [
-                { fields: column1Fields },
-                { fields: column2Fields }
-            ].filter(column => column.fields.length > 0);
-        }
-    });
 </script>
 
 {#if showErrorModal}
@@ -248,19 +213,9 @@
                 {/if}
                 <CreateSchedule {form} {enhance} {errors} />
             </div>
-        {/if}
-        
-        {#if $SidebarDropdownState.selectedConstraint}
-            <DisplayCard 
-                title={constraintTitle}
-                columns={displayColumns}
-                deleteConfig={{
-                    enabled: true,
-                    itemId: $SidebarDropdownState.selectedConstraint.constraint_id,
-                    itemName: constraintTitle,
-                    onDelete: handleFieldDelete
-                }}
-            />
+        {:else if $SidebarDropdownState.selectedTeam}
+            <!-- Only render StatCard when a team is selected AND not in create schedule mode -->
+            <StatCard team={$SidebarDropdownState.selectedTeam} />
         {/if}
 
         {#if $dropdownState.selectedSchedule}
@@ -269,7 +224,7 @@
             </div>
         {/if}
 
-        {#if !$SidebarDropdownState.showCreateSchedule && !$dropdownState.selectedSchedule && !$SidebarDropdownState.selectedConstraint}
+        {#if !$SidebarDropdownState.showCreateSchedule && !$dropdownState.selectedSchedule && !$SidebarDropdownState.selectedTeam}
             <div class="text-center p-8 text-sage-500">
                 Select a schedule or create a new one
             </div>
