@@ -1,5 +1,4 @@
 <script lang="ts">
-    import type { Team } from '$lib/schemas/team';
     import { dropdownState } from '../../stores/ScheduleDropdownState';
     
     let { team } = $props();
@@ -7,18 +6,13 @@
     const daysOfWeek = ['M', 'Tu', 'W', 'Th', 'F', 'Sa', 'Su'];
     
     let trainingDays = $state(new Set<number>());
+    let progressPercentage = $state(0);
+    let progressColor = $state('#10b981');
     
     // Update training days whenever the selected schedule or team changes
     $effect(() => {
         if ($dropdownState.selectedSchedule && team) {
-            updateTrainingDays();
-        }
-    });
-
-    function updateTrainingDays() {
-        const newTrainingDays = new Set<number>();
-        
-        if ($dropdownState.selectedSchedule && team && team.team_id) {
+            const newTrainingDays = new Set<number>();
             const teamEntries = $dropdownState.selectedSchedule.entries.filter(
                 entry => entry.team_id === team.team_id
             );
@@ -28,9 +22,24 @@
                     newTrainingDays.add(entry.week_day);
                 }
             });
+            
+            trainingDays = newTrainingDays;
+            
+            const actualSessions = newTrainingDays.size;
+            const targetSessions = team.weekly_trainings || 1;
+            progressPercentage = Math.min((actualSessions / targetSessions) * 100, 100);
+            
+            if (actualSessions > targetSessions) {
+                progressColor = '#ef4444';
+            } else if (actualSessions === targetSessions) {
+                progressColor = '#10b981';
+            } else if (actualSessions >= targetSessions * 0.75) {
+                progressColor = '#f59e0b';
+            } else {
+                progressColor = '#ef4444';
+            }
         }
-        trainingDays = newTrainingDays;
-    }
+    });
     
     function hasTraining(day: number): boolean {
         return trainingDays.has(day);
@@ -55,8 +64,16 @@
             </div>
         </div>
         
-        <div class="detail-card-content">
-
+        <div class="detail-card-content flex justify-center items-center py-8">
+            <div class="progress-circle-container">
+                <div class="progress-circle">
+                    <div class="progress-bar" style="--progress: {progressPercentage}%; --progress-color: {progressColor};"></div>
+                    <div class="progress-content">
+                        <div class="progress-value">{trainingDays.size}/{team.weekly_trainings}</div>
+                        <div class="progress-label">Sessions</div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>

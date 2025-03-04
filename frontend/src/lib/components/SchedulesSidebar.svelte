@@ -2,7 +2,6 @@
     import { SidebarDropdownState as teamDropdownState, toggleDropdown, selectTeam, toggleCreateSchedule } from '../../stores/ScheduleSidebarState';
     import { dropdownState } from '../../stores/ScheduleDropdownState';
     import { facilities } from '$stores/facilities';
-    // Remove the StatCard import as we won't render it here anymore
     import type { Team } from '$lib/schemas/team';
     import type { SuperForm } from 'sveltekit-superforms';
     import type { GenerateScheduleRequest } from '$lib/schemas/schedule';
