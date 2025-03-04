@@ -8,6 +8,60 @@
     let trainingDays = $state(new Set<number>());
     let progressPercentage = $state(0);
     let progressColor = $state('#10b981');
+    let isIdealPattern = $state(false);
+    
+    // Define type for ideal patterns object
+    type IdealPatternsType = {
+        [key: number]: number[][];
+    };
+    
+    // Updated ideal training patterns
+    const idealPatterns: IdealPatternsType = {
+        1: [[0], [1], [2], [3], [4], [5], [6]],
+        2: [[0, 2], [1, 3], [2, 4]],           // Mon-Wed, Tue-Thu, Wed-Fri
+        3: [[0, 2, 4]],                         // Mon-Wed-Fri
+        4: [
+            [0, 1, 3, 4],                       // Mon-Tue-Thu-Fri
+            [0, 2, 4, 5],                       // Mon-Wed-Fri-Sat
+            [0, 2, 4, 6]                        // Mon-Wed-Fri-Sun
+        ],
+        5: [
+            [0, 1, 2, 3, 4, 5],
+            [0, 1, 2, 3, 4, 6]
+        ]
+    };
+    
+    function checkIdealPattern(days: Set<number>): boolean {
+        const count = days.size;
+        
+        if (count === 1) return true;
+        
+        const dayArray = Array.from(days).sort((a, b) => a - b);
+        
+        if (count === 5) {
+            const weekdayCount = dayArray.filter(day => day >= 0 && day <= 4).length;
+            const weekendCount = dayArray.filter(day => day === 5 || day === 6).length;
+            
+            return weekdayCount >= 4 && weekendCount >= 1;
+        }
+        
+        if (idealPatterns[count]) {
+            return idealPatterns[count].some((pattern: number[]) => {
+                // For patterns other than 5, check if the day array contains exactly the days in the pattern
+                if (pattern.length !== dayArray.length) return false;
+                
+                // Check that every day in the pattern is in the day array
+                const patternMatches = pattern.every(day => dayArray.includes(day));
+                
+                // And check that every day in the day array is in the pattern
+                const dayArrayMatches = dayArray.every(day => pattern.includes(day));
+                
+                return patternMatches && dayArrayMatches;
+            });
+        }
+        
+        return false;
+    }
     
     // Update training days whenever the selected schedule or team changes
     $effect(() => {
@@ -24,6 +78,7 @@
             });
             
             trainingDays = newTrainingDays;
+            isIdealPattern = checkIdealPattern(newTrainingDays);
             
             const actualSessions = newTrainingDays.size;
             const targetSessions = team.weekly_trainings || 1;
@@ -44,6 +99,11 @@
     function hasTraining(day: number): boolean {
         return trainingDays.has(day);
     }
+    
+    function getTrainingCircleColor(day: number): string {
+        if (!hasTraining(day)) return "bg-gray-100";
+        return isIdealPattern ? "bg-emerald-500" : "bg-amber-500";
+    }
 </script>
 
 <div class="detail-card mt-4">
@@ -55,9 +115,7 @@
                     <div class="flex flex-col items-center">
                         <span class="text-xs text-sage-500">{day}</span>
                         <div 
-                            class="w-4 h-4 rounded-full mt-1 border border-sage-200" 
-                            class:bg-emerald-500={hasTraining(index)}
-                            class:bg-gray-100={!hasTraining(index)}
+                            class="w-4 h-4 rounded-full mt-1 border border-sage-200 {getTrainingCircleColor(index)}"
                         ></div>
                     </div>
                 {/each}
