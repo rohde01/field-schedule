@@ -12,8 +12,9 @@
 		"lint": "prettier --check ."
 	},
 	"devDependencies": {
-		"@event-calendar/core": "^3.7.2",
+		"@event-calendar/core": "^3.10.0",
 		"@event-calendar/resource-timeline": "^3.7.2",
+		"@event-calendar/time-grid": "^3.10.0",
 		"@sveltejs/adapter-vercel": "^5.5.2",
 		"@sveltejs/kit": "^2.0.0",
 		"@sveltejs/vite-plugin-svelte": "^4.0.0",
@@ -31,7 +32,6 @@
 	},
 	"dependencies": {
 		"@event-calendar/resource-time-grid": "^3.7.2",
-		"@event-calendar/time-grid": "^3.7.1",
 		"@tailwindcss/forms": "^0.5.9",
 		"@tailwindcss/typography": "^0.5.15",
 		"jwt-decode": "^4.0.0",
