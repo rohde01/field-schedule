@@ -242,3 +242,94 @@ def delete_schedule_entry(conn, entry_id: int) -> bool:
     success = cursor.fetchone() is not None
     conn.commit()
     return success
+
+
+# Active Schedules for the calendar view
+@with_db_connection
+def create_active_schedule(conn, club_id: int, schedule_id: int, start_date: str, end_date: str) -> Optional[int]:
+    """Creates a new active schedule and returns its ID"""
+    cursor = conn.cursor()
+    query = """
+    INSERT INTO active_schedules 
+    (club_id, schedule_id, start_date, end_date)
+    VALUES (%s, %s, %s, %s)
+    RETURNING active_schedule_id
+    """
+    try:
+        cursor.execute(query, (club_id, schedule_id, start_date, end_date))
+        result = cursor.fetchone()
+        conn.commit()
+        return result[0] if result else None
+    except Exception as e:
+        conn.rollback()
+        raise e
+
+@with_db_connection
+def get_active_schedules(conn, club_id: int) -> List[dict]:
+    """Fetches all active schedules for a club"""
+    cursor = conn.cursor()
+    query = """
+    SELECT active_schedule_id, schedule_id, start_date, end_date, is_active
+    FROM active_schedules
+    WHERE club_id = %s
+    ORDER BY start_date DESC
+    """
+    cursor.execute(query, (club_id,))
+    return [
+        {
+            'active_schedule_id': row[0],
+            'schedule_id': row[1],
+            'start_date': row[2].isoformat(),
+            'end_date': row[3].isoformat(),
+            'is_active': row[4]
+        }
+        for row in cursor.fetchall()
+    ]
+
+@with_db_connection
+def update_active_schedule(conn, active_schedule_id: int, changes: dict) -> bool:
+    """Updates an active schedule"""
+    cursor = conn.cursor()
+    allowed_fields = {'start_date', 'end_date', 'is_active'}
+    valid_changes = {k: v for k, v in changes.items() if k in allowed_fields}
+    
+    if not valid_changes:
+        return False
+
+    set_clause = ", ".join([f"{k} = %s" for k in valid_changes.keys()])
+    values = list(valid_changes.values()) + [active_schedule_id]
+    
+    query = f"""
+    UPDATE active_schedules
+    SET {set_clause}
+    WHERE active_schedule_id = %s
+    RETURNING active_schedule_id
+    """
+    
+    cursor.execute(query, values)
+    success = cursor.fetchone() is not None
+    conn.commit()
+    return success
+
+@with_db_connection
+def delete_active_schedule(conn, active_schedule_id: int) -> bool:
+    """Deletes an active schedule"""
+    cursor = conn.cursor()
+    query = """
+    DELETE FROM active_schedules
+    WHERE active_schedule_id = %s
+    RETURNING active_schedule_id
+    """
+    cursor.execute(query, (active_schedule_id,))
+    success = cursor.fetchone() is not None
+    conn.commit()
+    return success
+
+@with_db_connection
+def get_active_schedule_club_id(conn, active_schedule_id: int) -> Optional[int]:
+    """Gets the club_id for a given active schedule"""
+    cursor = conn.cursor()
+    query = "SELECT club_id FROM active_schedules WHERE active_schedule_id = %s"
+    cursor.execute(query, (active_schedule_id,))
+    result = cursor.fetchone()
+    return result[0] if result else None
