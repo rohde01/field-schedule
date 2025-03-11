@@ -5,6 +5,7 @@ from routes.schedules import router as schedules_router
 from routes.users import router as users_router
 from routes.clubs import router as clubs_router
 from routes.facilities import router as facilities_router
+from routes.active_schedules import router as active_schedules_router
 from fastapi.middleware.cors import CORSMiddleware
 
 
@@ -20,6 +21,7 @@ app.include_router(teams_router)
 app.include_router(fields_router)
 app.include_router(schedules_router)
 app.include_router(facilities_router)
+app.include_router(active_schedules_router)
 
 # Configure CORS
 app.add_middleware(

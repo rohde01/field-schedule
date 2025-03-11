@@ -141,3 +141,27 @@ export type DeleteScheduleResponse = {
 };
 
 export type GenerateScheduleRequest = z.infer<typeof generateScheduleRequestSchema>;
+
+export const activeScheduleCreateSchema = z.object({
+    club_id: z.number().int().positive(),
+    schedule_id: z.number().int().positive(),
+    start_date: z.string().datetime(),
+    end_date: z.string().datetime()
+});
+
+export const activeScheduleUpdateSchema = z.object({
+    start_date: z.string().datetime().optional(),
+    end_date: z.string().datetime().optional(),
+    is_active: z.boolean().optional()
+});
+
+export type ActiveSchedule = {
+    active_schedule_id: number;
+    schedule_id: number;
+    start_date: string;
+    end_date: string;
+    is_active: boolean;
+};
+
+export type ActiveScheduleCreate = z.infer<typeof activeScheduleCreateSchema>;
+export type ActiveScheduleUpdate = z.infer<typeof activeScheduleUpdateSchema>;
