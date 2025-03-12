@@ -4,9 +4,16 @@
     import DashboardSidebar from '$lib/components/DashboardSidebar.svelte';
     import Calendar from '$lib/components/Calendar.svelte';
     import { currentView } from '$stores/dashboardNav';
+    import { activeSchedules } from '$stores/activeSchedules';
 
     let { data }: { data: PageData } = $props();
     const { user } = data;
+
+    $effect(() => {
+        if (data.activeSchedules) {
+            activeSchedules.set(data.activeSchedules);
+        }
+    });
 
     function getGreeting(): string {
         const hour = new Date().getHours();
