@@ -13,6 +13,7 @@
 	},
 	"devDependencies": {
 		"@event-calendar/core": "^3.10.0",
+		"@event-calendar/day-grid": "^3.10.0",
 		"@event-calendar/resource-timeline": "^3.7.2",
 		"@event-calendar/time-grid": "^3.10.0",
 		"@sveltejs/adapter-vercel": "^5.5.2",
