@@ -3,11 +3,31 @@
     import TimeGrid from '@event-calendar/time-grid';
     import DayGrid from '@event-calendar/day-grid';
     import '@event-calendar/core/index.css';
+    import { activeSchedules } from '../../stores/activeSchedules';
 
     let plugins = [TimeGrid, DayGrid];
-    let options = {
+    
+    // Event handlers
+    const handleMouseEnter = () => {
+    };
+
+    const handleMouseLeave = () => {
+    };
+    
+    // Convert active schedules to calendar events
+    $: calendarEvents = $activeSchedules.map(schedule => ({
+        id: schedule.schedule_id,
+        title: `Schedule ${schedule.schedule_id}`,
+        start: new Date(schedule.start_date),
+        end: new Date(schedule.end_date),
+        // Pass function references directly instead of invoking them
+        mouseenter: handleMouseEnter,
+        mouseleave: handleMouseLeave
+    }));
+
+    $: options = {
         view: 'timeGridWeek',
-        events: [],
+        events: calendarEvents,
         height: '800px',
         headerToolbar: {
             start: 'prev,next today',
