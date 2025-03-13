@@ -30,31 +30,49 @@
         }
     );
 
-    function handleSubmit() {
+    let showConfirmModal = false;
+
+    $: {
+        // Update store whenever form values change
         const formData = $infoCardForm;
-        
-        if (editingEvent) {
-            // Update existing schedule
-            const updatedSchedule: ActiveSchedule = {
-                ...editingEvent,
-                schedule_id: parseInt(formData.schedule_id),
-                start_date: new Date(formData.start_date).toISOString(),
-                end_date: new Date(formData.end_date).toISOString(),
-                is_active: formData.is_active
-            };
-            activeSchedules.update(updatedSchedule);
-        } else {
-            // Create new schedule
-            const newSchedule: ActiveSchedule = {
-                active_schedule_id: Date.now(),
-                schedule_id: parseInt(formData.schedule_id),
-                start_date: new Date(formData.start_date).toISOString(),
-                end_date: new Date(formData.end_date).toISOString(),
-                is_active: formData.is_active
-            };
-            activeSchedules.add(newSchedule);
+        if (formData.schedule_id && formData.start_date && formData.end_date) {
+            if (editingEvent) {
+                const updatedSchedule: ActiveSchedule = {
+                    ...editingEvent,
+                    schedule_id: parseInt(formData.schedule_id),
+                    start_date: new Date(formData.start_date).toISOString(),
+                    end_date: new Date(formData.end_date).toISOString(),
+                    is_active: formData.is_active
+                };
+                activeSchedules.update(updatedSchedule);
+            } else {
+                const newSchedule: ActiveSchedule = {
+                    active_schedule_id: Date.now(),
+                    schedule_id: parseInt(formData.schedule_id),
+                    start_date: new Date(formData.start_date).toISOString(),
+                    end_date: new Date(formData.end_date).toISOString(),
+                    is_active: formData.is_active
+                };
+                activeSchedules.add(newSchedule);
+                onClose();
+            }
         }
-        onClose();
+    }
+
+    function handleDelete() {
+        showConfirmModal = true;
+    }
+    
+    function confirmDelete() {
+        if (editingEvent) {
+            activeSchedules.remove(editingEvent.active_schedule_id);
+            onClose();
+        }
+        showConfirmModal = false;
+    }
+    
+    function cancelDelete() {
+        showConfirmModal = false;
     }
 </script>
 
@@ -63,7 +81,7 @@
     tabindex="0"
     on:keydown={(e) => { if(e.key === "Enter" || e.key === " ") e.stopPropagation(); }}
     on:click|stopPropagation
-    class="event-info-card"
+    class="event-info-card relative"
     style="position: absolute; top: {position.y}px; left: {position.x}px;"
 >
     <div class="event-info-card-header">
@@ -114,12 +132,42 @@
         </div>
     </div>
 
-    <div class="flex justify-end space-x-2 mt-4">
-        <button type="button" class="btn-secondary" on:click={onClose}>
-            Cancel
-        </button>
-        <button type="button" class="btn-primary" on:click={handleSubmit}>
-            {editingEvent ? 'Update' : 'Activate'}
-        </button>
-    </div>
+    {#if editingEvent}
+        <div class="flex items-center mt-2">
+            <button 
+                type="button" 
+                class="btn-trash" 
+                aria-label="Delete entry" 
+                on:click|stopPropagation={handleDelete}
+                tabindex="-1"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+            </button>
+        </div>
+    {/if}
 </div>
+
+{#if showConfirmModal}
+    <div 
+        class="modal-overlay" 
+        on:click|self={cancelDelete}
+        on:keydown={(e) => {
+            if (e.key === 'Escape') cancelDelete();
+        }}
+        role="dialog"
+        aria-labelledby="modal-title"
+        aria-describedby="modal-description"
+    >
+        <div class="modal-container">
+            <h2 id="modal-title" class="modal-title">Confirm Deletion</h2>
+            <p id="modal-description" class="modal-description">Are you sure you want to remove this schedule from the club calender?</p>
+            
+            <div class="modal-actions">
+                <button class="btn-secondary" on:click={cancelDelete}>Cancel</button>
+                <button class="btn-danger" on:click={confirmDelete}>Delete</button>
+            </div>
+        </div>
+    </div>
+{/if}
