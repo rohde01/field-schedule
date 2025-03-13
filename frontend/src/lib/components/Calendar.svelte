@@ -16,7 +16,12 @@
     let cardPosition: { x: number; y: number } = { x: 0, y: 0 };
     let editingEvent: any = null;
     
-    // Event handlers
+    // Variables for double-click detection
+    let lastClickTime = 0;
+    let lastClickedEvent: any = null;
+    let lastClickedDate: Date | null = null;
+    const doubleClickInterval = 300; // ms
+    
     const handleMouseEnter = () => {
     };
 
@@ -55,18 +60,14 @@
             timeGridWeek: 'Week'
         },
         selectable: true,
-        dateClick: (info: DateClickInfo) => {
-            editingEvent = null;  // Reset editing event
-            selectedDate = info.date;
-            const mouseEvent = info.jsEvent as unknown as MouseEvent;
-            cardPosition = { 
-                x: mouseEvent.clientX, 
-                y: mouseEvent.clientY 
-            };
-            showEventCard = true;
-        },
+        // Implement manual double-click detection for events
         eventClick: (info: any) => {
-            if (info.event) {
+            const currentTime = new Date().getTime();
+            const isSameEvent = lastClickedEvent && 
+                lastClickedEvent.id === info.event.id;
+            
+            if (isSameEvent && (currentTime - lastClickTime) < doubleClickInterval) {
+                // Double click detected
                 const activeSchedule = $activeSchedules.find(
                     schedule => schedule.active_schedule_id === parseInt(info.event.id)
                 );
@@ -78,21 +79,33 @@
                     };
                     showEventCard = true;
                 }
+                lastClickTime = 0;
+                lastClickedEvent = null;
+            } else {
+                lastClickTime = currentTime;
+                lastClickedEvent = info.event;
             }
         },
-        eventDblClick: (info: any) => {
-            if (info.event) {
-                const activeSchedule = $activeSchedules.find(
-                    schedule => schedule.active_schedule_id === parseInt(info.event.id)
-                );
-                if (activeSchedule) {
-                    editingEvent = activeSchedule;
-                    cardPosition = { 
-                        x: info.jsEvent.clientX, 
-                        y: info.jsEvent.clientY 
-                    };
-                    showEventCard = true;
-                }
+        dateClick: (info: DateClickInfo) => {
+            const currentTime = new Date().getTime();
+            const isSameDate = lastClickedDate && 
+                lastClickedDate.getTime() === info.date.getTime();
+                
+            if (isSameDate && (currentTime - lastClickTime) < doubleClickInterval) {
+                editingEvent = null; 
+                selectedDate = info.date;
+                const mouseEvent = info.jsEvent as MouseEvent;
+                cardPosition = { 
+                    x: mouseEvent.clientX, 
+                    y: mouseEvent.clientY 
+                };
+                showEventCard = true;
+                
+                lastClickTime = 0;
+                lastClickedDate = null;
+            } else {
+                lastClickTime = currentTime;
+                lastClickedDate = info.date;
             }
         }
     };
