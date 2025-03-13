@@ -110,6 +110,27 @@
         }
     };
 
+    // Svelte action for click outside detection
+    function clickOutside(node: HTMLElement, callback: () => void) {
+        const handleClick = (event: MouseEvent) => {
+            if (node && !node.contains(event.target as Node)) {
+                callback();
+            }
+        };
+        
+        // Add event listener with a small delay to avoid the initial click
+        const timeoutId = setTimeout(() => {
+            document.addEventListener('click', handleClick, true);
+        }, 10);
+        
+        return {
+            destroy() {
+                clearTimeout(timeoutId);
+                document.removeEventListener('click', handleClick, true);
+            }
+        };
+    }
+
     function closeEventCard(): void {
         showEventCard = false;
         editingEvent = null;  // Reset editing event when closing
@@ -130,12 +151,14 @@
     {/if}
     
     {#if showEventCard}
-        <ActiveInfoCard 
-            position={cardPosition}
-            selectedDate={selectedDate}
-            onClose={closeEventCard}
-            editingEvent={editingEvent}
-        />
+        <div use:clickOutside={closeEventCard}>
+            <ActiveInfoCard 
+                position={cardPosition}
+                selectedDate={selectedDate}
+                onClose={closeEventCard}
+                editingEvent={editingEvent}
+            />
+        </div>
     {/if}
 </div>
 
