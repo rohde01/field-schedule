@@ -14,6 +14,7 @@
     let showEventCard = false;
     let selectedDate: Date = new Date();
     let cardPosition: { x: number; y: number } = { x: 0, y: 0 };
+    let editingEvent: any = null;
     
     // Event handlers
     const handleMouseEnter = () => {
@@ -26,7 +27,7 @@
     $: calendarEvents = $activeSchedules.map(schedule => {
         const scheduleName = $schedules.find(s => s.schedule_id === schedule.schedule_id)?.name ?? `Schedule ${schedule.schedule_id}`;
         return {
-            id: schedule.schedule_id,
+            id: schedule.active_schedule_id,
             title: scheduleName,
             start: new Date(schedule.start_date),
             end: new Date(schedule.end_date),
@@ -55,6 +56,7 @@
         },
         selectable: true,
         dateClick: (info: DateClickInfo) => {
+            editingEvent = null;  // Reset editing event
             selectedDate = info.date;
             const mouseEvent = info.jsEvent as unknown as MouseEvent;
             cardPosition = { 
@@ -62,11 +64,42 @@
                 y: mouseEvent.clientY 
             };
             showEventCard = true;
+        },
+        eventClick: (info: any) => {
+            if (info.event) {
+                const activeSchedule = $activeSchedules.find(
+                    schedule => schedule.active_schedule_id === parseInt(info.event.id)
+                );
+                if (activeSchedule) {
+                    editingEvent = activeSchedule;
+                    cardPosition = { 
+                        x: info.jsEvent.clientX, 
+                        y: info.jsEvent.clientY 
+                    };
+                    showEventCard = true;
+                }
+            }
+        },
+        eventDblClick: (info: any) => {
+            if (info.event) {
+                const activeSchedule = $activeSchedules.find(
+                    schedule => schedule.active_schedule_id === parseInt(info.event.id)
+                );
+                if (activeSchedule) {
+                    editingEvent = activeSchedule;
+                    cardPosition = { 
+                        x: info.jsEvent.clientX, 
+                        y: info.jsEvent.clientY 
+                    };
+                    showEventCard = true;
+                }
+            }
         }
     };
 
     function closeEventCard(): void {
         showEventCard = false;
+        editingEvent = null;  // Reset editing event when closing
     }
 
     function handleKeydown(event: KeyboardEvent): void {
@@ -88,6 +121,7 @@
             position={cardPosition}
             selectedDate={selectedDate}
             onClose={closeEventCard}
+            editingEvent={editingEvent}
         />
     {/if}
 </div>

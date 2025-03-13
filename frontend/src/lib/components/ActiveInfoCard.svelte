@@ -8,31 +8,52 @@
     export let position: { x: number; y: number };
     export let selectedDate: Date;
     export let onClose: () => void;
+    export let editingEvent: ActiveSchedule | null = null;
 
     $: scheduleOptions = $schedules.map(schedule => ({
         value: schedule.schedule_id,
         label: schedule.name
     }));
 
-    const infoCardForm = writable<Record<string, any>>({
-        schedule_id: '',
-        start_date: selectedDate.toISOString().slice(0, 16),
-        end_date: new Date(selectedDate.getTime() + 7 * 24 * 60 * 60 * 1000)
-            .toISOString().slice(0, 16),
-        is_active: true
-    });
+    const infoCardForm = writable<Record<string, any>>(
+        editingEvent ? {
+            schedule_id: editingEvent.schedule_id.toString(),
+            start_date: new Date(editingEvent.start_date).toISOString().slice(0, 16),
+            end_date: new Date(editingEvent.end_date).toISOString().slice(0, 16),
+            is_active: editingEvent.is_active
+        } : {
+            schedule_id: '',
+            start_date: selectedDate.toISOString().slice(0, 16),
+            end_date: new Date(selectedDate.getTime() + 7 * 24 * 60 * 60 * 1000)
+                .toISOString().slice(0, 16),
+            is_active: true
+        }
+    );
 
     function handleSubmit() {
         const formData = $infoCardForm;
-        const newSchedule: ActiveSchedule = {
-            active_schedule_id: Date.now(),
-            schedule_id: parseInt(formData.schedule_id),
-            start_date: new Date(formData.start_date).toISOString(),
-            end_date: new Date(formData.end_date).toISOString(),
-            is_active: formData.is_active
-        };
-
-        activeSchedules.add(newSchedule);
+        
+        if (editingEvent) {
+            // Update existing schedule
+            const updatedSchedule: ActiveSchedule = {
+                ...editingEvent,
+                schedule_id: parseInt(formData.schedule_id),
+                start_date: new Date(formData.start_date).toISOString(),
+                end_date: new Date(formData.end_date).toISOString(),
+                is_active: formData.is_active
+            };
+            activeSchedules.update(updatedSchedule);
+        } else {
+            // Create new schedule
+            const newSchedule: ActiveSchedule = {
+                active_schedule_id: Date.now(),
+                schedule_id: parseInt(formData.schedule_id),
+                start_date: new Date(formData.start_date).toISOString(),
+                end_date: new Date(formData.end_date).toISOString(),
+                is_active: formData.is_active
+            };
+            activeSchedules.add(newSchedule);
+        }
         onClose();
     }
 </script>
@@ -98,7 +119,7 @@
             Cancel
         </button>
         <button type="button" class="btn-primary" on:click={handleSubmit}>
-            Activate
+            {editingEvent ? 'Update' : 'Activate'}
         </button>
     </div>
 </div>
