@@ -1,11 +1,18 @@
-<script>
+<script lang="ts">
+    import { browser } from '$app/environment';
     import Calendar from '@event-calendar/core';
+    import type { default as EC } from '@event-calendar/core';
     import TimeGrid from '@event-calendar/time-grid';
     import DayGrid from '@event-calendar/day-grid';
+    import Interaction from '@event-calendar/interaction';
     import '@event-calendar/core/index.css';
     import { activeSchedules } from '../../stores/activeSchedules';
+    import ActiveInfoCard from './ActiveInfoCard.svelte';
 
-    let plugins = [TimeGrid, DayGrid];
+    let plugins = [TimeGrid, DayGrid, Interaction];
+    let showEventCard = false;
+    let selectedDate: Date = new Date();
+    let cardPosition: { x: number; y: number } = { x: 0, y: 0 };
     
     // Event handlers
     const handleMouseEnter = () => {
@@ -25,6 +32,9 @@
         mouseleave: handleMouseLeave
     }));
 
+    type DomEvent = EC.DomEvent;
+    type DateClickInfo = EC.DateClickInfo;
+
     $: options = {
         view: 'timeGridWeek',
         events: calendarEvents,
@@ -38,12 +48,44 @@
             today: 'Today',
             dayGridMonth: 'Month',
             timeGridWeek: 'Week'
+        },
+        selectable: true,
+        dateClick: (info: DateClickInfo) => {
+            selectedDate = info.date;
+            const mouseEvent = info.jsEvent as unknown as MouseEvent;
+            cardPosition = { 
+                x: mouseEvent.clientX, 
+                y: mouseEvent.clientY 
+            };
+            showEventCard = true;
         }
     };
+
+    function closeEventCard(): void {
+        showEventCard = false;
+    }
+
+    function handleKeydown(event: KeyboardEvent): void {
+        if (event.key === 'Escape') {
+            closeEventCard();
+        }
+    }
 </script>
 
+<svelte:window on:keydown={handleKeydown} />
+
 <div class="calendar-wrapper">
-    <Calendar {plugins} {options} />
+    {#if browser}
+        <Calendar {plugins} {options} />
+    {/if}
+    
+    {#if showEventCard}
+        <ActiveInfoCard 
+            position={cardPosition}
+            selectedDate={selectedDate}
+            onClose={closeEventCard}
+        />
+    {/if}
 </div>
 
 <style>
