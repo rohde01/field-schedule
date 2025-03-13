@@ -2,13 +2,18 @@
     import EditableField from './EditableField.svelte';
     import type { ActiveSchedule } from '$lib/schemas/schedule';
     import { activeSchedules } from '../../stores/activeSchedules';
+    import { schedules } from '../../stores/schedules';
     import { writable } from 'svelte/store';
 
     export let position: { x: number; y: number };
     export let selectedDate: Date;
     export let onClose: () => void;
 
-    // Create a writable store for the form
+    $: scheduleOptions = $schedules.map(schedule => ({
+        value: schedule.schedule_id,
+        label: schedule.name
+    }));
+
     const infoCardForm = writable<Record<string, any>>({
         schedule_id: '',
         start_date: selectedDate.toISOString().slice(0, 16),
@@ -45,8 +50,9 @@
             form={infoCardForm}
             errors={{}}
             name="schedule_id"
-            label=""
-            type="number"
+            label="Schedule"
+            type="select"
+            options={scheduleOptions}
             view_mode_style="title"
             required={true}
         />
@@ -92,7 +98,7 @@
             Cancel
         </button>
         <button type="button" class="btn-primary" on:click={handleSubmit}>
-            Create
+            Activate
         </button>
     </div>
 </div>

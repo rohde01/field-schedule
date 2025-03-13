@@ -7,6 +7,7 @@
     import Interaction from '@event-calendar/interaction';
     import '@event-calendar/core/index.css';
     import { activeSchedules } from '../../stores/activeSchedules';
+    import { schedules } from '../../stores/schedules';
     import ActiveInfoCard from './ActiveInfoCard.svelte';
 
     let plugins = [TimeGrid, DayGrid, Interaction];
@@ -22,15 +23,18 @@
     };
     
     // Convert active schedules to calendar events
-    $: calendarEvents = $activeSchedules.map(schedule => ({
-        id: schedule.schedule_id,
-        title: `Schedule ${schedule.schedule_id}`,
-        start: new Date(schedule.start_date),
-        end: new Date(schedule.end_date),
-        // Pass function references directly instead of invoking them
-        mouseenter: handleMouseEnter,
-        mouseleave: handleMouseLeave
-    }));
+    $: calendarEvents = $activeSchedules.map(schedule => {
+        const scheduleName = $schedules.find(s => s.schedule_id === schedule.schedule_id)?.name ?? `Schedule ${schedule.schedule_id}`;
+        return {
+            id: schedule.schedule_id,
+            title: scheduleName,
+            start: new Date(schedule.start_date),
+            end: new Date(schedule.end_date),
+            allDay: true,
+            mouseenter: handleMouseEnter,
+            mouseleave: handleMouseLeave
+        };
+    });
 
     type DomEvent = EC.DomEvent;
     type DateClickInfo = EC.DateClickInfo;
