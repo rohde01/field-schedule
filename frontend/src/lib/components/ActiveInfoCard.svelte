@@ -18,14 +18,14 @@
     const infoCardForm = writable<Record<string, any>>(
         editingEvent ? {
             schedule_id: editingEvent.schedule_id.toString(),
-            start_date: new Date(editingEvent.start_date).toISOString().slice(0, 16),
-            end_date: new Date(editingEvent.end_date).toISOString().slice(0, 16),
+            start_date: new Date(editingEvent.start_date).toISOString().slice(0, 10),
+            end_date: new Date(editingEvent.end_date).toISOString().slice(0, 10),
             is_active: editingEvent.is_active
         } : {
             schedule_id: '',
-            start_date: selectedDate.toISOString().slice(0, 16),
+            start_date: selectedDate.toISOString().slice(0, 10),
             end_date: new Date(selectedDate.getTime() + 7 * 24 * 60 * 60 * 1000)
-                .toISOString().slice(0, 16),
+                .toISOString().slice(0, 10),
             is_active: true
         }
     );
@@ -40,8 +40,8 @@
                 const updatedSchedule: ActiveSchedule = {
                     ...editingEvent,
                     schedule_id: parseInt(formData.schedule_id),
-                    start_date: new Date(formData.start_date).toISOString(),
-                    end_date: new Date(formData.end_date).toISOString(),
+                    start_date: `${formData.start_date}T00:00:00Z`,
+                    end_date: `${formData.end_date}T00:00:00Z`,
                     is_active: formData.is_active
                 };
                 activeSchedules.update(updatedSchedule);
@@ -49,8 +49,8 @@
                 const newSchedule: ActiveSchedule = {
                     active_schedule_id: Date.now(),
                     schedule_id: parseInt(formData.schedule_id),
-                    start_date: new Date(formData.start_date).toISOString(),
-                    end_date: new Date(formData.end_date).toISOString(),
+                    start_date: `${formData.start_date}T00:00:00Z`,
+                    end_date: `${formData.end_date}T00:00:00Z`,
                     is_active: formData.is_active
                 };
                 activeSchedules.add(newSchedule);
@@ -104,7 +104,7 @@
                 errors={{}}
                 name="start_date"
                 label="Start Date"
-                type="text"
+                type="date"
                 view_mode_style="normal"
                 required={true}
             />
@@ -113,7 +113,7 @@
                 errors={{}}
                 name="end_date"
                 label="End Date"
-                type="text"
+                type="date"
                 view_mode_style="normal"
                 required={true}
             />
@@ -152,21 +152,32 @@
 {#if showConfirmModal}
     <div 
         class="modal-overlay" 
-        on:click|self={cancelDelete}
-        on:keydown={(e) => {
-            if (e.key === 'Escape') cancelDelete();
-        }}
         role="dialog"
+        aria-modal="true"
         aria-labelledby="modal-title"
         aria-describedby="modal-description"
     >
-        <div class="modal-container">
+        <div 
+            class="modal-container"
+        >
             <h2 id="modal-title" class="modal-title">Confirm Deletion</h2>
             <p id="modal-description" class="modal-description">Are you sure you want to remove this schedule from the club calender?</p>
             
             <div class="modal-actions">
-                <button class="btn-secondary" on:click={cancelDelete}>Cancel</button>
-                <button class="btn-danger" on:click={confirmDelete}>Delete</button>
+                <button 
+                    type="button" 
+                    class="btn-secondary" 
+                    on:click={cancelDelete}
+                >
+                    Cancel
+                </button>
+                <button 
+                    type="button" 
+                    class="btn-danger" 
+                    on:click={confirmDelete}
+                >
+                    Delete
+                </button>
             </div>
         </div>
     </div>

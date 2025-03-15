@@ -7,7 +7,7 @@
     export let errors: ValidationErrors<any>;
     export let name: string;
     export let label: string;
-    export let type: 'text' | 'number' | 'select' | 'checkbox' = 'text';
+    export let type: 'text' | 'number' | 'select' | 'checkbox' | 'date' = 'text';
     export let placeholder = '';
     export let required = false;
     export let view_mode_style: 'title' | 'pill' | 'normal' = 'normal';
