@@ -4,7 +4,7 @@
     import DashboardSidebar from '$lib/components/DashboardSidebar.svelte';
     import Calendar from '$lib/components/Calendar.svelte';
     import { currentView } from '$stores/dashboardNav';
-    import { activeSchedules } from '$stores/activeSchedules';
+    import { activeSchedules, hasUnsavedChanges, deletedSchedules } from '$stores/activeSchedules';
 
     let { data }: { data: PageData } = $props();
     const { user } = data;
@@ -32,6 +32,53 @@
             navigateTo(path);
         }
     }
+
+    async function saveChanges() {
+        let success = true;
+        
+        try {
+            // Process deleted schedules
+            for (const scheduleId of $deletedSchedules) {
+                const formData = new FormData();
+                formData.append('activeScheduleId', scheduleId.toString());
+                
+                const deleteRes = await fetch('?/deleteActiveSchedule', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!deleteRes.ok) success = false;
+            }
+            
+            // Process existing and new schedules
+            for (const schedule of $activeSchedules) {
+                const isNew = schedule.active_schedule_id < 0 || 
+                             schedule.active_schedule_id > 1000000000;
+                
+                const formData = new FormData();
+                if (!isNew) {
+                    formData.append('activeScheduleId', schedule.active_schedule_id.toString());
+                }
+                formData.append('schedule_id', schedule.schedule_id.toString());
+                formData.append('start_date', new Date(schedule.start_date).toISOString().split('T')[0]);
+                formData.append('end_date', new Date(schedule.end_date).toISOString().split('T')[0]);
+                
+                const endpoint = isNew ? '?/createActiveSchedule' : '?/updateActiveSchedule';
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!res.ok) success = false;
+            }
+            
+            if (success) {
+                window.location.reload();
+            }
+        } catch (error) {
+            console.error('Error saving changes:', error);
+        }
+    }
 </script>
 
 <div class="page-container">
@@ -45,6 +92,13 @@
         {#if $currentView === 'active'}
             <div class="calendar-view">
                 <Calendar />
+                {#if $hasUnsavedChanges}
+                    <div class="flex justify-end mt-4">
+                        <button type="button" class="btn-primary" onclick={saveChanges}>
+                            Save Changes
+                        </button>
+                    </div>
+                {/if}
             </div>
         {:else}
             <div class="dashboard-welcome">

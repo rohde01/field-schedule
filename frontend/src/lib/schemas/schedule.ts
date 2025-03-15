@@ -143,16 +143,16 @@ export type DeleteScheduleResponse = {
 export type GenerateScheduleRequest = z.infer<typeof generateScheduleRequestSchema>;
 
 export const activeScheduleCreateSchema = z.object({
-    club_id: z.number().int().positive(),
-    schedule_id: z.number().int().positive(),
-    start_date: z.string().datetime(),
-    end_date: z.string().datetime()
+    club_id: z.number(),
+    schedule_id: z.number(),
+    start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/)  
 });
 
 export const activeScheduleUpdateSchema = z.object({
-    start_date: z.string().datetime().optional(),
-    end_date: z.string().datetime().optional(),
-    is_active: z.boolean().optional()
+    schedule_id: z.number(),
+    start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) 
 });
 
 export type ActiveSchedule = {
@@ -160,7 +160,7 @@ export type ActiveSchedule = {
     schedule_id: number;
     start_date: string;
     end_date: string;
-    is_active: boolean;
+    is_active?: boolean;
 };
 
 export type ActiveScheduleCreate = z.infer<typeof activeScheduleCreateSchema>;

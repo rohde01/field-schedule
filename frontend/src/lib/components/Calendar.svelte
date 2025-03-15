@@ -46,7 +46,7 @@
     type DateClickInfo = EC.DateClickInfo;
 
     $: options = {
-        view: 'timeGridWeek',
+        view: 'dayGridMonth',
         events: calendarEvents,
         height: '800px',
         headerToolbar: {

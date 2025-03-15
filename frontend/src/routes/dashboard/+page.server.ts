@@ -1,6 +1,6 @@
 import { error, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { activeScheduleCreateSchema, activeScheduleUpdateSchema } from '$lib/schemas/schedule';
+import { activeScheduleUpdateSchema } from '$lib/schemas/schedule';
 import { API_URL } from '$env/static/private';
 
 export const load = (async ({ fetch, locals }) => {
@@ -30,20 +30,32 @@ export const actions = {
         const data = Object.fromEntries(await request.formData());
         
         try {
-            const validated = activeScheduleCreateSchema.parse(data);
+            
+            const validatedData = {
+                club_id: locals.user.primary_club_id,
+                schedule_id: parseInt(data.schedule_id as string),
+                start_date: new Date(data.start_date as string).toISOString().split('T')[0],
+                end_date: new Date(data.end_date as string).toISOString().split('T')[0]
+            };
+            
+            console.log("Sending to API:", validatedData);
+            
             const res = await fetch(`${API_URL}/active-schedules`, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${locals.token}`
                 },
-                body: JSON.stringify(validated)
+                body: JSON.stringify(validatedData)
             });
 
-            if (!res.ok) return fail(res.status, { error: 'Failed to create active schedule' });
+            if (!res.ok) {
+                const errorText = await res.text();
+                return fail(res.status, { error: `Failed to create active schedule: ${errorText}` });
+            }
             return { success: true, data: await res.json() };
         } catch (err) {
-            return fail(400, { error: 'Invalid data' });
+            return fail(400, { error: 'Invalid data for creating active schedule' });
         }
     },
 
@@ -52,7 +64,13 @@ export const actions = {
         const activeScheduleId = data.activeScheduleId;
         
         try {
-            const validated = activeScheduleUpdateSchema.parse(data);
+            const formattedData = {
+                schedule_id: parseInt(data.schedule_id as string),
+                start_date: new Date(data.start_date as string).toISOString().split('T')[0],
+                end_date: new Date(data.end_date as string).toISOString().split('T')[0]
+            };
+            
+            const validated = activeScheduleUpdateSchema.parse(formattedData);
             const res = await fetch(`${API_URL}/active-schedules/${activeScheduleId}`, {
                 method: 'PUT',
                 headers: { 
@@ -62,10 +80,13 @@ export const actions = {
                 body: JSON.stringify(validated)
             });
 
-            if (!res.ok) return fail(res.status, { error: 'Failed to update active schedule' });
+            if (!res.ok) {
+                const errorText = await res.text();
+                return fail(res.status, { error: `Failed to update active schedule: ${errorText}` });
+            }
             return { success: true, data: await res.json() };
         } catch (err) {
-            return fail(400, { error: 'Invalid data' });
+            return fail(400, { error: `Invalid data: ${err}` });
         }
     },
 
@@ -81,7 +102,9 @@ export const actions = {
                 }
             });
 
-            if (!res.ok) return fail(res.status, { error: 'Failed to delete active schedule' });
+            if (!res.ok) {
+                return fail(res.status, { error: 'Failed to delete active schedule' });
+            }
             return { success: true, data: await res.json() };
         } catch (err) {
             return fail(500, { error: 'Failed to delete active schedule' });
