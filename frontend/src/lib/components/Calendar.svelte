@@ -92,13 +92,24 @@
                 lastClickedDate.getTime() === info.date.getTime();
                 
             if (isSameDate && (currentTime - lastClickTime) < doubleClickInterval) {
-                editingEvent = null; 
-                selectedDate = info.date;
+
+                const newSchedule = {
+                    active_schedule_id: -Math.floor(Math.random() * 10000 + 1),
+                    schedule_id: $schedules[0]?.schedule_id || 0,
+                    start_date: info.date.toISOString(),
+                    end_date: new Date(info.date).toISOString(),
+                    is_active: true
+                };
+                
+                activeSchedules.add(newSchedule);
+                editingEvent = newSchedule;
+                
                 const mouseEvent = info.jsEvent as MouseEvent;
                 cardPosition = { 
                     x: mouseEvent.clientX, 
                     y: mouseEvent.clientY 
                 };
+                selectedDate = info.date;
                 showEventCard = true;
                 
                 lastClickTime = 0;
@@ -154,7 +165,6 @@
         <div use:clickOutside={closeEventCard}>
             <ActiveInfoCard 
                 position={cardPosition}
-                selectedDate={selectedDate}
                 onClose={closeEventCard}
                 editingEvent={editingEvent}
             />

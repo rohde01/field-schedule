@@ -6,29 +6,20 @@
     import { writable } from 'svelte/store';
 
     export let position: { x: number; y: number };
-    export let selectedDate: Date;
     export let onClose: () => void;
-    export let editingEvent: ActiveSchedule | null = null;
+    export let editingEvent: ActiveSchedule;
 
     $: scheduleOptions = $schedules.map(schedule => ({
         value: schedule.schedule_id,
         label: schedule.name
     }));
 
-    const infoCardForm = writable<Record<string, any>>(
-        editingEvent ? {
-            schedule_id: editingEvent.schedule_id.toString(),
-            start_date: new Date(editingEvent.start_date).toISOString().slice(0, 10),
-            end_date: new Date(editingEvent.end_date).toISOString().slice(0, 10),
-            is_active: editingEvent.is_active
-        } : {
-            schedule_id: '',
-            start_date: selectedDate.toISOString().slice(0, 10),
-            end_date: new Date(selectedDate.getTime() + 7 * 24 * 60 * 60 * 1000)
-                .toISOString().slice(0, 10),
-            is_active: true
-        }
-    );
+    const infoCardForm = writable<Record<string, any>>({
+        schedule_id: editingEvent.schedule_id.toString(),
+        start_date: new Date(editingEvent.start_date).toLocaleDateString('en-CA'),
+        end_date: new Date(editingEvent.end_date).toLocaleDateString('en-CA'),
+        is_active: editingEvent.is_active
+    });
 
     let showConfirmModal = false;
 
@@ -36,26 +27,14 @@
         // Update store whenever form values change
         const formData = $infoCardForm;
         if (formData.schedule_id && formData.start_date && formData.end_date) {
-            if (editingEvent) {
-                const updatedSchedule: ActiveSchedule = {
-                    ...editingEvent,
-                    schedule_id: parseInt(formData.schedule_id),
-                    start_date: `${formData.start_date}T00:00:00Z`,
-                    end_date: `${formData.end_date}T00:00:00Z`,
-                    is_active: formData.is_active
-                };
-                activeSchedules.update(updatedSchedule);
-            } else {
-                const newSchedule: ActiveSchedule = {
-                    active_schedule_id: Date.now(),
-                    schedule_id: parseInt(formData.schedule_id),
-                    start_date: `${formData.start_date}T00:00:00Z`,
-                    end_date: `${formData.end_date}T00:00:00Z`,
-                    is_active: formData.is_active
-                };
-                activeSchedules.add(newSchedule);
-                onClose();
-            }
+            const updatedSchedule: ActiveSchedule = {
+                active_schedule_id: editingEvent.active_schedule_id,
+                schedule_id: parseInt(formData.schedule_id),
+                start_date: new Date(formData.start_date).toISOString(),
+                end_date: new Date(formData.end_date).toISOString(),
+                is_active: formData.is_active
+            };
+            activeSchedules.update(updatedSchedule);
         }
     }
 
