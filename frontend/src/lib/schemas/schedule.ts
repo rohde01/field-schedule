@@ -163,5 +163,13 @@ export type ActiveSchedule = {
     is_active?: boolean;
 };
 
+export type CalendarDate = {
+    date: Date;
+    weekDay: number;
+    formattedDate: string;
+    isWithinActiveSchedule: boolean;
+    activeScheduleId?: number;
+};
+
 export type ActiveScheduleCreate = z.infer<typeof activeScheduleCreateSchema>;
 export type ActiveScheduleUpdate = z.infer<typeof activeScheduleUpdateSchema>;

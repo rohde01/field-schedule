@@ -3,6 +3,7 @@
     import { goto } from '$app/navigation';
     import DashboardSidebar from '$lib/components/DashboardSidebar.svelte';
     import Calendar from '$lib/components/Calendar.svelte';
+    import CombinedCalendar from '$lib/components/CombinedCalendar.svelte';
     import { currentView } from '$stores/dashboardNav';
     import { activeSchedules, hasUnsavedChanges, deletedSchedules } from '$stores/activeSchedules';
 
@@ -91,7 +92,7 @@
 
         {#if $currentView === 'active'}
             <div class="calendar-view">
-                <Calendar />
+                <CombinedCalendar />
                 {#if $hasUnsavedChanges}
                     <div class="flex justify-end mt-4">
                         <button type="button" class="btn-primary" onclick={saveChanges}>
