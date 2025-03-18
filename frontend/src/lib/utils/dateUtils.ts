@@ -89,3 +89,24 @@ export function getWeekDates(baseDate: Date, activeSchedules: ActiveSchedule[]):
   
   return dates;
 }
+
+export function formatMonthAndYear(date: Date): string {
+  return date.toLocaleDateString('en-US', { 
+    month: 'long',
+    year: 'numeric'
+  });
+}
+
+export function getCurrentMonthDate(): Date {
+  return new Date();
+}
+
+export function navigateMonth(date: Date, direction: 'prev' | 'next'): Date {
+  const newDate = new Date(date);
+  newDate.setMonth(date.getMonth() + (direction === 'prev' ? -1 : 1));
+  return newDate;
+}
+
+export function getFormattedMonth(date: Date): string {
+  return formatMonthAndYear(date);
+}

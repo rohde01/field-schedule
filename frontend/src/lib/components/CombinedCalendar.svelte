@@ -9,7 +9,9 @@
             getRowForTimeWithSlots, getEventRowEndWithSlots, addMinutes,
             includeActiveFields, handleIncludeActiveFieldsToggle, getEventContentVisibility } from '$lib/utils/calendarUtils';
     import { addDays, formatDateForDisplay, getDayOfWeek,
-            findActiveScheduleForDate, getWeekDates, getWeekNumber } from '$lib/utils/dateUtils';
+            findActiveScheduleForDate, getWeekDates, getWeekNumber, 
+            formatMonthAndYear, getCurrentMonthDate, navigateMonth, 
+            getFormattedMonth } from '$lib/utils/dateUtils';
     import InfoCard from '$lib/components/InfoCard.svelte';
     import { detectOverlappingEvents, 
       calculateEventOffsets, getTotalOverlaps } from '$lib/utils/overlapUtils';
@@ -19,8 +21,10 @@
     import { facilities } from '$stores/facilities';
     import { activeSchedules } from '$stores/activeSchedules';
     import { schedules } from '$stores/schedules';
+    import Calendar from '$lib/components/Calendar.svelte';
   
     let containerElement: HTMLElement;
+    let calendarComponent: any; // Reference to the Calendar component
     
     const currentDate = writable(new Date());
     
@@ -43,6 +47,41 @@
     
     function previousWeek() {
       currentDate.update(date => addDays(date, -7));
+    }
+
+    // Store for the current month title
+    const currentMonthTitle = writable('');
+    
+    // Update month title when navigating
+    function updateMonthTitle() {
+        if (calendarComponent) {
+            const title = calendarComponent.getCurrentTitle();
+            if (title) {
+                currentMonthTitle.set(title);
+            }
+        }
+    }
+    
+    const currentMonthDate = writable(getCurrentMonthDate());
+    
+    function previousMonth() {
+        currentMonthDate.update(date => navigateMonth(date, 'prev'));
+        if (calendarComponent) {
+            calendarComponent.navigatePrev();
+        }
+    }
+    
+    function nextMonth() {
+        currentMonthDate.update(date => navigateMonth(date, 'next'));
+        if (calendarComponent) {
+            calendarComponent.navigateNext();
+        }
+    }
+    
+    $: formattedMonth = getFormattedMonth($currentMonthDate);
+    
+    $: if ($viewMode === 'month' && calendarComponent) {
+        setTimeout(updateMonthTitle, 100);
     }
     
     const currentActiveSchedule = derived(
@@ -277,7 +316,7 @@
             {/if}
           </span>
           <button on:click={nextDay} class="nav-button">›</button>
-        {:else}
+        {:else if $viewMode === 'week'}
           <button on:click={previousWeek} class="nav-button">‹</button>
           <span class="current-date text-lg font-medium text-sage-800">
             Week {getWeekNumber($currentDate)}
@@ -286,26 +325,41 @@
             {/if}
           </span>
           <button on:click={nextWeek} class="nav-button">›</button>
+        {:else}
+          <!-- Custom month view navigation -->
+          <button on:click={previousMonth} class="nav-button">‹</button>
+          <span class="current-date text-lg font-medium text-sage-800">
+            {formattedMonth}
+          </span>
+          <button on:click={nextMonth} class="nav-button">›</button>
         {/if}
       </div>
   
       <div class="view-toggle">
         <button
-          class="view-toggle-btn left-btn { $viewMode === 'day' ? 'active' : '' }"
+          class="view-toggle-btn { $viewMode === 'day' ? 'active' : '' }"
           on:click={() => $viewMode = 'day'}
         >
           Day
         </button>
         <button
-          class="view-toggle-btn right-btn { $viewMode === 'week' ? 'active' : '' }"
+          class="view-toggle-btn { $viewMode === 'week' ? 'active' : '' }"
           on:click={() => $viewMode = 'week'}
         >
           Week
         </button>
+        <button
+          class="view-toggle-btn { $viewMode === 'month' ? 'active' : '' }"
+          on:click={() => $viewMode = 'month'}
+        >
+          Month
+        </button>
       </div>
     </div>
   
-    {#if $viewMode === 'day'}
+    {#if $viewMode === 'month'}
+      <Calendar bind:this={calendarComponent} />
+    {:else if $viewMode === 'day'}
       <div 
         class="schedule-grid"
         style="--total-columns: {totalColumns}; --total-rows: {$timeSlots.length + 1};"
@@ -573,3 +627,4 @@
       />
     {/if}
   </div>
+

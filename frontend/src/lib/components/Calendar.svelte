@@ -22,6 +22,36 @@
     let lastClickedDate: Date | null = null;
     const doubleClickInterval = 300; // ms
     
+    // Reference to the EC instance
+    let ecInstance: any;
+    
+    // Export navigation methods that directly use the EC API
+    export function navigatePrev() {
+        if (ecInstance && ecInstance.getOption) {
+            ecInstance.prev();
+        }
+    }
+    
+    export function navigateNext() {
+        if (ecInstance && ecInstance.getOption) {
+            ecInstance.next();
+        }
+    }
+    
+    export function navigateToday() {
+        if (ecInstance && ecInstance.getOption) {
+            ecInstance.today();
+        }
+    }
+    
+    // Get the current title (month/year)
+    export function getCurrentTitle(): string {
+        if (ecInstance && ecInstance.getOption) {
+            return ecInstance.getOption('title');
+        }
+        return '';
+    }
+    
     const handleMouseEnter = () => {
     };
 
@@ -50,14 +80,13 @@
         events: calendarEvents,
         height: '800px',
         headerToolbar: {
-            start: 'prev,next today',
-            center: 'title',
-            end: 'timeGridWeek,dayGridMonth'
+            start: '',
+            center: '',
+            end: ''
         },
         buttonText: {
-            today: 'Today',
-            dayGridMonth: 'Month',
-            timeGridWeek: 'Week'
+            today: '',
+            dayGridMonth: '',
         },
         selectable: true,
         // Implement manual double-click detection for events
@@ -158,7 +187,7 @@
 
 <div class="calendar-wrapper">
     {#if browser}
-        <Calendar {plugins} {options} />
+        <Calendar {plugins} {options} bind:this={ecInstance} />
     {/if}
     
     {#if showEventCard}
