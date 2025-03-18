@@ -5,7 +5,7 @@
     import { teams } from '$stores/teams';
     import { derived, get, writable } from 'svelte/store';
     import { updateScheduleEntry, addScheduleEntry } from '$stores/schedules';
-    import { buildResources, normalizeTime, handleGranularityChange, timeSlots, activeEvents, 
+    import { buildResources, normalizeTime, handleGranularityChange, timeSlots, 
             getRowForTimeWithSlots, getEventRowEndWithSlots, addMinutes,
             includeActiveFields, handleIncludeActiveFieldsToggle, getEventContentVisibility } from '$lib/utils/calendarUtils';
     import { addDays, formatDateForDisplay, getDayOfWeek,
@@ -23,6 +23,8 @@
     let containerElement: HTMLElement;
     
     const currentDate = writable(new Date());
+    
+    const viewMode = writable('day');
     
     // Derived store for current weekDay based on date - using getDayOfWeek for consistent indexing
     const currentWeekDay = derived(currentDate, $date => getDayOfWeek($date));
@@ -89,14 +91,19 @@
     
     // Filter active events for current date
     const filteredEvents = derived(
-      [currentWeekDay, currentSchedule],
-      ([$currentWeekDay, $currentSchedule]) => {
+      [currentWeekDay, currentSchedule, viewMode],
+      ([$currentWeekDay, $currentSchedule, $viewMode]) => {
         if (!$currentSchedule || !$currentSchedule.entries) return [];
         
-        // Use the entries directly from the current schedule for the selected date
-        return $currentSchedule.entries.filter(event => {
-          return event.week_day === $currentWeekDay;
-        });
+        // In day view, filter by current day; in week view, return all entries
+        if ($viewMode === 'day') {
+          return $currentSchedule.entries.filter(event => {
+            return event.week_day === $currentWeekDay;
+          });
+        } else {
+          // Week view - return all entries
+          return $currentSchedule.entries;
+        }
       }
     );
     
@@ -165,9 +172,6 @@
     }
   
     $: ({ editingEvent, infoCardForm, editingEventPosition } = $infoCardStore);
-  
-    // View mode state
-    let viewMode = writable('day');
   
     function handleEmptyCellDblClick(e: MouseEvent, time: string, cell: { fieldId: number }, weekDay: number) {
       e.stopPropagation();
