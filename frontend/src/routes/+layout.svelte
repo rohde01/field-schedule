@@ -5,6 +5,7 @@
     import { setFields } from '$stores/fields';
     import { setTeams } from '$stores/teams';
     import { setConstraints } from '$stores/constraints';
+    import { setSchedules } from '$stores/schedules';
 
     let { data } = $props();
 
@@ -23,6 +24,12 @@
     $effect(() => {
         if (data.teams) {
             setTeams(data.teams);
+        }
+    });
+
+    $effect(() => {
+        if (data.schedules) {
+            setSchedules(data.schedules);
         }
     });
 

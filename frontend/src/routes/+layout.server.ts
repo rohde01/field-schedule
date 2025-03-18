@@ -3,6 +3,7 @@ import { error } from '@sveltejs/kit';
 import type { Facility } from '$lib/schemas/facility';
 import type { Field } from '$lib/schemas/field';
 import type { Team } from '$lib/schemas/team';
+import type { Schedule } from '$lib/schemas/schedule';
 // import type { Constraint } from '$lib/schemas/schedule';
 import { API_URL } from '$env/static/private';
 
@@ -14,12 +15,13 @@ export const load: LayoutServerLoad = async ({ locals, fetch }) => {
             user: locals.user || null,
             facilities: [],
             fields: [],
+            schedules: [],
             constraints: []
         };
     }
 
     try {
-        const [facilitiesResponse, fieldsResponse, teamsResponse/*, constraintsResponse*/] = await Promise.all([
+        const [facilitiesResponse, fieldsResponse, teamsResponse, schedulesResponse/*, constraintsResponse*/] = await Promise.all([
             fetch(`${API_URL}/facilities/club/${locals.user.primary_club_id}`, {
                 headers: {
                     'Authorization': `Bearer ${locals.token}`
@@ -31,6 +33,11 @@ export const load: LayoutServerLoad = async ({ locals, fetch }) => {
                 }
             }),
             fetch(`${API_URL}/teams?club_id=${locals.user.primary_club_id}`, {
+                headers: {
+                    'Authorization': `Bearer ${locals.token}`
+                }
+            }),
+            fetch(`${API_URL}/schedules/${locals.user.primary_club_id}/schedules`, {
                 headers: {
                     'Authorization': `Bearer ${locals.token}`
                 }
@@ -60,6 +67,11 @@ export const load: LayoutServerLoad = async ({ locals, fetch }) => {
             throw error(teamsResponse.status, 'Failed to fetch teams');
         }
 
+        if (!schedulesResponse.ok) {
+            console.error('Failed to fetch schedules:', schedulesResponse.status, await schedulesResponse.text());
+            throw error(schedulesResponse.status, 'Failed to fetch schedules');
+        }
+
         /*if (!constraintsResponse.ok) {
             console.error('Failed to fetch constraints:', constraintsResponse.status, await constraintsResponse.text());
             throw error(constraintsResponse.status, 'Failed to fetch constraints');
@@ -68,6 +80,7 @@ export const load: LayoutServerLoad = async ({ locals, fetch }) => {
         const facilities: Facility[] = await facilitiesResponse.json();
         const fields: Field[] = await fieldsResponse.json();
         const teams: Team[] = await teamsResponse.json();
+        const schedules: Schedule[] = await schedulesResponse.json();
         //const constraints: Constraint[] = await constraintsResponse.json();
         
         return {
@@ -75,6 +88,7 @@ export const load: LayoutServerLoad = async ({ locals, fetch }) => {
             facilities,
             fields,
             teams,
+            schedules,
             //constraints
         };
     } catch (err) {

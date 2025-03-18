@@ -35,10 +35,6 @@
     let pendingScheduleId: number | null = null;
 
     $effect(() => {
-        if (data.schedules) {
-            setSchedules(data.schedules);
-        }
-
         if (data.teams) {
             setTeams(data.teams);
         }

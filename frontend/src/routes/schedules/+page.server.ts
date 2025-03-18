@@ -26,23 +26,10 @@ export const load = (async ({ fetch, locals }: RequestEvent) => {
         throw error(401, 'Unauthorized');
     }
 
-    try {
-        const response = await fetch(`${API_URL}/schedules/${locals.user.primary_club_id}/schedules`, {
-            headers: {
-                'Authorization': `Bearer ${locals.token}`
-            }
-        });
-        if (!response.ok) throw new Error('Failed to fetch schedules');
-        const schedules: Schedule[] = await response.json();
-        
-        return {
-            schedules,
-            form: createScheduleForm,
-            deleteForm: deleteScheduleForm
-        };
-    } catch (e) {
-        throw error(500, 'Error loading schedules');
-    }
+    return {
+        form: createScheduleForm,
+        deleteForm: deleteScheduleForm
+    };
 }) satisfies PageServerLoad;
 
 export const actions = {
