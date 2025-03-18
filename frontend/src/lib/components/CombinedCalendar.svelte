@@ -9,7 +9,7 @@
             getRowForTimeWithSlots, getEventRowEndWithSlots, addMinutes,
             includeActiveFields, handleIncludeActiveFieldsToggle, getEventContentVisibility } from '$lib/utils/calendarUtils';
     import { addDays, formatDateForDisplay, getDayOfWeek,
-            findActiveScheduleForDate, getWeekDates } from '$lib/utils/dateUtils';
+            findActiveScheduleForDate, getWeekDates, getWeekNumber } from '$lib/utils/dateUtils';
     import InfoCard from '$lib/components/InfoCard.svelte';
     import { detectOverlappingEvents, 
       calculateEventOffsets, getTotalOverlaps } from '$lib/utils/overlapUtils';
@@ -35,6 +35,14 @@
     
     function previousDay() {
       currentDate.update(date => addDays(date, -1));
+    }
+    
+    function nextWeek() {
+      currentDate.update(date => addDays(date, 7));
+    }
+    
+    function previousWeek() {
+      currentDate.update(date => addDays(date, -7));
     }
     
     const currentActiveSchedule = derived(
@@ -259,15 +267,26 @@
         </div>
       </div>
   
-      <div class="date-navigation flex items-center gap-2" style="{$viewMode === 'week' ? 'visibility: hidden;' : ''}">
-        <button on:click={previousDay} class="nav-button" disabled={$viewMode === 'week'}>‹</button>
-        <span class="current-date text-lg font-medium text-sage-800">
-          {formatDateForDisplay($currentDate)}
-          {#if !$currentActiveSchedule}
-            <span class="text-red-500 text-sm ml-2">(No active schedule)</span>
-          {/if}
-        </span>
-        <button on:click={nextDay} class="nav-button" disabled={$viewMode === 'week'}>›</button>
+      <div class="date-navigation flex items-center gap-2">
+        {#if $viewMode === 'day'}
+          <button on:click={previousDay} class="nav-button">‹</button>
+          <span class="current-date text-lg font-medium text-sage-800">
+            {formatDateForDisplay($currentDate)}
+            {#if !$currentActiveSchedule}
+              <span class="text-red-500 text-sm ml-2">(No active schedule)</span>
+            {/if}
+          </span>
+          <button on:click={nextDay} class="nav-button">›</button>
+        {:else}
+          <button on:click={previousWeek} class="nav-button">‹</button>
+          <span class="current-date text-lg font-medium text-sage-800">
+            Week {getWeekNumber($currentDate)}
+            {#if !$weekDates.some(d => d.isWithinActiveSchedule)}
+              <span class="text-red-500 text-sm ml-2">(No active schedule)</span>
+            {/if}
+          </span>
+          <button on:click={nextWeek} class="nav-button">›</button>
+        {/if}
       </div>
   
       <div class="view-toggle">
