@@ -140,7 +140,7 @@ def get_club_schedules(conn, club_id: int):
 from collections import defaultdict
 
 @with_db_connection
-def get_club_schedules(conn, club_id: int):
+def get_club_events(conn, club_id: int):
     """
     Fetches all schedules and their entries (with overrides applied) for a given club_id.
     Returns a list of schedules with their entries as events.
@@ -184,7 +184,7 @@ def get_club_schedules(conn, club_id: int):
     one_off_entries AS (
         SELECT 
             act.schedule_id,
-            NULL AS schedule_entry_id,
+            NULL::integer AS schedule_entry_id,
             ov.override_id,
             ov.override_date,
             ov.new_team_id AS team_id,
@@ -423,7 +423,7 @@ def delete_active_schedule(conn, active_schedule_id: int) -> bool:
     WHERE active_schedule_id = %s
     RETURNING active_schedule_id
     """
-    cursor.execute(query, (active_schedule_id,))
+    cursor.execute(delete_query, (active_schedule_id,))
     success = cursor.fetchone() is not None
     conn.commit()
     return success
