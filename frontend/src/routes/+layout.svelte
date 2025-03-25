@@ -6,6 +6,7 @@
     import { setTeams } from '$stores/teams';
     import { setConstraints } from '$stores/constraints';
     import { setSchedules } from '$stores/schedules';
+    import { setEvents } from '$stores/events';
 
     let { data } = $props();
 
@@ -36,6 +37,12 @@
     $effect(() => {
         if (data.constraints) {
             setConstraints(data.constraints);
+        }
+    });
+
+    $effect(() => {
+        if (data.events) {
+            setEvents(data.events);
         }
     });
 
