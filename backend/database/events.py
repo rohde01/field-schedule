@@ -1,14 +1,18 @@
 # database/events.py
 
 from collections import defaultdict
+from typing import Optional, Any, Dict
+from datetime import date, time
 from .index import with_db_connection
-
 
 @with_db_connection
 def get_club_events(conn, club_id: int):
     """
     Fetches all schedules and their entries (with overrides applied) for a given club_id.
     Returns a list of schedules with their entries as events.
+    Each event is a dict matching the Event model:
+      - schedule_entry_id, override_id, override_date, team_id, field_id,
+        start_time, end_time, week_day, is_deleted.
     """
     cursor = conn.cursor()
     
@@ -103,3 +107,99 @@ def get_club_events(conn, club_id: int):
         }
         for row in schedule_rows
     ]
+
+
+@with_db_connection
+def create_event_override(
+    conn,
+    active_schedule_id: int,
+    override_date: date,
+    new_start_time: time,
+    new_end_time: time,
+    new_team_id: Optional[int],
+    new_field_id: Optional[int],
+    schedule_entry_id: Optional[int] = None,
+    is_deleted: bool = False
+) -> int:
+    """
+    Creates a new event override.
+    If schedule_entry_id is None, this override represents a one-off exception.
+    Returns the newly created override_id.
+    """
+    cursor = conn.cursor()
+    query = """
+    INSERT INTO schedule_entry_overrides 
+        (active_schedule_id, schedule_entry_id, override_date, new_start_time, new_end_time, new_team_id, new_field_id, is_deleted)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+    RETURNING override_id;
+    """
+    cursor.execute(
+        query, 
+        (active_schedule_id, schedule_entry_id, override_date, new_start_time, new_end_time, new_team_id, new_field_id, is_deleted)
+    )
+    new_id = cursor.fetchone()[0]
+    return new_id
+
+
+@with_db_connection
+def update_event_override(conn, override_id: int, changes: Dict[str, Any]) -> bool:
+    """
+    Updates an existing event override with the given changes.
+    'changes' is a dict mapping column names to new values.
+    Returns True if at least one row was updated.
+    """
+    if not changes:
+        return False
+
+    set_clauses = []
+    values = []
+    for key, value in changes.items():
+        set_clauses.append(f"{key} = %s")
+        values.append(value)
+    values.append(override_id)
+    
+    query = f"""
+    UPDATE schedule_entry_overrides
+    SET {', '.join(set_clauses)}
+    WHERE override_id = %s;
+    """
+    cursor = conn.cursor()
+    cursor.execute(query, tuple(values))
+    return cursor.rowcount > 0
+
+
+@with_db_connection
+def delete_event_override(conn, override_id: int) -> bool:
+    """
+    Deletes an event override.
+    For overrides associated with an existing schedule entry (schedule_entry_id is not null),
+    instead of physically deleting, the override is updated to set is_deleted = true.
+    For one-off overrides (schedule_entry_id is null), the row is physically deleted.
+    Returns True if a row was affected.
+    """
+    cursor = conn.cursor()
+    
+    # Determine if this override is linked to an existing schedule entry.
+    cursor.execute(
+        "SELECT schedule_entry_id FROM schedule_entry_overrides WHERE override_id = %s;",
+        (override_id,)
+    )
+    row = cursor.fetchone()
+    if not row:
+        return False
+
+    schedule_entry_id = row[0]
+    
+    if schedule_entry_id is None:
+        # One-off override; physically delete the row.
+        cursor.execute(
+            "DELETE FROM schedule_entry_overrides WHERE override_id = %s;",
+            (override_id,)
+        )
+    else:
+        # Override for an existing schedule entry; mark as deleted.
+        cursor.execute(
+            "UPDATE schedule_entry_overrides SET is_deleted = true WHERE override_id = %s;",
+            (override_id,)
+        )
+    return cursor.rowcount > 0
