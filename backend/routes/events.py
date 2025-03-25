@@ -1,7 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
-from typing import List, Dict, Any
-from database.schedules import get_club_events
-from models.schedule import Event
+from database.events import get_club_events
 from dependencies.auth import get_current_user
 from dependencies.permissions import require_club_access
 from models.user import User
