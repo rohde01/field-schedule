@@ -51,3 +51,14 @@ class ScheduleEntryCreate(BaseModel):
     end_time: str
     week_day: int = Field(ge=0, le=6)
 
+class Event(BaseModel):
+    schedule_entry_id: int
+    override_id: int
+    override_date: str
+    team_id: Optional[int]
+    field_id: Optional[int]
+    start_time: time
+    end_time: time
+    week_day: int
+    is_deleted: bool
+
