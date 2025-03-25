@@ -19,3 +19,31 @@ export const EventSchema = z.object({
 });
 
 export type Event = z.infer<typeof EventSchema>;
+
+export const EventOverrideCreateSchema = z.object({
+  active_schedule_id: z.number().int().positive(),
+  override_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  new_start_time: z.string().regex(timeStringRegex, { 
+    message: "Time must be in HH:MM or HH:MM:SS format" 
+  }),
+  new_end_time: z.string().regex(timeStringRegex, { 
+    message: "Time must be in HH:MM or HH:MM:SS format" 
+  }),
+  new_team_id: z.number().int().positive().nullable().optional(),
+  new_field_id: z.number().int().positive().nullable().optional(),
+  schedule_entry_id: z.number().int().positive().nullable().optional(),
+  is_deleted: z.boolean().optional().default(false)
+});
+
+export const EventOverrideUpdateSchema = z.object({
+  override_id: z.number().int().positive(),
+  new_start_time: z.string().regex(timeStringRegex).optional(),
+  new_end_time: z.string().regex(timeStringRegex).optional(),
+  new_team_id: z.number().int().positive().nullable().optional(),
+  new_field_id: z.number().int().positive().nullable().optional(),
+  override_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  is_deleted: z.boolean().optional()
+});
+
+export type EventOverrideCreate = z.infer<typeof EventOverrideCreateSchema>;
+export type EventOverrideUpdate = z.infer<typeof EventOverrideUpdateSchema>;

@@ -2,6 +2,7 @@ import { error, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { activeScheduleUpdateSchema } from '$lib/schemas/schedule';
 import { API_URL } from '$env/static/private';
+import { EventOverrideCreateSchema, EventOverrideUpdateSchema } from '$lib/schemas/event';
 
 export const load = (async ({ fetch, locals }) => {
     if (!locals.user?.primary_club_id) throw error(403, 'No club access');
@@ -108,6 +109,127 @@ export const actions = {
             return { success: true, data: await res.json() };
         } catch (err) {
             return fail(500, { error: 'Failed to delete active schedule' });
+        }
+    },
+
+    createEventOverride: async ({ request, fetch, locals }) => {
+        if (!locals.user) return fail(403, { error: 'Not authenticated' });
+        
+        const formData = Object.fromEntries(await request.formData());
+        
+        try {
+            // Format and validate the data
+            const rawData = {
+                active_schedule_id: parseInt(formData.active_schedule_id as string),
+                override_date: formData.override_date as string,
+                new_start_time: formData.new_start_time as string,
+                new_end_time: formData.new_end_time as string,
+                new_team_id: formData.new_team_id ? parseInt(formData.new_team_id as string) : null,
+                new_field_id: formData.new_field_id ? parseInt(formData.new_field_id as string) : null,
+                schedule_entry_id: formData.schedule_entry_id ? parseInt(formData.schedule_entry_id as string) : null,
+                is_deleted: formData.is_deleted === 'true'
+            };
+            
+            const validatedData = EventOverrideCreateSchema.parse(rawData);
+            
+            const res = await fetch(`${API_URL}/events/override`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${locals.token}`
+                },
+                body: JSON.stringify(validatedData)
+            });
+
+            if (!res.ok) {
+                const errorText = await res.text();
+                return fail(res.status, { error: `Failed to create event override: ${errorText}` });
+            }
+            
+            return { success: true, data: await res.json() };
+        } catch (err) {
+            console.error('Error creating event override:', err);
+            return fail(400, { error: `Invalid data: ${err}` });
+        }
+    },
+
+    updateEventOverride: async ({ request, fetch, locals }) => {
+        if (!locals.user) return fail(403, { error: 'Not authenticated' });
+        
+        const formData = Object.fromEntries(await request.formData());
+        const overrideId = formData.override_id;
+        
+        try {
+            // Format and validate the data
+            const updateFields: Record<string, any> = {};
+            
+            // Only add fields that are present in the form data
+            if (formData.new_start_time) updateFields.new_start_time = formData.new_start_time;
+            if (formData.new_end_time) updateFields.new_end_time = formData.new_end_time;
+            if (formData.override_date) updateFields.override_date = formData.override_date;
+            if ('new_team_id' in formData) {
+                updateFields.new_team_id = formData.new_team_id 
+                    ? parseInt(formData.new_team_id as string) 
+                    : null;
+            }
+            if ('new_field_id' in formData) {
+                updateFields.new_field_id = formData.new_field_id 
+                    ? parseInt(formData.new_field_id as string) 
+                    : null;
+            }
+            if ('is_deleted' in formData) {
+                updateFields.is_deleted = formData.is_deleted === 'true';
+            }
+            
+            const validatedData = EventOverrideUpdateSchema.parse({
+                override_id: parseInt(overrideId as string),
+                ...updateFields
+            });
+            
+            const res = await fetch(`${API_URL}/events/override/${overrideId}`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${locals.token}`
+                },
+                body: JSON.stringify(updateFields) // Send only the update fields
+            });
+
+            if (!res.ok) {
+                const errorText = await res.text();
+                return fail(res.status, { error: `Failed to update event override: ${errorText}` });
+            }
+            
+            return { success: true, data: await res.json() };
+        } catch (err) {
+            console.error('Error updating event override:', err);
+            return fail(400, { error: `Invalid data: ${err}` });
+        }
+    },
+
+    deleteEventOverride: async ({ request, fetch, locals }) => {
+        if (!locals.user) return fail(403, { error: 'Not authenticated' });
+        
+        const formData = Object.fromEntries(await request.formData());
+        const overrideId = formData.override_id;
+        
+        try {
+            const res = await fetch(`${API_URL}/events/override/${overrideId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${locals.token}`
+                }
+            });
+
+            if (!res.ok) {
+                const errorText = await res.text();
+                return fail(res.status, { error: `Failed to delete event override: ${errorText}` });
+            }
+            
+            return { success: true, data: await res.json() };
+        } catch (err) {
+            console.error('Error deleting event override:', err);
+            return fail(500, { error: 'Failed to delete event override' });
         }
     }
 } satisfies Actions;
