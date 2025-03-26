@@ -20,6 +20,16 @@ export const EventSchema = z.object({
 
 export type Event = z.infer<typeof EventSchema>;
 
+export const EventScheduleSchema = z.object({
+  schedule_id: z.number().int().positive(),
+  club_id: z.number().int().positive(),
+  name: z.string(),
+  facility_id: z.number().int().positive().nullable(),
+  entries: z.array(EventSchema)
+});
+
+export type EventSchedule = z.infer<typeof EventScheduleSchema>;
+
 export const EventOverrideCreateSchema = z.object({
   active_schedule_id: z.number().int().positive(),
   override_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
