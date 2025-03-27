@@ -4,7 +4,7 @@ import type { Facility } from '$lib/schemas/facility';
 import type { Field } from '$lib/schemas/field';
 import type { Team } from '$lib/schemas/team';
 import type { Schedule } from '$lib/schemas/schedule';
-import type { Event } from '$lib/schemas/event';
+import type { EventSchedule } from '$lib/schemas/event';
 // import type { Constraint } from '$lib/schemas/schedule';
 import { API_URL } from '$env/static/private';
 
@@ -92,7 +92,7 @@ export const load: LayoutServerLoad = async ({ locals, fetch }) => {
         const fields: Field[] = await fieldsResponse.json();
         const teams: Team[] = await teamsResponse.json();
         const schedules: Schedule[] = await schedulesResponse.json();
-        const events: Event[] = await eventsResponse.json();
+        const events: EventSchedule[] = await eventsResponse.json();
         //const constraints: Constraint[] = await constraintsResponse.json();
         
         return {
