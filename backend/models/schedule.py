@@ -57,8 +57,15 @@ class Event(BaseModel):
     override_date: str
     team_id: Optional[int]
     field_id: Optional[int]
-    start_time: time
-    end_time: time
+    start_time: str
+    end_time: str
     week_day: int
     is_deleted: bool
+
+class EventSchedule(BaseModel):
+    schedule_id: int
+    club_id: int
+    name: str
+    facility_id: Optional[int]
+    entries: List[Event]
 
