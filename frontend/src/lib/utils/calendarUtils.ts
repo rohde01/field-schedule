@@ -24,9 +24,11 @@ export const timeSlots = derived([timeSlotGranularity], ([$timeSlotGranularity])
   return generateTimeSlots(earliestStart, latestEnd, $timeSlotGranularity);
 });
 
-export function buildResources(allFields: Field[], selectedSchedule: Schedule | null, includeActive: boolean = true): Field[] {
+export function buildResources(allFields: Field[], selectedSchedule: any | null, includeActive: boolean = true): Field[] {
     if (!selectedSchedule) return [];
     
+    if (!selectedSchedule.facility_id) return [];
+
     return allFields.filter(field => {
       if (field.facility_id !== selectedSchedule.facility_id) return false;
       
@@ -34,7 +36,7 @@ export function buildResources(allFields: Field[], selectedSchedule: Schedule | 
       if (includeActive && field.is_active === true) return true;
       
       // Include fields that are referenced in the schedule entries
-      const scheduleFieldIds = new Set(selectedSchedule.entries.map(entry => entry.field_id));
+      const scheduleFieldIds = new Set(selectedSchedule.entries.map((entry: any) => entry.field_id));
       
       if (scheduleFieldIds.has(field.field_id)) return true;
       
