@@ -271,7 +271,18 @@
   
   function handleRecurringClick(event: Event, date: Date) {
     if (!event.override_id) {
-      createEventOverride(event, formatDateYYYYMMDD(date));
+      const dateStr = formatDateYYYYMMDD(date);
+      
+      // Check if we already have an override for this date
+      const existingOverride = $currentEventSchedule?.entries.find(e => 
+        e.override_id && 
+        e.schedule_entry_id === event.schedule_entry_id && 
+        e.override_date === dateStr
+      );
+      
+      if (!existingOverride) {
+        createEventOverride(event, dateStr);
+      }
     }
   }
   

@@ -3,6 +3,7 @@
   import type { Writable } from 'svelte/store';
   import { deleteScheduleEntry } from '$stores/schedules';
   import { infoCardStore } from '$lib/utils/infoCardUtils';
+  import type { Event } from '$lib/schemas/event';
 
   export let infoCardForm: Writable<Record<string, any>>;
   export let editingEventPosition: { top: number; left: number };
@@ -11,17 +12,26 @@
   export let generateFieldOptions: (fields: any[]) => { value: number; label: string }[];
   
   let showConfirmModal = false;
+  let isEvent: boolean;
+
+  // Subscribe to the form to detect if we're editing an event or a schedule entry
+  $: isEvent = $infoCardForm.is_event ?? false;
 
   async function handleDelete() {
-    showConfirmModal = true;
+    // Only show delete confirmation for schedule entries
+    if (!isEvent) {
+      showConfirmModal = true;
+    }
   }
   
   async function confirmDelete() {
-    const entryId = $infoCardForm.schedule_entry_id;
-    const success = await deleteScheduleEntry(entryId);
-    
-    if (success) {
-      infoCardStore.closeInfoCard();
+    if (!isEvent) {
+      const entryId = $infoCardForm.schedule_entry_id;
+      const success = await deleteScheduleEntry(entryId);
+      
+      if (success) {
+        infoCardStore.closeInfoCard();
+      }
     }
     showConfirmModal = false;
   }
@@ -68,12 +78,12 @@
       <EditableField
         form={infoCardForm}
         errors={{}}
-        name="week_day"
-        label="Day"
-        type="select"
+        name={isEvent ? "override_date" : "week_day"}
+        label={isEvent ? "Date" : "Day"}
+        type={isEvent ? "date" : "select"}
         view_mode_style="normal"
-        options={['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
-          .map((day, index) => ({ value: index, label: day }))}
+        options={!isEvent ? ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
+          .map((day, index) => ({ value: index, label: day })) : undefined}
         required={true}
       />
     </div>
@@ -101,18 +111,20 @@
     </div>
   </div>
   
-  <!-- Delete button -->
-  <button 
-    type="button" 
-    class="btn-trash" 
-    aria-label="Delete entry" 
-    on:click|stopPropagation={handleDelete}
-    tabindex="-1"
-  >
-  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-</svg>
-  </button>
+  <!-- Only show delete button for schedule entries -->
+  {#if !isEvent}
+    <button 
+      type="button" 
+      class="btn-trash" 
+      aria-label="Delete entry" 
+      on:click|stopPropagation={handleDelete}
+      tabindex="-1"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+      </svg>
+    </button>
+  {/if}
 </div>
 
 {#if showConfirmModal}
@@ -128,7 +140,9 @@
   >
     <div class="modal-container">
       <h2 id="modal-title" class="modal-title">Confirm Deletion</h2>
-      <p id="modal-description" class="modal-description">Are you sure you want to delete this schedule entry?</p>
+      <p id="modal-description">
+        Are you sure you want to delete this schedule entry?
+      </p>
       
       <div class="modal-actions">
         <button class="btn-secondary" on:click={cancelDelete}>Cancel</button>

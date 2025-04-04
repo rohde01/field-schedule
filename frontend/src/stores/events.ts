@@ -38,3 +38,10 @@ export function createEventOverride(baseEvent: Event, overrideDate: string) {
         }));
     });
 }
+
+
+// TODO: Implement the deleteEvent function
+export function deleteEvent(event: Event, overrideDate?: string): boolean {
+    console.warn('Event deletion is not supported');
+    return false;
+}
