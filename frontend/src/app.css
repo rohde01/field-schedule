@@ -513,4 +513,37 @@
     font-size: 14px;
     color: #64748b;
   }
+
+  /* Recurring indicator styling */
+  .recurring-indicator {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 5;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+  
+  .recurring-indicator.regular {
+    color: #059669; /* Darker green for better contrast */
+    background-color: rgba(240, 255, 244, 0.95);
+    border: 1.5px solid #10b981; /* Mint-500 */
+  }
+  
+  .recurring-indicator.override {
+    color: #6b7280; /* Darker gray for better contrast */
+    background-color: rgba(249, 250, 251, 0.95);
+    border: 1.5px solid #9ca3af;
+  }
+  
+  .recurring-indicator svg {
+    width: 14px;
+    height: 14px;
+    stroke-width: 0.5;
+  }
 }
