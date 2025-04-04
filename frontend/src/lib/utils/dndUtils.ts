@@ -1,5 +1,6 @@
 import type { Field } from '$lib/schemas/field';
 import type { ScheduleEntry } from '$lib/schemas/schedule';
+import type { Event } from '$lib/schemas/event';
 import { getCandidateStatesForMainField, getMainFieldForEvent } from './fieldUtils';
 
 export function handleTopDragMove(
@@ -98,16 +99,21 @@ export function calculateNewFieldId(
 }
 
 interface DragCallbacks {
-  onUpdate: (updates: Partial<ScheduleEntry>, isLocal?: boolean) => void;
+  onUpdate: (updates: Partial<Event | ScheduleEntry>, isLocal?: boolean) => void;
 }
 
 export function initializeTopDrag(
   e: MouseEvent,
-  scheduleEntry: ScheduleEntry,
+  scheduleEntry: Event | ScheduleEntry,
   gridElement: HTMLElement,
   timeSlots: string[],
   callbacks: DragCallbacks
 ) {
+  // Check if the event has override_id, only allow dragging for overrides
+  if ('override_id' in scheduleEntry && !scheduleEntry.override_id) {
+    return; // Exit early for base events (no override_id)
+  }
+
   e.stopPropagation();
   e.preventDefault();
   
@@ -118,7 +124,7 @@ export function initializeTopDrag(
   const initialClientY = e.clientY;
   const initialStartIndex = timeSlots.indexOf(normalizeTime(scheduleEntry.start_time));
   const initialEndIndex = timeSlots.indexOf(normalizeTime(scheduleEntry.end_time));
-  let lastUpdate: Partial<ScheduleEntry> | null = null;
+  let lastUpdate: Partial<Event | ScheduleEntry> | null = null;
 
   function onMouseMove(moveEvent: MouseEvent) {
     const deltaY = moveEvent.clientY - initialClientY;
@@ -143,11 +149,16 @@ export function initializeTopDrag(
 
 export function initializeBottomDrag(
   e: MouseEvent,
-  scheduleEntry: ScheduleEntry,
+  scheduleEntry: Event | ScheduleEntry,
   gridElement: HTMLElement,
   timeSlots: string[],
   callbacks: DragCallbacks
 ) {
+  // Check if the event has override_id, only allow dragging for overrides
+  if ('override_id' in scheduleEntry && !scheduleEntry.override_id) {
+    return; // Exit early for base events (no override_id)
+  }
+
   e.stopPropagation();
   e.preventDefault();
   
@@ -158,7 +169,7 @@ export function initializeBottomDrag(
   const initialClientY = e.clientY;
   const initialStartIndex = timeSlots.indexOf(normalizeTime(scheduleEntry.start_time));
   const initialEndIndex = timeSlots.indexOf(normalizeTime(scheduleEntry.end_time));
-  let lastUpdate: Partial<ScheduleEntry> | null = null;
+  let lastUpdate: Partial<Event | ScheduleEntry> | null = null;
 
   function onMouseMove(moveEvent: MouseEvent) {
     const deltaY = moveEvent.clientY - initialClientY;
@@ -183,7 +194,7 @@ export function initializeBottomDrag(
 
 export function initializeEventDrag(
   e: MouseEvent,
-  scheduleEntry: ScheduleEntry,
+  scheduleEntry: Event | ScheduleEntry,
   gridElement: HTMLElement,
   timeSlots: string[],
   totalColumns: number,
@@ -192,6 +203,11 @@ export function initializeEventDrag(
   fieldToGridColMap: Map<number, { colIndex: number; colSpan: number }>,
   callbacks: DragCallbacks
 ) {
+  // Check if the event has override_id, only allow dragging for overrides
+  if ('override_id' in scheduleEntry && !scheduleEntry.override_id) {
+    return; // Exit early for base events (no override_id)
+  }
+
   e.stopPropagation();
   e.preventDefault();
   
@@ -206,7 +222,7 @@ export function initializeEventDrag(
   const minDuration = Math.max(2, duration);
 
   const gridRect = gridElement.getBoundingClientRect();
-  let lastUpdate: Partial<ScheduleEntry> | null = null;
+  let lastUpdate: Partial<Event | ScheduleEntry> | null = null;
 
   function clamp(val: number, min: number, max: number) {
     return Math.max(min, Math.min(val, max));
@@ -256,7 +272,7 @@ export function initializeEventDrag(
 
 export function initializeHorizontalDrag(
   e: MouseEvent,
-  scheduleEntry: ScheduleEntry,
+  scheduleEntry: Event | ScheduleEntry,
   direction: 'left' | 'right',
   gridElement: HTMLElement,
   totalColumns: number,
@@ -264,6 +280,11 @@ export function initializeHorizontalDrag(
   fieldToGridColMap: Map<number, { colIndex: number; colSpan: number }>,
   callbacks: DragCallbacks
 ) {
+  // Check if the event has override_id, only allow dragging for overrides
+  if ('override_id' in scheduleEntry && !scheduleEntry.override_id) {
+    return; // Exit early for base events (no override_id)
+  }
+
   e.stopPropagation();
   e.preventDefault();
 
@@ -277,7 +298,7 @@ export function initializeHorizontalDrag(
   const originalCandidate = candidates.find(c => c.field_id === scheduleEntry.field_id);
   if (!originalCandidate) return;
 
-  let lastUpdate: Partial<ScheduleEntry> | null = null;
+  let lastUpdate: Partial<Event | ScheduleEntry> | null = null;
 
   if (direction === 'right') {
     const originalLeft = originalCandidate.colIndex;

@@ -20,7 +20,7 @@
   import { infoCardStore } from '$lib/utils/infoCardUtils';
   import { facilities } from '$stores/facilities';
   import { activeSchedules } from '$stores/activeSchedules';
-  import { events } from '$stores/events';
+  import { events, updateEventOverride } from '$stores/events';
   import Calendar from '$lib/components/Calendar.svelte';
   
   let containerElement: HTMLElement;
@@ -171,25 +171,41 @@
     }
   );
   
+  function handleEventUpdate(event: Event, updates: Partial<Event>, isLocal: boolean = false) {
+    if (event.override_id) {
+      // Handle updates for override events using the events store
+      updateEventOverride(event.schedule_entry_id, event.override_id, updates);
+    } else {
+      // Base events should not be updated through drag and drop
+      console.warn('Base events cannot be modified through drag and drop');
+    }
+  }
+  
   function handleTopDragMouseDown(e: MouseEvent, event: Event) {
+    if (!event.override_id) return;
+    
     const gridElement = (e.currentTarget as HTMLElement).closest('.schedule-grid');
     if (!gridElement) return;
     
     initializeTopDrag(e, event, gridElement as HTMLElement, get(timeSlots), {
-      onUpdate: (updates, isLocal) => updateScheduleEntry(event.schedule_entry_id, updates, isLocal)
+      onUpdate: (updates, isLocal) => handleEventUpdate(event, updates as Partial<Event>, isLocal)
     });
   }
 
   function handleBottomDragMouseDown(e: MouseEvent, event: Event) {
+    if (!event.override_id) return;
+    
     const gridElement = (e.currentTarget as HTMLElement).closest('.schedule-grid');
     if (!gridElement) return;
     
     initializeBottomDrag(e, event, gridElement as HTMLElement, get(timeSlots), {
-      onUpdate: (updates, isLocal) => updateScheduleEntry(event.schedule_entry_id, updates, isLocal)
+      onUpdate: (updates, isLocal) => handleEventUpdate(event, updates as Partial<Event>, isLocal)
     });
   }
 
   function handleEventDragMouseDown(e: MouseEvent, event: Event) {
+    if (!event.override_id) return;
+    
     const gridElement = (e.currentTarget as HTMLElement).closest('.schedule-grid');
     if (!gridElement) return;
     
@@ -203,12 +219,14 @@
       $activeFields,
       fieldToGridColMap,
       {
-        onUpdate: (updates, isLocal) => updateScheduleEntry(event.schedule_entry_id, updates, isLocal)
+        onUpdate: (updates, isLocal) => handleEventUpdate(event, updates as Partial<Event>, isLocal)
       }
     );
   }
 
   function handleHorizontalDragMouseDown(e: MouseEvent, event: Event, direction: 'left' | 'right') {
+    if (!event.override_id) return;
+    
     const gridElement = (e.currentTarget as HTMLElement).closest('.schedule-grid');
     if (!gridElement) return;
     
@@ -221,7 +239,7 @@
       $activeFields,
       fieldToGridColMap,
       {
-        onUpdate: (updates, isLocal) => updateScheduleEntry(event.schedule_entry_id, updates, isLocal)
+        onUpdate: (updates, isLocal) => handleEventUpdate(event, updates as Partial<Event>, isLocal)
       }
     );
   }
