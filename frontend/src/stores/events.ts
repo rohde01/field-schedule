@@ -24,3 +24,17 @@ export function updateEventOverride(eventId: number, overrideId: number, changes
         return updatedEventSchedules;
     });
 }
+
+// This function creates an override for an existing base event
+export function createEventOverride(baseEvent: Event, overrideDate: string) {
+    events.update(eventSchedules => {
+        return eventSchedules.map(schedule => ({
+            ...schedule,
+            entries: [...schedule.entries, {
+                ...baseEvent,
+                override_id: -Date.now(),
+                override_date: overrideDate
+            }]
+        }));
+    });
+}
