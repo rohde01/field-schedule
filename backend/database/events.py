@@ -151,12 +151,18 @@ def create_event_override(
     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
     RETURNING override_id;
     """
-    cursor.execute(
-        query, 
-        (active_schedule_id, schedule_entry_id, override_date, new_start_time, new_end_time, new_team_id, new_field_id, is_deleted)
-    )
-    new_id = cursor.fetchone()[0]
-    return new_id
+    try:
+        cursor.execute(
+            query, 
+            (active_schedule_id, schedule_entry_id, override_date, new_start_time, new_end_time, new_team_id, new_field_id, is_deleted)
+        )
+        new_id = cursor.fetchone()[0]
+        conn.commit()
+        return new_id
+    except Exception as e:
+        conn.rollback()
+        print("Database error:", str(e))
+        raise e
 
 
 @with_db_connection
