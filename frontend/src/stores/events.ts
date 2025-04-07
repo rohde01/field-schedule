@@ -84,25 +84,28 @@ export async function createEventOverride(baseEvent: Event, overrideDate: string
         });
         
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to create event override');
+            throw new Error('Failed to create event override');
         }
         
         const result = await response.json();
-        const overrideId = result.override_id;
+        console.log('Server response:', result);
         
-        if (overrideId) {
-            events.update(eventSchedules => {
-                return eventSchedules.map(schedule => ({
-                    ...schedule,
-                    entries: schedule.entries.map(entry => 
-                        entry.override_id === tempId 
-                            ? { ...entry, override_id: overrideId }
-                            : entry
-                    )
-                }));
-            });
-        }
+        const parsedData = JSON.parse(result.data);
+        const overrideId = parsedData[1];
+        
+        console.log(`Replacing temp ID ${tempId} with server ID ${overrideId}`);
+        
+        // Update the temporary ID with the real one
+        events.update(eventSchedules => {
+            return eventSchedules.map(schedule => ({
+                ...schedule,
+                entries: schedule.entries.map(entry => 
+                    entry.override_id === tempId 
+                        ? { ...entry, override_id: overrideId }
+                        : entry
+                )
+            }));
+        });
         
         return result;
     } catch (err) {
