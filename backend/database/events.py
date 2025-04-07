@@ -231,4 +231,5 @@ def delete_event_override(conn, override_id: int) -> bool:
             "UPDATE schedule_entry_overrides SET is_deleted = true WHERE override_id = %s;",
             (override_id,)
         )
+    conn.commit()
     return cursor.rowcount > 0

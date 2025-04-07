@@ -2,8 +2,8 @@
   import EditableField from './EditableField.svelte';
   import type { Writable } from 'svelte/store';
   import { deleteScheduleEntry } from '$stores/schedules';
+  import { deleteEventOverride } from '$stores/events';
   import { infoCardStore } from '$lib/utils/infoCardUtils';
-  import type { Event } from '$lib/schemas/event';
 
   export let infoCardForm: Writable<Record<string, any>>;
   export let editingEventPosition: { top: number; left: number };
@@ -16,16 +16,24 @@
 
   // Subscribe to the form to detect if we're editing an event or a schedule entry
   $: isEvent = $infoCardForm.is_event ?? false;
+  $: hasOverride = $infoCardForm.override_id != null && $infoCardForm.override_id > 0;
 
   async function handleDelete() {
-    // Only show delete confirmation for schedule entries
-    if (!isEvent) {
-      showConfirmModal = true;
-    }
+    showConfirmModal = true;
   }
   
   async function confirmDelete() {
-    if (!isEvent) {
+    if (isEvent && hasOverride) {
+      // Delete event override
+      try {
+        const overrideId = $infoCardForm.override_id;
+        await deleteEventOverride(overrideId);
+        infoCardStore.closeInfoCard();
+      } catch (error) {
+        console.error('Failed to delete event override:', error);
+      }
+    } else if (!isEvent) {
+      // Delete schedule entry
       const entryId = $infoCardForm.schedule_entry_id;
       const success = await deleteScheduleEntry(entryId);
       
@@ -111,8 +119,8 @@
     </div>
   </div>
   
-  <!-- Only show delete button for schedule entries -->
-  {#if !isEvent}
+  <!-- Show delete button for schedule entries and events with override_id -->
+  {#if !isEvent || hasOverride}
     <button 
       type="button" 
       class="btn-trash" 
@@ -141,7 +149,7 @@
     <div class="modal-container">
       <h2 id="modal-title" class="modal-title">Confirm Deletion</h2>
       <p id="modal-description">
-        Are you sure you want to delete this schedule entry?
+        Are you sure you want to delete this {isEvent ? 'event override' : 'schedule entry'}?
       </p>
       
       <div class="modal-actions">

@@ -113,6 +113,42 @@ export async function createEventOverride(baseEvent: Event, overrideDate: string
     }
 }
 
-export function deleteEvent(event: Event, overrideDate?: string): boolean {
-    return false;
+export async function deleteEventOverride(overrideId: number) {
+    // Update the local store
+    events.update(eventSchedules => {
+        return eventSchedules.map(schedule => ({
+            ...schedule,
+            entries: schedule.entries.map(entry => {
+                if (entry.override_id === overrideId) {
+                    if (entry.schedule_entry_id) {
+                        // Mark as deleted if it has a schedule_entry_id
+                        return { ...entry, is_deleted: true };
+                    }
+                    // Return null to be filtered out if no schedule_entry_id
+                    return null;
+                }
+                return entry;
+            }).filter((entry): entry is Event => entry !== null)
+        }));
+    });
+
+    try {
+        const formData = new FormData();
+        formData.append('override_id', String(overrideId));
+        
+        const response = await fetch('/dashboard?/deleteEventOverride', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to delete event override');
+        }
+        
+        return await response.json();
+    } catch (err) {
+        console.error('Error deleting event override:', err);
+        throw err;
+    }
 }
