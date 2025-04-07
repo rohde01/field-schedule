@@ -118,7 +118,6 @@ export const actions = {
         const formData = Object.fromEntries(await request.formData());
         
         try {
-            // Format and validate the data
             const rawData = {
                 active_schedule_id: parseInt(formData.active_schedule_id as string),
                 override_date: formData.override_date as string,
@@ -146,7 +145,8 @@ export const actions = {
                 return fail(res.status, { error: `Failed to create event override: ${errorText}` });
             }
             
-            return { success: true, data: await res.json() };
+            const result = await res.json();
+            return { override_id: result.override_id };
         } catch (err) {
             console.error('Error creating event override:', err);
             return fail(400, { error: `Invalid data: ${err}` });

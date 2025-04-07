@@ -59,7 +59,6 @@ async def create_override(
     override: EventOverrideCreate,
     current_user: User = Depends(get_current_user)
 ):
-    # (Optional) Validate that the user has permission on the active schedule here.
     try:
         new_id = create_event_override(
             active_schedule_id=override.active_schedule_id,
@@ -71,7 +70,7 @@ async def create_override(
             schedule_entry_id=override.schedule_entry_id,
             is_deleted=override.is_deleted
         )
-        return {"success": True, "override_id": new_id}
+        return {"override_id": new_id}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
