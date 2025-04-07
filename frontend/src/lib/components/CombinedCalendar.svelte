@@ -4,7 +4,6 @@
   import { fields } from '$stores/fields';
   import { teams } from '$stores/teams';
   import { derived, get, writable } from 'svelte/store';
-  import { updateScheduleEntry, addScheduleEntry } from '$stores/schedules';
   import { buildResources, normalizeTime, handleGranularityChange, timeSlots, 
           getRowForTimeWithSlots, getEventRowEndWithSlots, addMinutes,
           includeActiveFields, handleIncludeActiveFieldsToggle, getEventContentVisibility } from '$lib/utils/calendarUtils';
@@ -257,16 +256,33 @@
 
   function handleEmptyCellDblClick(e: MouseEvent, time: string, cell: { fieldId: number }, weekDay: number) {
     e.stopPropagation();
-    const newEntry = {
-      schedule_entry_id: Date.now(),
+    
+    if (!$currentActiveSchedule || !$currentActiveSchedule.active_schedule_id) {
+      console.warn('Cannot create event: No active schedule selected');
+      return;
+    }
+    const currentDateObj = $viewMode === 'day' 
+      ? $currentDate
+      : $weekDates.find(d => d.weekDay === weekDay)?.date || $currentDate;
+    
+    const dateString = formatDateYYYYMMDD(currentDateObj);
+    
+    const tempId = -Date.now();
+    const newEvent: Event = {
+      schedule_entry_id: tempId, // Backend will convert negative IDs to null
+      override_id: tempId,
+      override_date: dateString,
       team_id: null,
       field_id: cell.fieldId,
-      week_day: weekDay,
       start_time: time,
-      end_time: addMinutes(time, 60)
+      end_time: addMinutes(time, 60),
+      week_day: weekDay,
+      is_deleted: false
     };
-    addScheduleEntry(newEntry);
-    infoCardStore.openEventInfoCard(e, newEntry, containerElement);
+    
+    infoCardStore.openEventInfoCard(e, newEvent, containerElement);
+    
+    createEventOverride(newEvent, dateString, $currentActiveSchedule.active_schedule_id)
   }
   
   async function handleRecurringClick(event: Event, date: Date) {

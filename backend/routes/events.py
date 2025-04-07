@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from datetime import date, time
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 from database.events import (
     get_club_events,
     create_event_override,
@@ -40,10 +40,17 @@ class EventOverrideCreate(BaseModel):
     new_end_time: time
     new_team_id: Optional[int] = None
     new_field_id: Optional[int] = None
-    # If provided, indicates the base schedule entry to override.
-    # If omitted, this override represents a one-off event.
+    # If provided and positive, indicates a base schedule entry to override.
+    # If negative or 0, this is treated as a one-off event (None in database).
     schedule_entry_id: Optional[int] = None
     is_deleted: bool = False
+    
+    @validator('schedule_entry_id')
+    def validate_schedule_entry_id(cls, v):
+        # Convert negative or zero IDs to None (for one-off events)
+        if v is not None and v <= 0:
+            return None
+        return v
 
 class EventOverrideUpdate(BaseModel):
     new_start_time: Optional[time] = None

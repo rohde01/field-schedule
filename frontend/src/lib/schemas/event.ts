@@ -3,8 +3,8 @@ import { z } from 'zod';
 const timeStringRegex = /^([0-1]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/;
 
 export const EventSchema = z.object({
-  schedule_entry_id: z.number().int().positive(),
-  override_id: z.number().int().positive(),
+  schedule_entry_id: z.number().int(),
+  override_id: z.number().int(),
   override_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   team_id: z.number().int().positive().nullable(),
   field_id: z.number().int().positive().nullable(),
@@ -41,7 +41,7 @@ export const EventOverrideCreateSchema = z.object({
   }),
   new_team_id: z.number().int().positive().nullable().optional(),
   new_field_id: z.number().int().positive().nullable().optional(),
-  schedule_entry_id: z.number().int().positive().nullable().optional(),
+  schedule_entry_id: z.number().int().optional(),
   is_deleted: z.boolean().optional().default(false)
 });
 
