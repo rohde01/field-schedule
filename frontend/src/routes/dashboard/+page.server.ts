@@ -31,15 +31,12 @@ export const actions = {
         const data = Object.fromEntries(await request.formData());
         
         try {
-            
             const validatedData = {
                 club_id: locals.user.primary_club_id,
                 schedule_id: parseInt(data.schedule_id as string),
                 start_date: new Date(data.start_date as string).toISOString().split('T')[0],
                 end_date: new Date(data.end_date as string).toISOString().split('T')[0]
             };
-            
-            console.log("Sending to API:", validatedData);
             
             const res = await fetch(`${API_URL}/active-schedules`, {
                 method: 'POST',
@@ -148,7 +145,6 @@ export const actions = {
             const result = await res.json();
             return { override_id: result.override_id };
         } catch (err) {
-            console.error('Error creating event override:', err);
             return fail(400, { error: `Invalid data: ${err}` });
         }
     },
@@ -160,10 +156,8 @@ export const actions = {
         const overrideId = formData.override_id;
         
         try {
-            // Format and validate the data
             const updateFields: Record<string, any> = {};
             
-            // Only add fields that are present in the form data
             if (formData.new_start_time) updateFields.new_start_time = formData.new_start_time;
             if (formData.new_end_time) updateFields.new_end_time = formData.new_end_time;
             if (formData.override_date) updateFields.override_date = formData.override_date;
@@ -192,7 +186,7 @@ export const actions = {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${locals.token}`
                 },
-                body: JSON.stringify(updateFields) // Send only the update fields
+                body: JSON.stringify(updateFields)
             });
 
             if (!res.ok) {
@@ -202,7 +196,6 @@ export const actions = {
             
             return { success: true, data: await res.json() };
         } catch (err) {
-            console.error('Error updating event override:', err);
             return fail(400, { error: `Invalid data: ${err}` });
         }
     },
@@ -228,7 +221,6 @@ export const actions = {
             
             return { success: true, data: await res.json() };
         } catch (err) {
-            console.error('Error deleting event override:', err);
             return fail(500, { error: 'Failed to delete event override' });
         }
     }

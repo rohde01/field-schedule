@@ -1,16 +1,13 @@
-import { writable, get } from 'svelte/store';
+import { writable } from 'svelte/store';
 import type { EventSchedule, Event } from '$lib/schemas/event';
 
 export const events = writable<EventSchedule[]>([]);
 
 export function setEvents(newEvents: EventSchedule[]) {
-    events.update(() => {
-        console.log('Setting events to:', newEvents);
-        return [...newEvents];
-    });
+    events.update(() => [...newEvents]);
 }
 
-export function updateEventOverride(eventId: number, overrideId: number, changes: Partial<Event>) {
+export async function updateEventOverride(eventId: number, overrideId: number, changes: Partial<Event>) {
     events.update(eventSchedules => {
         const updatedEventSchedules = eventSchedules.map(schedule => {
             const updatedEntries = schedule.entries.map(entry => {
@@ -23,13 +20,37 @@ export function updateEventOverride(eventId: number, overrideId: number, changes
         });
         return updatedEventSchedules;
     });
+
+    try {
+        const formData = new FormData();
+        formData.append('override_id', String(overrideId));
+        
+        if (changes.start_time) formData.append('new_start_time', changes.start_time);
+        if (changes.end_time) formData.append('new_end_time', changes.end_time);
+        if (changes.override_date) formData.append('override_date', changes.override_date);
+        if ('team_id' in changes) formData.append('new_team_id', changes.team_id !== null ? String(changes.team_id) : '');
+        if ('field_id' in changes) formData.append('new_field_id', changes.field_id !== null ? String(changes.field_id) : '');
+        if ('is_deleted' in changes) formData.append('is_deleted', String(changes.is_deleted));
+        
+        const response = await fetch('/dashboard?/updateEventOverride', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to update event override');
+        }
+        
+        return await response.json();
+    } catch (err) {
+        throw err;
+    }
 }
 
-// This function creates an override for an existing base event
 export async function createEventOverride(baseEvent: Event, overrideDate: string, activeScheduleId: number) {
-    const tempId = -Date.now(); // Temporary negative ID
+    const tempId = -Date.now();
 
-    // Create optimistic update first
     events.update(eventSchedules => {
         return eventSchedules.map(schedule => ({
             ...schedule,
@@ -47,28 +68,30 @@ export async function createEventOverride(baseEvent: Event, overrideDate: string
         }));
     });
 
-    // Then persist to server
-    const formData = new FormData();
-    formData.append('active_schedule_id', String(activeScheduleId));
-    formData.append('override_date', overrideDate);
-    formData.append('new_start_time', baseEvent.start_time);
-    formData.append('new_end_time', baseEvent.end_time);
-    formData.append('new_team_id', String(baseEvent.team_id));
-    formData.append('new_field_id', String(baseEvent.field_id));
-    formData.append('schedule_entry_id', String(baseEvent.schedule_entry_id));
-
     try {
+        const formData = new FormData();
+        formData.append('active_schedule_id', String(activeScheduleId));
+        formData.append('override_date', overrideDate);
+        formData.append('new_start_time', baseEvent.start_time);
+        formData.append('new_end_time', baseEvent.end_time);
+        formData.append('new_team_id', baseEvent.team_id !== null ? String(baseEvent.team_id) : '');
+        formData.append('new_field_id', baseEvent.field_id !== null ? String(baseEvent.field_id) : '');
+        formData.append('schedule_entry_id', String(baseEvent.schedule_entry_id));
+
         const response = await fetch('/dashboard?/createEventOverride', {
             method: 'POST',
             body: formData
         });
         
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to create event override');
+        }
+        
         const result = await response.json();
-        const data = JSON.parse(result.data);
-        const overrideId = data[data.length - 1];
+        const overrideId = result.override_id;
         
         if (overrideId) {
-            console.log('Updating temporary override ID', tempId, 'to permanent ID', overrideId);
             events.update(eventSchedules => {
                 return eventSchedules.map(schedule => ({
                     ...schedule,
@@ -79,26 +102,14 @@ export async function createEventOverride(baseEvent: Event, overrideDate: string
                     )
                 }));
             });
-        } else {
-            console.warn('Invalid response structure:', result);
         }
         
         return result;
     } catch (err) {
-        console.error('Failed to create override:', err);
-        // Revert optimistic update on error
-        events.update(eventSchedules => {
-            return eventSchedules.map(schedule => ({
-                ...schedule,
-                entries: schedule.entries.filter(entry => entry.override_id !== tempId)
-            }));
-        });
         throw err;
     }
 }
 
-// TODO: Implement the deleteEvent function
 export function deleteEvent(event: Event, overrideDate?: string): boolean {
-    console.warn('Event deletion is not supported');
     return false;
 }

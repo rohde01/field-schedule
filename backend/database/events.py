@@ -189,7 +189,12 @@ def update_event_override(conn, override_id: int, changes: Dict[str, Any]) -> bo
     """
     cursor = conn.cursor()
     cursor.execute(query, tuple(values))
-    return cursor.rowcount > 0
+    rows_updated = cursor.rowcount > 0
+    
+    # Commit the transaction
+    conn.commit()
+    
+    return rows_updated
 
 
 @with_db_connection
