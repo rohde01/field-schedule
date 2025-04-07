@@ -322,7 +322,7 @@ def delete_active_schedule(conn, active_schedule_id: int) -> bool:
     WHERE active_schedule_id = %s
     RETURNING active_schedule_id
     """
-    cursor.execute(delete_query, (active_schedule_id,))
+    cursor.execute(query, (active_schedule_id,))
     success = cursor.fetchone() is not None
     conn.commit()
     return success
