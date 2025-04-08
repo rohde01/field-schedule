@@ -48,14 +48,13 @@ const authGuard: Handle = async ({ event, resolve }) => {
 
     // Don't protect root, login, and register routes
     const isPublicRoute = event.url.pathname === '/' || 
-        event.url.pathname.startsWith('/login') || 
-        event.url.pathname.startsWith('/register')
+        event.url.pathname.startsWith('/auth')
         
     if (!event.locals.session && !isPublicRoute) {
-        throw redirect(303, '/login')
+        throw redirect(303, '/auth')
     }
 
-    if (event.locals.session && (event.url.pathname === '/login' || event.url.pathname === '/register')) {
+    if (event.locals.session && (event.url.pathname === '/auth' || event.url.pathname === '/auth')) {
         throw redirect(303, '/')
     }
 
