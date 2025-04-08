@@ -1,32 +1,55 @@
-import { redirect } from '@sveltejs/kit'
+import { fail, redirect } from '@sveltejs/kit';
+import { superValidate } from 'sveltekit-superforms/server';
+import { zod } from 'sveltekit-superforms/adapters';
+import { createUserSchema } from '$lib/schemas/user';
+import type { Actions, PageServerLoad } from './$types';
 
-import type { Actions } from './$types'
+export const load = (async ({ locals: { supabase } }) => {
+  const form = await superValidate(zod(createUserSchema));
+  return { form };
+}) satisfies PageServerLoad;
 
 export const actions: Actions = {
-  signup: async ({ request, locals: { supabase } }) => {
-    const formData = await request.formData()
-    const email = formData.get('email') as string
-    const password = formData.get('password') as string
+  signup: async ({ request, locals: { supabase }, url }) => {
+    const form = await superValidate(request, zod(createUserSchema));
+    if (!form.valid) return fail(400, { form });
 
-    const { error } = await supabase.auth.signUp({ email, password })
+    const { email, password } = form.data;
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: '/auth/confirm'
+      }
+    });
+
     if (error) {
-      console.error(error)
-      redirect(303, '/auth/error')
-    } else {
-      redirect(303, '/')
+      return fail(400, {
+        form: {
+          ...form,
+          message: error.message ?? 'Registration failed'
+        }
+      });
     }
+
+    return { form, confirmationEmailSent: true };
   },
+
   login: async ({ request, locals: { supabase } }) => {
-    const formData = await request.formData()
-    const email = formData.get('email') as string
-    const password = formData.get('password') as string
+    const form = await superValidate(request, zod(createUserSchema));
+    if (!form.valid) return fail(400, { form });
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { email, password } = form.data;
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+
     if (error) {
-      console.error(error)
-      redirect(303, '/auth/error')
-    } else {
-      redirect(303, '/private')
+      return fail(400, {
+        form: {
+          ...form,
+          message: error.message ?? 'Login failed'
+        }
+      });
     }
-  },
+    throw redirect(303, '/dashboard');
+  }
 }

@@ -35,7 +35,6 @@ export const load: PageServerLoad = async ({ locals }) => {
     console.log('Load handler - locals:', { user: locals.user, token: !!locals.token });
     
     if (!locals.user?.primary_club_id) {
-        console.log('No primary_club_id found');
         return {
             facilityForm,
             deleteForm,

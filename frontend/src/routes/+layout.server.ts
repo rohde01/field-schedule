@@ -13,7 +13,6 @@ export const load: LayoutServerLoad = async ({ locals, locals: { safeGetSession 
     const { session } = await safeGetSession();
 
     if (!locals.user?.primary_club_id) {
-        console.log('No primary_club_id found');
         return {
             user: locals.user || null,
             facilities: [],

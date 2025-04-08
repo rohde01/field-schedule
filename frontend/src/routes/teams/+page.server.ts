@@ -24,7 +24,6 @@ export const load = (async ({ locals }) => {
     });
     
     if (!locals.user?.primary_club_id) {
-        console.log('No primary_club_id found');
         return {
             deleteForm,
             createForm,
@@ -44,7 +43,6 @@ export const actions: Actions = {
         console.log('Create action started');
         
         if (!locals.user?.primary_club_id) {
-            console.log('No primary club ID found');
             const form = await superValidate(request, zod(teamSchema));
             return fail(400, { 
                 form, 
