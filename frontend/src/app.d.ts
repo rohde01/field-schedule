@@ -1,21 +1,23 @@
-import type { Session, SupabaseClient, User } from '@supabase/supabase-js'
-import type { Database } from './database.types.ts' // import generated types
+import type { Session, SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from './database.types.ts'
+import type { User as CustomUser } from '$lib/schemas/user'
 
 declare global {
   namespace App {
-    // interface Error {}
     interface Locals {
       supabase: SupabaseClient<Database>
-      safeGetSession: () => Promise<{ session: Session | null; user: User | null }>
+      safeGetSession: () => Promise<{ session: Session | null; user: CustomUser | null }>
       session: Session | null
-      user: User | null
+      user: CustomUser | null
     }
     interface PageData {
       session: Session | null
     }
-    // interface PageState {}
-    // interface Platform {}
   }
+}
+
+declare module '@supabase/supabase-js' {
+  interface User extends CustomUser {}
 }
 
 export {}

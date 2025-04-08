@@ -24,14 +24,21 @@ const supabase: Handle = async ({ event, resolve }) => {
         }
 
         const {
-            data: { user },
+            data: { user: authUser },
             error,
         } = await event.locals.supabase.auth.getUser()
-        if (error) {
+        if (error || !authUser) {
             return { session: null, user: null }
         }
 
-        return { session, user }
+        // Fetch full user data from users table
+        const { data: userData } = await event.locals.supabase
+            .from('users')
+            .select('*')
+            .eq('user_id', authUser.id)
+            .single()
+
+        return { session, user: userData }
     }
 
     return resolve(event, {
@@ -46,7 +53,10 @@ const authGuard: Handle = async ({ event, resolve }) => {
     event.locals.session = session
     event.locals.user = user
 
-    // Don't protect root, login, and register routes
+    console.log('Auth Status:', {
+        userData: user,
+    });
+
     const isPublicRoute = event.url.pathname === '/' || 
         event.url.pathname.startsWith('/auth')
         
@@ -56,6 +66,13 @@ const authGuard: Handle = async ({ event, resolve }) => {
 
     if (event.locals.session && event.url.pathname === '/auth') {
         throw redirect(303, '/')
+    }
+
+    // Redirect to onboarding if name is missing
+    if (event.locals.session && 
+        !event.url.pathname.startsWith('/onboarding') && 
+        (!user?.first_name || !user?.last_name)) {
+        throw redirect(303, '/onboarding')
     }
 
     return resolve(event)
