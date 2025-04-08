@@ -8,7 +8,9 @@ import type { EventSchedule } from '$lib/schemas/event';
 // import type { Constraint } from '$lib/schemas/schedule';
 import { API_URL } from '$env/static/private';
 
-export const load: LayoutServerLoad = async ({ locals, fetch }) => {
+
+export const load: LayoutServerLoad = async ({ locals, locals: { safeGetSession }, fetch, cookies }) => {
+    const { session } = await safeGetSession();
 
     if (!locals.user?.primary_club_id) {
         console.log('No primary_club_id found');
@@ -17,7 +19,9 @@ export const load: LayoutServerLoad = async ({ locals, fetch }) => {
             facilities: [],
             fields: [],
             schedules: [],
-            constraints: []
+            constraints: [],
+            session,
+            cookies: cookies.getAll()
         };
     }
 
@@ -101,8 +105,9 @@ export const load: LayoutServerLoad = async ({ locals, fetch }) => {
             fields,
             teams,
             schedules,
-            events
-            //constraints
+            events,
+            session,
+            cookies: cookies.getAll()
         };
     } catch (err) {
         console.error('Error in layout load function:', err);

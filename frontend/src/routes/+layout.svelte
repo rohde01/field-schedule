@@ -1,8 +1,6 @@
 <script lang="ts">
     import '../app.css';
-    import { onMount } from 'svelte';
-    import { supabase } from '$lib/supabaseClient';
-    import { invalidateAll } from '$app/navigation';
+    import { invalidate } from '$app/navigation';
     import { page } from '$app/stores';
     import { setFacilities } from '$stores/facilities';
     import { setFields } from '$stores/fields';
@@ -10,8 +8,10 @@
     import { setConstraints } from '$stores/constraints';
     import { setSchedules } from '$stores/schedules';
     import { setEvents } from '$stores/events';
+    import { onMount } from 'svelte';
 
     let { data } = $props();
+    let { session, supabase } = $derived(data);
 
     $effect(() => {
         if (data.facilities) {
@@ -50,16 +50,16 @@
     });
 
     const isLandingPage = $derived($page.url.pathname === '/');
-    onMount(() => {
-	const {
-		data: { subscription }
-	} = supabase.auth.onAuthStateChange(() => {
-		console.log('Auth state changed, invalidating layout');
-		invalidateAll();
-	});
 
-	return () => subscription.unsubscribe();
-});
+    onMount(() => {
+        const { data } = supabase.auth.onAuthStateChange((_, newSession) => {
+            if (newSession?.expires_at !== session?.expires_at) {
+                invalidate('supabase:auth');
+            }
+        });
+
+        return () => data.subscription.unsubscribe();
+    });
 </script>
 
 <div class="min-h-screen bg-sage-50"> 
