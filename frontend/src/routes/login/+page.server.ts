@@ -3,87 +3,36 @@ import { fail, redirect } from '@sveltejs/kit';
 import { superValidate } from 'sveltekit-superforms/server';
 import { zod } from 'sveltekit-superforms/adapters';
 import { loginSchema } from '$lib/schemas/user';
-import type { LoginResponse } from '$lib/schemas/user';
-import { API_URL } from '$env/static/private';
 
 export const load = (async ({ locals }) => {
-    if (locals.user) {
-        throw redirect(303, '/dashboard');
-    }
-    const form = await superValidate(zod(loginSchema));
-    return { form };
+	if (locals.user) {
+		throw redirect(303, '/dashboard');
+	}
+	const form = await superValidate(zod(loginSchema));
+	return { form };
 }) satisfies PageServerLoad;
 
-
 export const actions = {
-    default: async ({ request, cookies, fetch, locals }) => {
-        const form = await superValidate(request, zod(loginSchema));
+	default: async ({ request, locals }) => {
+		const form = await superValidate(request, zod(loginSchema));
+		if (!form.valid) return fail(400, { form });
 
-        if (!form.valid) {
-            return fail(400, { form });
-        }
+		const { email, password } = form.data;
 
-        const response = await fetch(`${API_URL}/users/login`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Accept': 'application/json'
-            },
-            body: new URLSearchParams({
-                username: form.data.email,
-                password: form.data.password,
-                grant_type: 'password'
-            })
-        });
+		const { data, error } = await locals.supabase.auth.signInWithPassword({ email, password });
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            let errorMessage = 'Oops! Invalid email or password';
-            try {
-                const errorJson = JSON.parse(errorText);
-                errorMessage = errorJson.detail || errorMessage;
-            } catch {
-                // Use default message if parsing fails
-            }
-            return fail(response.status, {
-                form: {
-                    ...form,
-                    message: errorMessage
-                }
-            });
-        }
+		if (error || !data.session || !data.user) {
+			return fail(400, {
+				form: {
+					...form,
+					message: error?.message ?? 'Invalid email or password'
+				}
+			});
+		}
 
-        let responseData;
-        try {
-            responseData = await response.json() as LoginResponse;
-        } catch (error) {
-            return fail(500, {
-                form,
-                message: 'Server returned invalid response'
-            });
-        }
+		// Session cookie is automatically handled by Supabase server helpers
+		// `locals.user` is now set in the next request
 
-        // Set access token cookie
-        cookies.set('token', responseData.access_token, {
-            path: '/',
-            httpOnly: true,
-            sameSite: 'strict',
-            secure: process.env.NODE_ENV === 'production',
-            maxAge: 60 * 1440 // 30 minutes
-        });
-
-        // Set refresh token cookie
-        cookies.set('refresh_token', responseData.refresh_token, {
-            path: '/',
-            httpOnly: true,
-            sameSite: 'strict',
-            secure: process.env.NODE_ENV === 'production',
-            maxAge: 60 * 60 * 24 * 7 // 7 days
-        });
-
-        // Set user data in locals
-        locals.user = responseData.user;
-        
-        throw redirect(303, '/dashboard');
-    }
+		throw redirect(303, '/dashboard');
+	}
 } satisfies Actions;

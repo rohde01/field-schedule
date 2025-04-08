@@ -3,44 +3,40 @@ import { fail, redirect } from '@sveltejs/kit';
 import { superValidate } from 'sveltekit-superforms/server';
 import { zod } from 'sveltekit-superforms/adapters';
 import { createUserSchema } from '$lib/schemas/user';
-import { API_URL } from '$env/static/private';
 
 export const load = (async ({ locals }) => {
-    if (locals.user) {
-        throw redirect(303, '/dashboard');
-    }
-    const form = await superValidate(zod(createUserSchema));
-    return { form };
+	if (locals.user) {
+		throw redirect(303, '/dashboard');
+	}
+
+	const form = await superValidate(zod(createUserSchema));
+	return { form };
 }) satisfies PageServerLoad;
 
 export const actions = {
-    default: async ({ request, fetch }) => {
-        const form = await superValidate(request, zod(createUserSchema));
+	default: async ({ request, locals }) => {
+		const form = await superValidate(request, zod(createUserSchema));
+		if (!form.valid) return fail(400, { form });
 
-        if (!form.valid) {
-            return fail(400, { form });
-        }
+		const { email, password } = form.data;
 
-        const response = await fetch(`${API_URL}/users/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(form.data)
-        });
+		const { error: signUpError } = await locals.supabase.auth.signUp({
+			email,
+			password
+		});
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            return fail(response.status, {
-                form: {
-                    ...form,
-                    message: errorData.detail || 'Registration failed'
-                }
-            });
-        }
+		if (signUpError) {
+			return fail(400, {
+				form: {
+					...form,
+					message: signUpError.message ?? 'Registration failed'
+				}
+			});
+		}
 
-        return { form };
-    }
+		return {
+			form,
+			confirmationEmailSent: true
+		};
+	}
 } satisfies Actions;
-
-

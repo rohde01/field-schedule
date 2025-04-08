@@ -1,5 +1,8 @@
 <script lang="ts">
     import '../app.css';
+    import { onMount } from 'svelte';
+    import { supabase } from '$lib/supabaseClient';
+    import { invalidateAll } from '$app/navigation';
     import { page } from '$app/stores';
     import { setFacilities } from '$stores/facilities';
     import { setFields } from '$stores/fields';
@@ -47,6 +50,16 @@
     });
 
     const isLandingPage = $derived($page.url.pathname === '/');
+    onMount(() => {
+	const {
+		data: { subscription }
+	} = supabase.auth.onAuthStateChange(() => {
+		console.log('Auth state changed, invalidating layout');
+		invalidateAll();
+	});
+
+	return () => subscription.unsubscribe();
+});
 </script>
 
 <div class="min-h-screen bg-sage-50"> 
