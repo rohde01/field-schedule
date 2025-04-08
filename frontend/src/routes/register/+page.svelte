@@ -41,40 +41,6 @@
             {/if}
 
             <form method="POST" class="space-y-4" use:enhance>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-sage-700 mb-2" for="first_name">
-                            First Name
-                        </label>
-                        <input 
-                            id="first_name"
-                            name="first_name" 
-                            type="text" 
-                            bind:value={$form.first_name}
-                            class="block w-full p-2 text-sm text-sage-700 rounded-lg border border-sage-200 focus:ring-mint-500 focus:border-mint-500"
-                        >
-                        {#if $errors.first_name}
-                            <span class="text-red-500 text-sm">{$errors.first_name}</span>
-                        {/if}
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-sage-700 mb-2" for="last_name">
-                            Last Name
-                        </label>
-                        <input 
-                            id="last_name"
-                            name="last_name" 
-                            type="text" 
-                            bind:value={$form.last_name}
-                            class="block w-full p-2 text-sm text-sage-700 rounded-lg border border-sage-200 focus:ring-mint-500 focus:border-mint-500"
-                        >
-                        {#if $errors.last_name}
-                            <span class="text-red-500 text-sm">{$errors.last_name}</span>
-                        {/if}
-                    </div>
-                </div>
-
                 <div>
                     <label class="block text-sm font-medium text-sage-700 mb-2" for="email">
                         Email

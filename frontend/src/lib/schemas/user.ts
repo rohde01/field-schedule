@@ -10,10 +10,8 @@ export const userSchema = z.object({
 });
 
 export const createUserSchema = z.object({
-    email: z.string().email(),
-    password: z.string().min(8, "Password must be at least 8 characters"),
-    first_name: z.string().min(1, "First name is required"),
-    last_name: z.string().min(1, "Last name is required"),
+    email: z.string().email("Please enter a valid email address"),
+    password: z.string().min(8, "Password must be at least 8 characters")
 });
 
 export const loginSchema = z.object({
