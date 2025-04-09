@@ -68,10 +68,10 @@ const authGuard: Handle = async ({ event, resolve }) => {
         throw redirect(303, '/')
     }
 
-    // Redirect to onboarding if name is missing
+    // Redirect to onboarding if name or club is missing
     if (event.locals.session && 
         !event.url.pathname.startsWith('/onboarding') && 
-        (!user?.first_name || !user?.last_name)) {
+        (!user?.first_name || !user?.last_name || !user?.club_id)) {
         throw redirect(303, '/onboarding')
     }
 
