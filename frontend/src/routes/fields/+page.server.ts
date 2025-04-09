@@ -32,7 +32,6 @@ export const load: PageServerLoad = async ({ locals }) => {
         })
     ]);
 
-    console.log('Load handler - locals:', { user: locals.user, token: !!locals.token });
     
     if (!locals.user?.primary_club_id) {
         return {
@@ -53,11 +52,11 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
-    create: async ({ request, locals, fetch }) => {
+    create: async ({ request, locals: { supabase, user } }) => {
         const form = await superValidate(request, zod(facilityCreateSchema));
         console.log('Form validation result:', form);
         
-        const clubId = locals.user?.primary_club_id;
+        const clubId = user?.club_id;
         if (!clubId || clubId <= 0) {
             console.log('Invalid club_id:', clubId);
             return fail(400, { 
@@ -74,27 +73,23 @@ export const actions: Actions = {
         }
 
         try {
-            const response = await fetch(`${API_URL}/facilities`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${locals.token}`
-                },
-                body: JSON.stringify(validatedForm.data)
-            });
+            const { data: facility, error: insertError } = await supabase
+                .from('facilities')
+                .insert(validatedForm.data)
+                .select()
+                .single();
 
-            const responseData = await response.json();
-
-            if (!response.ok) {
-                return fail(response.status, { 
+            if (insertError) {
+                return fail(400, { 
                     form,
-                    error: responseData.detail || 'Failed to create facility'
+                    error: insertError.message || 'Failed to create facility'
                 });
             }
             
             return {
                 form,
-                facility: responseData
+                facility,
+                success: true
             };
         } catch (err) {
             console.error('Error creating facility:', err);
