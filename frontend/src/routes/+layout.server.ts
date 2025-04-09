@@ -67,8 +67,32 @@ export const load: LayoutServerLoad = async ({ locals, locals: { safeGetSession,
 
         const fields = processFields(rawFields || [], availabilities || []);
 
-        // Temporary empty arrays for schedules and events until Supabase migration is complete
-        const schedules: Schedule[] = [];
+        // Fetch schedules and join schedule_entries from Supabase
+        const { data: rawSchedules, error: schedulesError } = await supabase
+            .from('schedules')
+            .select(`
+                schedule_id,
+                club_id,
+                facility_id,
+                name,
+                schedule_entries (
+                    schedule_entry_id,
+                    team_id,
+                    field_id,
+                    start_time,
+                    end_time,
+                    week_day
+                )
+            `)
+            .eq('club_id', locals.user.club_id);
+
+        if (schedulesError) {
+            console.error('Failed to fetch schedules:', schedulesError);
+            throw error(500, 'Failed to fetch schedules');
+        }
+
+        const schedules: Schedule[] = rawSchedules || [];
+
         const events: EventSchedule[] = [];
         
         return {

@@ -20,8 +20,7 @@ export const scheduleSchema = z.object({
     club_id: z.number().int().positive(),
     name: z.string().min(1),
     facility_id: z.number().int().positive(),
-    entries: z.array(scheduleEntrySchema),
-    is_active: z.boolean()
+    schedule_entries: z.array(scheduleEntrySchema)
 });
 
 export type ScheduleEntry = z.infer<typeof scheduleEntrySchema>;

@@ -40,7 +40,7 @@ export function addSchedule(schedule: Schedule) {
 export async function updateScheduleEntry(entryId: number, changes: Partial<ScheduleEntry>, isLocal: boolean = false) {
     const previousState = get(schedules);
     const currentSchedules = get(schedules);
-    const entry = currentSchedules.flatMap(s => s.entries).find(e => e.schedule_entry_id === entryId);
+    const entry = currentSchedules.flatMap(s => s.schedule_entries).find(e => e.schedule_entry_id === entryId);
     
     if (!entry) return;
 
@@ -48,14 +48,14 @@ export async function updateScheduleEntry(entryId: number, changes: Partial<Sche
     schedules.update(schedulesList => 
         schedulesList.map(schedule => ({
             ...schedule,
-            entries: schedule.entries.map(e => 
+            schedule_entries: schedule.schedule_entries.map(e => 
                 e.schedule_entry_id === entryId ? updatedEntry : e
             )
         }))
     );
 
     const parentSchedule = currentSchedules.find(s => 
-        s.entries.some(e => e.schedule_entry_id === entryId)
+        s.schedule_entries.some(e => e.schedule_entry_id === entryId)
     );
     if (isLocal || entry.isTemporary || (parentSchedule && parentSchedule.schedule_id < 0)) {
         if (entry.isTemporary && changes.team_id && parentSchedule && parentSchedule.schedule_id > 0) {
@@ -128,7 +128,7 @@ export async function addScheduleEntry(newEntry: ScheduleEntry) {
     schedules.update(schedulesList => 
         schedulesList.map(schedule => 
             schedule.schedule_id === selectedSchedule.schedule_id
-                ? { ...schedule, entries: [...schedule.entries, entryWithFlag] }
+                ? { ...schedule, schedule_entries: [...schedule.schedule_entries, entryWithFlag] }
                 : schedule
         )
     );
@@ -140,8 +140,7 @@ export function createEmptySchedule(name: string, facilityId: number, clubId: nu
         name,
         facility_id: facilityId,
         club_id: clubId,
-        entries: [],
-        is_active: true
+        schedule_entries: []
     };
     
     schedules.update(currentSchedules => [...currentSchedules, emptySchedule]);
@@ -161,7 +160,7 @@ export function deleteSchedule(scheduleId: number) {
 
 export async function deleteScheduleEntry(entryId: number): Promise<boolean> {
     const currentSchedules = get(schedules);
-    const entry = currentSchedules.flatMap(s => s.entries).find(e => e.schedule_entry_id === entryId);
+    const entry = currentSchedules.flatMap(s => s.schedule_entries).find(e => e.schedule_entry_id === entryId);
     
     if (!entry) {
         return false;
@@ -170,7 +169,7 @@ export async function deleteScheduleEntry(entryId: number): Promise<boolean> {
         schedules.update(schedulesList => 
             schedulesList.map(schedule => ({
                 ...schedule,
-                entries: schedule.entries.filter(entry => entry.schedule_entry_id !== entryId)
+                schedule_entries: schedule.schedule_entries.filter(entry => entry.schedule_entry_id !== entryId)
             }))
         );
         return true;
@@ -192,7 +191,7 @@ export async function deleteScheduleEntry(entryId: number): Promise<boolean> {
         schedules.update(schedulesList => 
             schedulesList.map(schedule => ({
                 ...schedule,
-                entries: schedule.entries.filter(entry => entry.schedule_entry_id !== entryId)
+                schedule_entries: schedule.schedule_entries.filter(entry => entry.schedule_entry_id !== entryId)
             }))
         );
 
