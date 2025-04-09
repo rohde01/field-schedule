@@ -29,7 +29,7 @@
             ? propTeams.filter((team: Team) => team.is_active)
             : $dropdownState.selectedSchedule
                 ? propTeams.filter((team: Team) => 
-                    $dropdownState.selectedSchedule?.entries.some(entry => 
+                    $dropdownState.selectedSchedule?.schedule_entries.some(entry => 
                         entry.team_id === team.team_id
                     ))
                 : []
@@ -101,7 +101,7 @@
                 facility_id: 0,
                 team_ids: [],
                 constraints: [],
-                club_id: $page.data.user?.primary_club_id ?? 0,
+                club_id: $page.data.user?.club_id ?? 0,
                 schedule_name: ''
             });
             
@@ -128,7 +128,7 @@
     }
 
     function handleNameSubmit() {
-        const clubId = $page.data.user?.primary_club_id ?? 0;
+        const clubId = $page.data.user?.club_id ?? 0;
         createEmptySchedule(scheduleName, $form.facility_id, clubId);
         $form.schedule_name = scheduleName;
         showNameInput = false;

@@ -14,7 +14,7 @@ export const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday',
 export const activeEvents = derived(dropdownState, ($dropdownState): ScheduleEntry[] => {
   const selectedSchedule = $dropdownState.selectedSchedule;
   if (!selectedSchedule) return [];
-  return selectedSchedule.entries;
+  return selectedSchedule.schedule_entries;
 });
 
 export const timeSlots = derived([timeSlotGranularity], ([$timeSlotGranularity]) => {

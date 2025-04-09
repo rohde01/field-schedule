@@ -67,7 +67,7 @@
     $effect(() => {
         if ($dropdownState.selectedSchedule && team) {
             const newTrainingDays = new Set<number>();
-            const teamEntries = $dropdownState.selectedSchedule.entries.filter(
+            const teamEntries = $dropdownState.selectedSchedule.schedule_entries.filter(
                 entry => entry.team_id === team.team_id
             );
             
