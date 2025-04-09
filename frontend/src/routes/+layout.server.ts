@@ -1,10 +1,8 @@
 import type { LayoutServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import type { Facility } from '$lib/schemas/facility';
-import type { Field } from '$lib/schemas/field';
 import type { Schedule } from '$lib/schemas/schedule';
 import type { EventSchedule } from '$lib/schemas/event';
-// import { API_URL } from '$env/static/private'; // Will be removed when migration is complete
+import { processFields } from '$lib/utils/fieldProcessor';
 
 export const load: LayoutServerLoad = async ({ locals, locals: { safeGetSession, supabase }, cookies }) => {
     const { session } = await safeGetSession();
@@ -45,55 +43,31 @@ export const load: LayoutServerLoad = async ({ locals, locals: { safeGetSession,
             throw error(500, 'Failed to fetch facilities');
         }
 
-        // TODO: Implement Supabase queries for these tables
-        /*
-        const { data: fields, error: fieldsError } = await supabase
+        // Fetch fields from Supabase
+        const { data: rawFields, error: fieldsError } = await supabase
             .from('fields')
             .select('*')
             .eq('club_id', locals.user.club_id);
 
-        const { data: schedules, error: schedulesError } = await supabase
-            .from('schedules')
-            .select('*')
-            .eq('club_id', locals.user.club_id);
-
-        const { data: events, error: eventsError } = await supabase
-            .from('events')
-            .select('*')
-            .eq('club_id', locals.user.club_id);
-        */
-
-        // Temporary: using old API endpoints until migration is complete
-        /*const [facilitiesResponse, fieldsResponse, schedulesResponse, eventsResponse] = await Promise.all([
-            fetch(`${API_URL}/facilities/club/${locals.user.club_id}`, {
-                headers: { 'Authorization': `Bearer ${locals.token}` }
-            }),
-            fetch(`${API_URL}/fields/club/${locals.user.club_id}`, {
-                headers: { 'Authorization': `Bearer ${locals.token}` }
-            }),
-            fetch(`${API_URL}/schedules/${locals.user.club_id}/schedules`, {
-                headers: { 'Authorization': `Bearer ${locals.token}` }
-            }),
-            fetch(`${API_URL}/events/${locals.user.club_id}`, {
-                headers: { 'Authorization': `Bearer ${locals.token}` }
-            })
-        ]);
-
-        if (!facilitiesResponse.ok) {
-            const errorText = await facilitiesResponse.text();
-            console.error('Failed to fetch facilities:', facilitiesResponse.status, errorText);
-            throw error(facilitiesResponse.status, 'Failed to fetch facilities');
+        if (fieldsError) {
+            console.error('Failed to fetch fields:', fieldsError);
+            throw error(500, 'Failed to fetch fields');
         }
 
-        // ... existing response checks ...
+        // Fetch field availabilities from Supabase
+        const { data: availabilities, error: availabilityError } = await supabase
+            .from('field_availability')
+            .select('*')
+            .eq('club_id', locals.user.club_id);
 
-        const facilities: Facility[] = await facilitiesResponse.json();
-        const fields: Field[] = await fieldsResponse.json();
-        const schedules: Schedule[] = await schedulesResponse.json();
-        const events: EventSchedule[] = await eventsResponse.json();*/
+        if (availabilityError) {
+            console.error('Failed to fetch field availabilities:', availabilityError);
+            throw error(500, 'Failed to fetch field availabilities');
+        }
 
-        // Temporary empty arrays for fields, schedules, and events until Supabase migration is complete
-        const fields: Field[] = [];
+        const fields = processFields(rawFields || [], availabilities || []);
+
+        // Temporary empty arrays for schedules and events until Supabase migration is complete
         const schedules: Schedule[] = [];
         const events: EventSchedule[] = [];
         
