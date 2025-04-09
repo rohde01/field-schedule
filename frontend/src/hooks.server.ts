@@ -52,11 +52,7 @@ const authGuard: Handle = async ({ event, resolve }) => {
     const { session, user } = await event.locals.safeGetSession()
     event.locals.session = session
     event.locals.user = user
-
-    console.log('Auth Status:', {
-        userData: user,
-    });
-
+    
     const isPublicRoute = event.url.pathname === '/' || 
         event.url.pathname.startsWith('/auth')
         

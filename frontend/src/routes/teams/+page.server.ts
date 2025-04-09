@@ -2,8 +2,7 @@ import { fail } from '@sveltejs/kit';
 import { superValidate } from 'sveltekit-superforms/server';
 import { zod } from 'sveltekit-superforms/adapters';
 import { teamSchema, deleteTeamSchema, type DeleteTeamResponse } from '$lib/schemas/team';
-import type { PageServerLoad, Actions } from './$types';
-import { API_URL } from '$env/static/private';
+import type { Actions } from './$types';
 
 export const load = (async ({ locals }) => {
     const deleteForm = await superValidate(zod(deleteTeamSchema));
@@ -12,7 +11,7 @@ export const load = (async ({ locals }) => {
         defaults: {
             name: '',
             year: '',
-            club_id: locals.user?.primary_club_id ?? 0,
+            club_id: locals.user?.club_id ?? 0,
             gender: 'boys',
             is_academy: false,
             minimum_field_size: 125,
@@ -23,7 +22,7 @@ export const load = (async ({ locals }) => {
         }
     });
     
-    if (!locals.user?.primary_club_id) {
+    if (!locals.user?.club_id) {
         return {
             deleteForm,
             createForm,
@@ -35,55 +34,41 @@ export const load = (async ({ locals }) => {
         deleteForm,
         createForm,
     };
-}) satisfies PageServerLoad;
+})
 
 export const actions: Actions = {
-    create: async ({ request, fetch, locals }) => {
-
-        console.log('Create action started');
-        
-        if (!locals.user?.primary_club_id) {
+    create: async ({ request, locals: { supabase, user } }) => {
+        if (!user?.club_id) {
             const form = await superValidate(request, zod(teamSchema));
             return fail(400, { 
                 form, 
-                error: 'No primary club ID set for user' 
+                error: 'No club ID set for user' 
             });
         }
 
         const formData = await request.formData();
-        formData.set('club_id', locals.user.primary_club_id.toString());
+        formData.set('club_id', user.club_id.toString());
         formData.set('is_active', 'true');
         
         const form = await superValidate(formData, zod(teamSchema));
-        console.log('Form validation result:', form);
         
         if (!form.valid) {
-            console.log('Form validation failed:', form.errors);
             return fail(400, { form });
         }
 
-        console.log('Sending team data:', form.data);
-
         try {
-            const response = await fetch(`${API_URL}/teams`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${locals.token}`
-                },
-                body: JSON.stringify(form.data)
-            });
+            const { data: team, error: insertError } = await supabase
+                .from('teams')
+                .insert(form.data)
+                .select()
+                .single();
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                return fail(response.status, { 
+            if (insertError) {
+                return fail(400, { 
                     form, 
-                    error: errorData.detail || 'Failed to create team'
+                    error: insertError.message || 'Failed to create team'
                 });
             }
-
-            const team = await response.json();
-            console.log('API Response:', response.status, team);
 
             return { 
                 form,
@@ -91,7 +76,6 @@ export const actions: Actions = {
                 team
             };
         } catch (err) {
-            console.error('API call failed:', err);
             return fail(500, { 
                 form, 
                 error: 'Failed to create team' 
@@ -99,7 +83,7 @@ export const actions: Actions = {
         }
     },
 
-    deleteTeam: async ({ request, fetch, locals }) => {
+    deleteTeam: async ({ request, locals: { supabase } }) => {
         const form = await superValidate(request, zod(deleteTeamSchema));
 
         if (!form.valid) {
@@ -107,22 +91,23 @@ export const actions: Actions = {
         }
 
         try {
-            const response = await fetch(`${API_URL}/teams/${form.data.team_id}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${locals.token}`
-                }
-            });
+            const { error: deleteError } = await supabase
+                .from('teams')
+                .delete()
+                .eq('team_id', form.data.team_id);
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                return fail(response.status, { 
+            if (deleteError) {
+                return fail(400, { 
                     form,
-                    error: errorData.detail || 'Failed to delete team'
+                    error: deleteError.message || 'Failed to delete team'
                 });
             }
 
-            const result: DeleteTeamResponse = await response.json();
+            const result: DeleteTeamResponse = {
+                message: 'Team deleted successfully',
+                action: 'delete'
+            };
+
             return { 
                 form,
                 success: true,
@@ -130,7 +115,6 @@ export const actions: Actions = {
                 action: result.action
             };
         } catch (err) {
-            console.error('API call failed:', err);
             return fail(500, { 
                 form,
                 error: 'Failed to delete team' 
