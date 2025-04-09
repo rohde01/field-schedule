@@ -2,6 +2,7 @@
     import '../app.css';
     import { invalidate } from '$app/navigation';
     import { page } from '$app/stores';
+    import type { PageData } from './$types';
     import { setFacilities } from '$stores/facilities';
     import { setFields } from '$stores/fields';
     import { setTeams } from '$stores/teams';
@@ -10,7 +11,7 @@
     import { setEvents } from '$stores/events';
     import { onMount } from 'svelte';
 
-    let { data } = $props();
+    let { data } = $props<{ data: PageData }>();
     let { session, supabase } = $derived(data);
 
     $effect(() => {
@@ -67,16 +68,6 @@
         form.submit();
         document.body.removeChild(form);
     }
-
-    onMount(() => {
-        const { data } = supabase.auth.onAuthStateChange((event, newSession) => {
-            if (newSession?.expires_at !== session?.expires_at) {
-                invalidate('supabase:auth');
-            }
-        });
-
-        return () => data.subscription.unsubscribe();
-    });
 </script>
 
 <div class="min-h-screen bg-sage-50"> 

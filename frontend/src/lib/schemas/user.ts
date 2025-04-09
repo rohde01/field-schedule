@@ -7,7 +7,7 @@ export const userSchema = z.object({
     last_name: z.string().nullable(),
     role: z.string().default("member"),
     is_active: z.boolean().default(true),
-    club_id: z.number().nullable(),
+    club_id: z.number().int().positive().nullable(),
     created_at: z.string().nullable(),
     updated_at: z.string().nullable()
 });
