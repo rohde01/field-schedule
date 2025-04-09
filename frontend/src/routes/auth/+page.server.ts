@@ -51,5 +51,27 @@ export const actions: Actions = {
       });
     }
     throw redirect(303, '/dashboard');
+  },
+
+  logout: async ({ cookies, locals: { supabase } }) => {
+    
+    const { error } = await supabase.auth.signOut({
+      scope: 'global'
+    });
+    
+    if (error) {
+      return fail(500, { message: 'Logout failed' });
+    }
+    
+    // Clear auth cookies
+    const authCookies = ['sb-access-token', 'sb-refresh-token', 'sb-auth-token'];
+    authCookies.forEach(name => {
+      const cookie = cookies.get(name);
+      if (cookie) {
+        cookies.delete(name, { path: '/' });
+      }
+    });
+    
+    throw redirect(303, '/');
   }
 }

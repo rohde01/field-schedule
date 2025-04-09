@@ -51,8 +51,25 @@
 
     const isLandingPage = $derived($page.url.pathname === '/');
 
+    // client-side logout function
+    async function handleLogout() {
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+            return;
+        }
+        await invalidate('supabase:auth');
+        
+        // Create and submit the form programmatically
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/auth?/logout';
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+    }
+
     onMount(() => {
-        const { data } = supabase.auth.onAuthStateChange((_, newSession) => {
+        const { data } = supabase.auth.onAuthStateChange((event, newSession) => {
             if (newSession?.expires_at !== session?.expires_at) {
                 invalidate('supabase:auth');
             }
@@ -81,12 +98,16 @@
                         </div>
                         <div class="flex items-center space-x-4">
                             {#if data.user}
-                                <form action="/logout" method="POST">
-                                    <button type="submit" class="btn-secondary">Logout</button>
-                                </form>
+                                <button 
+                                    type="button" 
+                                    class="btn-secondary" 
+                                    onclick={handleLogout}
+                                >
+                                    Logout
+                                </button>
                             {:else}
-                                <a href="/login" class="nav-link">Login</a>
-                                <a href="/register" class="btn-primary">Register</a>
+                                <a href="/auth" class="nav-link">Login</a>
+                                <a href="/auth" class="btn-primary">Register</a>
                             {/if}
                         </div>
                     </div>
