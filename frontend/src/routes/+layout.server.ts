@@ -34,13 +34,19 @@ export const load: LayoutServerLoad = async ({ locals, locals: { safeGetSession,
             throw error(500, 'Failed to fetch teams');
         }
 
-        // TODO: Implement Supabase queries for these tables
-        /*
+        // Fetch facilities from Supabase
         const { data: facilities, error: facilitiesError } = await supabase
             .from('facilities')
             .select('*')
             .eq('club_id', locals.user.club_id);
 
+        if (facilitiesError) {
+            console.error('Failed to fetch facilities:', facilitiesError);
+            throw error(500, 'Failed to fetch facilities');
+        }
+
+        // TODO: Implement Supabase queries for these tables
+        /*
         const { data: fields, error: fieldsError } = await supabase
             .from('fields')
             .select('*')
@@ -86,15 +92,14 @@ export const load: LayoutServerLoad = async ({ locals, locals: { safeGetSession,
         const schedules: Schedule[] = await schedulesResponse.json();
         const events: EventSchedule[] = await eventsResponse.json();*/
 
-        // Temporary empty arrays until Supabase migration is complete
-        const facilities: Facility[] = [];
+        // Temporary empty arrays for fields, schedules, and events until Supabase migration is complete
         const fields: Field[] = [];
         const schedules: Schedule[] = [];
         const events: EventSchedule[] = [];
         
         return {
             user: locals.user,
-            facilities,
+            facilities: facilities || [],
             fields,
             teams: teams || [],
             schedules,
