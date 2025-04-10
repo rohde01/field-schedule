@@ -1,7 +1,6 @@
 import type { LayoutServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import type { Schedule } from '$lib/schemas/schedule';
-import type { EventSchedule } from '$lib/schemas/event';
 import { processFields } from '$lib/utils/fieldProcessor';
 
 export const load: LayoutServerLoad = async ({ locals, locals: { safeGetSession, supabase }, cookies }) => {
@@ -75,13 +74,19 @@ export const load: LayoutServerLoad = async ({ locals, locals: { safeGetSession,
                 club_id,
                 facility_id,
                 name,
+                active_from,
+                active_until,
                 schedule_entries (
                     schedule_entry_id,
+                    schedule_id,
                     team_id,
                     field_id,
-                    start_time,
-                    end_time,
-                    week_day
+                    dtstart,
+                    dtend,
+                    is_deleted,
+                    recurrence_rule,
+                    recurrence_id,
+                    parent_entry_id
                 )
             `)
             .eq('club_id', locals.user.club_id);
@@ -93,7 +98,6 @@ export const load: LayoutServerLoad = async ({ locals, locals: { safeGetSession,
 
         const schedules: Schedule[] = rawSchedules || [];
 
-        const events: EventSchedule[] = [];
         
         return {
             user: locals.user,
@@ -101,7 +105,6 @@ export const load: LayoutServerLoad = async ({ locals, locals: { safeGetSession,
             fields,
             teams: teams || [],
             schedules,
-            events,
             session,
             cookies: cookies.getAll()
         };

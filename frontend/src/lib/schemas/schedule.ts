@@ -1,26 +1,21 @@
 import { z } from 'zod';
 import { constraintSchema } from './constraint';
-const timeStringRegex = /^([0-1]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/;
 
 export const scheduleEntrySchema = z.object({
     schedule_entry_id: z.number().int().positive(),
-    override_id: z.number().int().positive().nullable().optional(),
     schedule_id: z.number().int().positive(),
     team_id: z.number().int().positive().nullable(),
     field_id: z.number().int().positive().nullable(),
-    start_time: z.string().regex(timeStringRegex, { 
-      message: "Time must be in HH:MM or HH:MM:SS format" 
-    }),
-    end_time: z.string().regex(timeStringRegex, { 
-      message: "Time must be in HH:MM or HH:MM:SS format" 
-    }),
-    week_day: z.number().int().min(0).max(6).nullable().optional(),
-    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { 
-      message: "Date must be in the format YYYY-MM-DD" 
-    }).nullable().optional(),
-    type: z.enum(["recurring", "override", "one_off"]),
+    dtstart: z.string().refine(val => !isNaN(Date.parse(val)), {
+        message: "dtstart must be a valid datetime string",
+      }),
+      dtend: z.string().refine(val => !isNaN(Date.parse(val)), {
+        message: "dtend must be a valid datetime string",
+      }),
     is_deleted: z.boolean().default(false),
-    isTemporary: z.boolean().optional()
+    recurrence_rule: z.string().optional(),  // If present, should be a valid RRULE string
+    recurrence_id: z.string().optional(),
+    parent_entry_id: z.number().int().optional(),
   });
   
 
@@ -29,7 +24,13 @@ export const scheduleSchema = z.object({
     club_id: z.number().int().positive(),
     name: z.string().min(1),
     facility_id: z.number().int().positive(),
-    schedule_entries: z.array(scheduleEntrySchema)
+    schedule_entries: z.array(scheduleEntrySchema),
+    active_from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, {
+        message: "active_from must be in the format YYYY-MM-DD"
+      }),
+    active_until: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, {
+        message: "active_until must be in the format YYYY-MM-DD"
+      }),
 });
 
 export type ScheduleEntry = z.infer<typeof scheduleEntrySchema>;
