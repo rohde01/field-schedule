@@ -83,10 +83,12 @@ export const load: LayoutServerLoad = async ({ locals, locals: { safeGetSession,
                     field_id,
                     dtstart,
                     dtend,
-                    is_deleted,
                     recurrence_rule,
                     recurrence_id,
-                    parent_entry_id
+                    recurring_entry_id,
+                    exdate,
+                    summary,
+                    description
                 )
             `)
             .eq('club_id', locals.user.club_id);
