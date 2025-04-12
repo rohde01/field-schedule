@@ -40,6 +40,7 @@
 		"@tailwindcss/forms": "^0.5.9",
 		"@tailwindcss/typography": "^0.5.15",
 		"jwt-decode": "^4.0.0",
+		"rrule": "^2.8.1",
 		"sveltekit-superforms": "^2.21.1",
 		"zod": "^3.24.0"
 	}

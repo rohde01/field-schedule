@@ -2,13 +2,12 @@ import { error, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { activeScheduleUpdateSchema } from '$lib/schemas/schedule';
 import { API_URL } from '$env/static/private';
-import { EventOverrideCreateSchema, EventOverrideUpdateSchema } from '$lib/schemas/event';
 
 export const load = (async ({ fetch, locals }) => {
-    if (!locals.user?.primary_club_id) throw error(403, 'No club access');
+    if (!locals.user?.club_id) throw error(403, 'No club access');
 
     try {
-        const res = await fetch(`${API_URL}/active-schedules/${locals.user.primary_club_id}`, {
+        const res = await fetch(`${API_URL}/active-schedules/${locals.user.club_id}`, {
             headers: {
                 'Authorization': `Bearer ${locals.token}`
             }

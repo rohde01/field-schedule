@@ -1,58 +1,31 @@
 import type { Field } from '$lib/schemas/field';
-import type { Schedule } from '$lib/schemas/schedule';
 import type { ScheduleEntry } from '$lib/schemas/schedule';
 import { writable } from 'svelte/store';
 import { derived } from 'svelte/store';
 import { dropdownState } from '../../stores/ScheduleDropdownState';
-
+import { browser } from '$app/environment';
 
 export const currentWeekDay = writable(0);
-export const timeSlotGranularity = writable(15);
-export const includeActiveFields = writable(true);
 export const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-export const activeEvents = derived(dropdownState, ($dropdownState): ScheduleEntry[] => {
+export const activeEvents = browser ? derived(dropdownState, ($dropdownState): ScheduleEntry[] => {
   const selectedSchedule = $dropdownState.selectedSchedule;
   if (!selectedSchedule) return [];
   return selectedSchedule.schedule_entries;
-});
+}) : writable([]);
 
-export const timeSlots = derived([timeSlotGranularity], ([$timeSlotGranularity]) => {
+export const timeSlots = writable((() => {
+  if (!browser) return [];
   const earliestStart = "16:00";
   const latestEnd = "20:30";
-  
-  return generateTimeSlots(earliestStart, latestEnd, $timeSlotGranularity);
-});
+  const intervalMinutes = 15;
+  return generateTimeSlots(earliestStart, latestEnd, intervalMinutes);
+})());
 
-export function buildResources(allFields: Field[], selectedSchedule: any | null, includeActive: boolean = true): Field[] {
-    if (!selectedSchedule) return [];
-    
-    if (!selectedSchedule.facility_id) return [];
-
-    return allFields.filter(field => {
-      if (field.facility_id !== selectedSchedule.facility_id) return false;
-      
-      // Include fields that are active, if the toggle is enabled
-      if (includeActive && field.is_active === true) return true;
-      
-      // Include fields that are referenced in the schedule entries
-      const scheduleFieldIds = new Set(selectedSchedule.entries.map((entry: any) => entry.field_id));
-      
-      if (scheduleFieldIds.has(field.field_id)) return true;
-      
-      const hasHalfFieldInSchedule = field.half_subfields.some(half => 
-        scheduleFieldIds.has(half.field_id)
-      );
-      if (hasHalfFieldInSchedule) return true;
-      
-      const hasQuarterFieldInSchedule = field.quarter_subfields.some(quarter => 
-        scheduleFieldIds.has(quarter.field_id)
-      );
-      if (hasQuarterFieldInSchedule) return true;
-      
-      return false;
-    });
-  }
+export function buildResources(allFields: Field[], selectedSchedule: any | null): Field[] {
+    if (!selectedSchedule || !selectedSchedule.facility_id) return [];
+    return allFields.filter(field => field.facility_id === selectedSchedule.facility_id);
+}
 
 export function generateTimeSlots(
     start: string,
@@ -74,7 +47,7 @@ export function generateTimeSlots(
     }
   
     return slots;
-  }
+}
 
 export function normalizeTime(time: string): string {
   return time.slice(0, 5);
@@ -98,42 +71,12 @@ export function getEventRowEndWithSlots(endTime: string, timeSlots: string[]): n
   return getEventEndRow(endTime, timeSlots);
 }
 
-export function getNextDay(currentDay: number): number {
-  return (currentDay + 1) % 7;
-}
-
-export function getPreviousDay(currentDay: number): number {
-  return (currentDay - 1 + 7) % 7;
-}
-
-export function handleGranularityChange(e: Event) {
-  const select = e.target as HTMLSelectElement;
-  timeSlotGranularity.set(parseInt(select.value));
-}
-  
 export function nextDay() {
   currentWeekDay.update(day => (day + 1) % 7);
 }
 
 export function previousDay() {
   currentWeekDay.update(day => (day - 1 + 7) % 7);
-}
-
-export function addMinutes(time: string, minutes: number): string {
-  const [h, m] = time.split(':').map(Number);
-  const total = h * 60 + m + minutes;
-  const nh = Math.floor(total / 60) % 24;
-  const nm = total % 60;
-  return `${nh.toString().padStart(2, '0')}:${nm.toString().padStart(2, '0')}`;
-}
-
-export function handleIncludeActiveFieldsToggle(e?: Event) {
-  if (e) {
-    const target = e.target as HTMLInputElement;
-    includeActiveFields.set(target.checked);
-  } else {
-    includeActiveFields.update(value => !value);
-  }
 }
 
 export function getEventContentVisibility(startRow: number, endRow: number) {
@@ -144,6 +87,28 @@ export function getEventContentVisibility(startRow: number, endRow: number) {
     showField: rowsSpanned >= 2,
     showTime: rowsSpanned >= 3
   };
+}
+
+export function getWeekDayFromRRule(rrule: string | null | undefined): number | null {
+  if (!rrule) return null;
+  const match = rrule.match(/BYDAY=([A-Z]{2})/);
+  if (!match) return null;
+  const dayMap: { [key: string]: number } = { MO: 0, TU: 1, WE: 2, TH: 3, FR: 4, SA: 5, SU: 6 };
+  return dayMap[match[1]];
+}
+
+export function getTimeFromDate(date: Date | string): string {
+  if (date instanceof Date) {
+    return date.toTimeString().slice(0, 5);
+  } else if (typeof date === 'string') {
+    // Extract time from ISO format string like "2025-04-07T17:00:00"
+    const timePart = date.split('T')[1];
+    if (timePart) {
+      return timePart.substring(0, 5); // Get HH:MM part
+    }
+    return normalizeTime(date);
+  }
+  return "00:00"; // Default fallback
 }
 
 

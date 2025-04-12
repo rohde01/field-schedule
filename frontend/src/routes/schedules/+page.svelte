@@ -9,7 +9,7 @@
     import { teams, setTeams } from '$stores/teams';
     import { superForm } from 'sveltekit-superforms/client';
     import CreateSchedule from '$lib/components/CreateSchedule.svelte';
-    import Dnd from '$lib/components/dnd.svelte'
+    import Schedule from '$lib/components/Schedule.svelte'
     import StatCard from '$lib/components/StatCard.svelte';
     import type { Constraint, ScheduleEntry } from '$lib/schemas/schedule';
     import SuperDebug from 'sveltekit-superforms';
@@ -216,7 +216,7 @@
 
         {#if $dropdownState.selectedSchedule}
             <div class="selected-schedule-section">
-                <Dnd />
+                <Schedule />
             </div>
         {/if}
 

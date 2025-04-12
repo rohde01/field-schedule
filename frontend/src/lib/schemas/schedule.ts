@@ -13,7 +13,7 @@ export const scheduleEntrySchema = z.object({
     dtend: z.coerce.date({ // The end date and time of this specific event instance or the first instance in a recurring series. Must be after dtstart. Required.
       errorMap: () => ({ message: "dtend must be a valid date/time string" }),
     }),
-    recurrence_rule: z.string().nullable().optional(), // An RFC 5545 recurrence rule string (e.g., 'FREQ=WEEKLY;BYDAY=MO;UNTIL=...') defining how this event repeats. Null for standalone events or exception entries.
+    recurrence_rule: z.string().nullable().optional(), // An RFC 5545 recurrence rule string (e.g., 'FREQ=WEEKLY;BYWEEKDAY=MO;UNTIL=...') defining how this event repeats. Null for standalone events or exception entries.
     
     // If this entry represents an exception (modification/override) to a recurring series, this field holds the ORIGINAL start timestamp of the instance being overridden. Null otherwise.
     recurrence_id: z.coerce.date({ 
