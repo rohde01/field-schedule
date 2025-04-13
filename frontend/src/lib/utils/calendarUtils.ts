@@ -5,8 +5,13 @@ import { derived } from 'svelte/store';
 import { dropdownState } from '../../stores/ScheduleDropdownState';
 import { browser } from '$app/environment';
 
-export const currentWeekDay = writable(0);
-export const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+export const currentDate = writable(new Date());
+export const weekDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+// Derive current weekday from the date using JavaScript's standard (0=Sunday, 6=Saturday)
+export const currentWeekDay = derived(currentDate, ($currentDate) => {
+  return $currentDate.getDay();
+});
 
 export const activeEvents = browser ? derived(dropdownState, ($dropdownState): ScheduleEntry[] => {
   const selectedSchedule = $dropdownState.selectedSchedule;
@@ -21,6 +26,20 @@ export const timeSlots = writable((() => {
   const intervalMinutes = 15;
   return generateTimeSlots(earliestStart, latestEnd, intervalMinutes);
 })());
+
+// Format the date as "Monday, January 1, 2023"
+export function formatDate(date: Date): string {
+  return `${weekDays[date.getDay()]}, ${date.toLocaleDateString('en-US', { 
+    month: 'long', 
+    day: 'numeric',
+    year: 'numeric'
+  })}`;
+}
+
+// Get weekday index using JavaScript's standard (0=Sunday, 6=Saturday) from a date
+export function getCurrentWeekday(date: Date): number {
+  return date.getDay();
+}
 
 export function buildResources(allFields: Field[], selectedSchedule: any | null): Field[] {
     if (!selectedSchedule || !selectedSchedule.facility_id) return [];
@@ -72,11 +91,19 @@ export function getEventRowEndWithSlots(endTime: string, timeSlots: string[]): n
 }
 
 export function nextDay() {
-  currentWeekDay.update(day => (day + 1) % 7);
+  currentDate.update(date => {
+    const newDate = new Date(date);
+    newDate.setDate(date.getDate() + 1);
+    return newDate;
+  });
 }
 
 export function previousDay() {
-  currentWeekDay.update(day => (day - 1 + 7) % 7);
+  currentDate.update(date => {
+    const newDate = new Date(date);
+    newDate.setDate(date.getDate() - 1);
+    return newDate;
+  });
 }
 
 export function getEventContentVisibility(startRow: number, endRow: number) {
@@ -91,10 +118,20 @@ export function getEventContentVisibility(startRow: number, endRow: number) {
 
 export function getWeekDayFromRRule(rrule: string | null | undefined): number | null {
   if (!rrule) return null;
-  const match = rrule.match(/BYDAY=([A-Z]{2})/);
+  const match = rrule.match(/BYWEEKDAY=([A-Z]{2})/);
   if (!match) return null;
-  const dayMap: { [key: string]: number } = { MO: 0, TU: 1, WE: 2, TH: 3, FR: 4, SA: 5, SU: 6 };
+  const dayMap: { [key: string]: number } = { SU: 0, MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6 };
   return dayMap[match[1]];
+}
+
+// Check if an event should be shown on a given date based on its recurrence rule
+export function shouldShowEventOnDate(event: ScheduleEntry, date: Date): boolean {
+  if (!event.recurrence_rule) return false;
+  
+  const weekDay = date.getDay();
+  const eventWeekDay = getWeekDayFromRRule(event.recurrence_rule);
+  
+  return eventWeekDay === weekDay;
 }
 
 export function getTimeFromDate(date: Date | string): string {

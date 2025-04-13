@@ -5,9 +5,10 @@
   import { fields } from '$stores/fields';
   import { teams } from '$stores/teams';
   import { derived } from 'svelte/store';
-  import { buildResources, normalizeTime, weekDays, timeSlots, activeEvents, 
-          nextDay, previousDay, currentWeekDay, getRowForTimeWithSlots, getEventRowEndWithSlots,
-          getEventContentVisibility, getWeekDayFromRRule, getTimeFromDate } from '$lib/utils/calendarUtils';
+  import { buildResources, timeSlots, activeEvents, 
+          nextDay, previousDay, getRowForTimeWithSlots, getEventRowEndWithSlots,
+          getEventContentVisibility, getWeekDayFromRRule, getTimeFromDate,
+          currentDate, formatDate, shouldShowEventOnDate } from '$lib/utils/calendarUtils';
   import { getFieldColumns, buildFieldToGridColumnMap, generateHeaderCells, getFieldName } from '$lib/utils/fieldUtils';
 
   const activeFields = browser ? derived([fields, dropdownState], ([$fields, $dropdownState]) => {
@@ -47,7 +48,9 @@
   <div class="schedule-controls flex justify-between items-center my-2 py-2">
     <div class="weekday-navigation flex items-center gap-2">
       <button on:click={previousDay} class="nav-button">‹</button>
-      <span class="current-day text-lg font-medium text-sage-800">{weekDays[$currentWeekDay]}</span>
+      <span class="current-day text-lg font-medium text-sage-800">
+        {formatDate($currentDate)}
+      </span>
       <button on:click={nextDay} class="nav-button">›</button>
     </div>
   </div>
@@ -88,7 +91,7 @@
     {/each}
 
     <!-- EVENTS -->
-    {#each $processedEvents.filter(event => event.week_day === $currentWeekDay) as event (event.schedule_entry_id)}
+    {#each $processedEvents.filter(event => shouldShowEventOnDate(event, $currentDate)) as event (event.schedule_entry_id)}
       {#if event.field_id != null && fieldToGridColMap.has(event.field_id)}
         {@const mapping = fieldToGridColMap.get(event.field_id)!}
         {@const startRow = getRowForTimeWithSlots(event.start_time, $timeSlots)}
