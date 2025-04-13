@@ -88,28 +88,33 @@
 </script>
 
 <div class="schedule-container">
-  <div class="schedule-controls flex justify-between items-center my-2 py-2">
-    <div class="weekday-navigation flex items-center gap-2">
-      <button on:click={previousPeriod} class="nav-button">‹</button>
-      <span class="current-day text-lg font-medium text-sage-800">
+  <div class="schedule-controls flex items-center my-2 py-2">
+    <div class="current-date flex-1">
+      <span class="text-xl font-semibold text-black">
         {$viewMode === 'day' ? formatDate($currentDate) : monthViewTitle}
       </span>
-      <button on:click={nextPeriod} class="nav-button">›</button>
     </div>
 
-    <div class="view-toggle">
-      <button
-        class="view-toggle-btn { $viewMode === 'day' ? 'active' : '' }"
-        on:click={() => $viewMode = 'day'}
-      >
-        Day
-      </button>
-      <button
-        class="view-toggle-btn { $viewMode === 'week' ? 'active' : '' }"
-        on:click={() => $viewMode = 'week'}
-      >
-        Month
-      </button>
+    <div class="view-toggle-container flex-shrink-0">
+      <div class="view-toggle">
+        <button
+          class="view-toggle-btn { $viewMode === 'day' ? 'active' : '' }"
+          on:click={() => $viewMode = 'day'}
+        >
+          Day
+        </button>
+        <button
+          class="view-toggle-btn { $viewMode === 'week' ? 'active' : '' }"
+          on:click={() => $viewMode = 'week'}
+        >
+          Month
+        </button>
+      </div>
+    </div>
+
+    <div class="navigation-controls flex-1 flex items-center gap-2 justify-end">
+      <button on:click={previousPeriod} class="nav-button">‹</button>
+      <button on:click={nextPeriod} class="nav-button">›</button>
     </div>
   </div>
 

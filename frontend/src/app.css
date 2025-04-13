@@ -369,38 +369,31 @@
   }
 
     /* view mode toggle*/
-    
     .view-toggle-container {
-    @apply flex justify-end mb-4;
-  }
-
-  .view-toggle {
-    @apply inline-flex rounded-lg p-1 bg-sage-100;
-  }
-
-  .view-toggle-btn {
-    @apply px-6 py-2 text-sm font-medium transition-all duration-200;
-  }
-
-  .view-toggle-btn.active {
-    @apply bg-mint-500 text-white rounded-md shadow-sm;
-  }
-
-  .view-toggle-btn:not(.active) {
-    @apply text-sage-700 hover:text-mint-600;
-  }
-
-  .left-btn {
-    @apply rounded-l-md;
-  }
-
-  .right-btn {
-    @apply rounded-r-md;
-  }
-
-  .schedule-controls {
-    @apply flex justify-between items-center mb-4;
-  }
+      @apply flex justify-center;
+      width: 160px;
+    }
+  
+    .view-toggle {
+      @apply inline-flex rounded-lg p-0.5 bg-sage-100;
+      width: auto;
+    }
+  
+    .view-toggle .view-toggle-btn {
+      @apply px-2.5 py-1 text-sm font-medium transition-all duration-200;
+    }
+  
+    .view-toggle .view-toggle-btn.active {
+      @apply bg-mint-500 text-white rounded-md shadow-sm;
+    }
+  
+    .view-toggle- .view-toggle-btn:not(.active) {
+      @apply text-sage-700 hover:text-mint-600;
+    }
+  
+    .navigation-controls {
+      @apply flex items-center justify-end gap-2 min-w-0;
+    }
 
   .timeslot-selector {
     @apply flex items-center gap-2;
@@ -546,4 +539,5 @@
     height: 14px;
     stroke-width: 0.5;
   }
+
 }
