@@ -12,6 +12,7 @@
           currentDate, formatDate, shouldShowEntryOnDate, processedEntries } from '$lib/utils/calendarUtils';
   import { getFieldColumns, buildFieldToGridColumnMap, generateHeaderCells, getFieldName } from '$lib/utils/fieldUtils';
   import { writable } from 'svelte/store';
+  import Calendar from '$lib/components/Calendar.svelte';
 
   const activeFields = browser ? derived([fields, dropdownState], ([$fields, $dropdownState]) => {
     return buildResources($fields, $dropdownState.selectedSchedule);
@@ -45,17 +46,39 @@
   }
 
   const viewMode = writable('day');
-
+  
+  // Reference to the Calendar component for navigation
+  let calendarComponent: Calendar;
+  let calendarTitle = '';
+  
+  // Update navigation functions for week/month view
+  function previousPeriod() {
+    if ($viewMode === 'day') {
+      previousDay();
+    } else {
+      calendarComponent?.navigatePrev();
+      calendarTitle = calendarComponent?.getCurrentTitle() || '';
+    }
+  }
+  
+  function nextPeriod() {
+    if ($viewMode === 'day') {
+      nextDay();
+    } else {
+      calendarComponent?.navigateNext();
+      calendarTitle = calendarComponent?.getCurrentTitle() || '';
+    }
+  }
 </script>
 
 <div class="schedule-container">
   <div class="schedule-controls flex justify-between items-center my-2 py-2">
     <div class="weekday-navigation flex items-center gap-2">
-      <button on:click={previousDay} class="nav-button">‹</button>
+      <button on:click={previousPeriod} class="nav-button">‹</button>
       <span class="current-day text-lg font-medium text-sage-800">
-        {formatDate($currentDate)}
+        {$viewMode === 'day' ? formatDate($currentDate) : calendarTitle}
       </span>
-      <button on:click={nextDay} class="nav-button">›</button>
+      <button on:click={nextPeriod} class="nav-button">›</button>
     </div>
 
     <div class="view-toggle">
@@ -144,8 +167,10 @@
       {/each}
     </div>
   {:else if $viewMode === 'week'}
-    <div class="month-view p-8 text-center text-xl font-bold">
-      TO BE IMPLEMENTED
+    <div class="month-view">
+      <Calendar bind:this={calendarComponent} on:mount={() => {
+        calendarTitle = calendarComponent?.getCurrentTitle() || '';
+      }} />
     </div>
   {/if}
 </div>
