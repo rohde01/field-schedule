@@ -2,7 +2,7 @@
   import { browser } from '$app/environment';
   import { dropdownState } from '../../stores/ScheduleDropdownState';
   import type { Field } from '$lib/schemas/field';
-  import type { ProcessedScheduleEntry } from '$lib/utils/calendarUtils'; // Import the proper type
+  import type { ProcessedScheduleEntry } from '$lib/utils/calendarUtils';
   import { fields } from '$stores/fields';
   import { teams } from '$stores/teams';
   import { derived } from 'svelte/store';

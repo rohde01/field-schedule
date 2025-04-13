@@ -7,8 +7,6 @@ import { browser } from '$app/environment';
 import * as rrulelib from 'rrule';
 const { RRuleSet, rrulestr } = rrulelib;
 
-type RRuleSetType = typeof RRuleSet;
-
 export type ProcessedScheduleEntry = ScheduleEntry & {
   start_time: string;
   end_time: string;
@@ -146,7 +144,7 @@ export function shouldShowEntryOnDate(entry: ScheduleEntry, date: Date): boolean
   return isSameDay(entryDate, date);
 }
 
-function createRecurringEvents(entry: ScheduleEntry, startDate: Date, endDate: Date): ProcessedScheduleEntry[] {
+function createRecurringEvents(entry: ScheduleEntry, schedule: any): ProcessedScheduleEntry[] {
   if (!entry.recurrence_rule) return [];
 
   try {
@@ -169,7 +167,10 @@ function createRecurringEvents(entry: ScheduleEntry, startDate: Date, endDate: D
       });
     }
 
-    // Get all occurrences and generate entries for each date
+    const startDate = new Date(`${schedule.active_from}T00:00:00`);
+    const endDate = new Date(`${schedule.active_until}T23:59:59`);
+
+    // Get all occurrences within the schedule's date range
     const occurrences = rruleSet.between(startDate, endDate, true);
     return occurrences.map(date => {
       const durationMs = new Date(entry.dtend).getTime() - new Date(entry.dtstart).getTime();
@@ -227,18 +228,10 @@ function getAllEntriesForDate(schedule: {schedule_entries?: ScheduleEntry[]} | n
       end_time: getTimeFromDate(entry.dtend)
     }));
     
-  // Set date range for recurring events (30 days back and forward)
-  const lookBackDate = new Date(date);
-  lookBackDate.setDate(lookBackDate.getDate() - 30);
-  
-  const lookForwardDate = new Date(date);
-  lookForwardDate.setDate(lookForwardDate.getDate() + 30);
-    
   const recurringEntries: ProcessedScheduleEntry[] = [];
   
   recurringMasters.forEach(master => {
-    // Get instances for this recurring pattern falling on our target date
-    const instances = createRecurringEvents(master, lookBackDate, lookForwardDate)
+    const instances = createRecurringEvents(master, schedule)
       .filter(instance => shouldShowEntryOnDate(instance, date));
     
     instances.forEach(instance => {
