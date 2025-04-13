@@ -5,10 +5,10 @@
   import { fields } from '$stores/fields';
   import { teams } from '$stores/teams';
   import { derived } from 'svelte/store';
-  import { buildResources, timeSlots, activeEvents, 
+  import { buildResources, timeSlots,
           nextDay, previousDay, getRowForTimeWithSlots, getEventRowEndWithSlots,
-          getEventContentVisibility, getWeekDayFromRRule, getTimeFromDate,
-          currentDate, formatDate, shouldShowEventOnDate } from '$lib/utils/calendarUtils';
+          getEventContentVisibility,
+          currentDate, formatDate, shouldShowEventOnDate, processedEvents } from '$lib/utils/calendarUtils';
   import { getFieldColumns, buildFieldToGridColumnMap, generateHeaderCells, getFieldName } from '$lib/utils/fieldUtils';
 
   const activeFields = browser ? derived([fields, dropdownState], ([$fields, $dropdownState]) => {
@@ -31,17 +31,6 @@
     return lookup;
   }) : derived(teams, () => new Map());
 
-  const processedEvents = browser ? derived(activeEvents, ($activeEvents) => {
-    return $activeEvents
-      .filter(event => event.recurrence_rule)
-      .map(event => ({
-        ...event,
-        week_day: getWeekDayFromRRule(event.recurrence_rule),
-        start_time: getTimeFromDate(event.dtstart),
-        end_time: getTimeFromDate(event.dtend)
-      }))
-      .filter(event => event.week_day !== null);
-  }) : derived(activeEvents, () => []);
 </script>
 
 <div class="schedule-container">

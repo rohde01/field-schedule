@@ -13,12 +13,6 @@ export const currentWeekDay = derived(currentDate, ($currentDate) => {
   return $currentDate.getDay();
 });
 
-export const activeEvents = browser ? derived(dropdownState, ($dropdownState): ScheduleEntry[] => {
-  const selectedSchedule = $dropdownState.selectedSchedule;
-  if (!selectedSchedule) return [];
-  return selectedSchedule.schedule_entries;
-}) : writable([]);
-
 export const timeSlots = writable((() => {
   if (!browser) return [];
   const earliestStart = "16:00";
@@ -34,6 +28,20 @@ export function formatDate(date: Date): string {
     day: 'numeric',
     year: 'numeric'
   })}`;
+}
+
+export function getTimeFromDate(date: Date | string): string {
+  if (date instanceof Date) {
+    return date.toTimeString().slice(0, 5);
+  } else if (typeof date === 'string') {
+    // Extract time from ISO format string like "2025-04-07T17:00:00"
+    const timePart = date.split('T')[1];
+    if (timePart) {
+      return timePart.substring(0, 5); // Get HH:MM part
+    }
+    return normalizeTime(date);
+  }
+  return "00:00"; // Default fallback
 }
 
 // Get weekday index using JavaScript's standard (0=Sunday, 6=Saturday) from a date
@@ -116,36 +124,30 @@ export function getEventContentVisibility(startRow: number, endRow: number) {
   };
 }
 
-export function getWeekDayFromRRule(rrule: string | null | undefined): number | null {
-  if (!rrule) return null;
-  const match = rrule.match(/BYWEEKDAY=([A-Z]{2})/);
-  if (!match) return null;
-  const dayMap: { [key: string]: number } = { SU: 0, MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6 };
-  return dayMap[match[1]];
-}
+// THIS SECTION HANDLES THE SCHEDULE ENTRIES
 
-// Check if an event should be shown on a given date based on its recurrence rule
+export const processedEvents = browser ? derived(dropdownState, ($dropdownState) => {
+  const selectedSchedule = $dropdownState.selectedSchedule;
+  if (!selectedSchedule) return [];
+  
+  // Process schedule entries to include time information
+  return selectedSchedule.schedule_entries.map(event => ({
+    ...event,
+    start_time: getTimeFromDate(event.dtstart),
+    end_time: getTimeFromDate(event.dtend)
+  }));
+}) : writable([]);
+
+// Check if an event should be shown on a given date based on its dtstart date
 export function shouldShowEventOnDate(event: ScheduleEntry, date: Date): boolean {
-  if (!event.recurrence_rule) return false;
+  const eventDate = new Date(event.dtstart);
   
-  const weekDay = date.getDay();
-  const eventWeekDay = getWeekDayFromRRule(event.recurrence_rule);
-  
-  return eventWeekDay === weekDay;
+  return isSameDay(eventDate, date);
 }
 
-export function getTimeFromDate(date: Date | string): string {
-  if (date instanceof Date) {
-    return date.toTimeString().slice(0, 5);
-  } else if (typeof date === 'string') {
-    // Extract time from ISO format string like "2025-04-07T17:00:00"
-    const timePart = date.split('T')[1];
-    if (timePart) {
-      return timePart.substring(0, 5); // Get HH:MM part
-    }
-    return normalizeTime(date);
-  }
-  return "00:00"; // Default fallback
+// Compare two dates to see if they're the same day
+export function isSameDay(date1: Date, date2: Date): boolean {
+  return date1.getFullYear() === date2.getFullYear() &&
+         date1.getMonth() === date2.getMonth() &&
+         date1.getDate() === date2.getDate();
 }
-
-
