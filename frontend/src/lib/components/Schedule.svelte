@@ -47,9 +47,16 @@
 
   const viewMode = writable('day');
   
+  // Month view title
+  const currentMonthDate = writable(new Date());
+  
+  $: monthViewTitle = $currentMonthDate.toLocaleDateString('en-US', { 
+    month: 'long', 
+    year: 'numeric' 
+  });
+  
   // Reference to the Calendar component for navigation
   let calendarComponent: Calendar;
-  let calendarTitle = '';
   
   // Update navigation functions for week/month view
   function previousPeriod() {
@@ -57,7 +64,9 @@
       previousDay();
     } else {
       calendarComponent?.navigatePrev();
-      calendarTitle = calendarComponent?.getCurrentTitle() || '';
+      const newDate = new Date($currentMonthDate);
+      newDate.setMonth(newDate.getMonth() - 1);
+      $currentMonthDate = newDate;
     }
   }
   
@@ -66,8 +75,15 @@
       nextDay();
     } else {
       calendarComponent?.navigateNext();
-      calendarTitle = calendarComponent?.getCurrentTitle() || '';
+      const newDate = new Date($currentMonthDate);
+      newDate.setMonth(newDate.getMonth() + 1);
+      $currentMonthDate = newDate;
     }
+  }
+  
+  // Reset to current month when switching to month view
+  $: if ($viewMode === 'week') {
+    $currentMonthDate = new Date();
   }
 </script>
 
@@ -76,7 +92,7 @@
     <div class="weekday-navigation flex items-center gap-2">
       <button on:click={previousPeriod} class="nav-button">‹</button>
       <span class="current-day text-lg font-medium text-sage-800">
-        {$viewMode === 'day' ? formatDate($currentDate) : calendarTitle}
+        {$viewMode === 'day' ? formatDate($currentDate) : monthViewTitle}
       </span>
       <button on:click={nextPeriod} class="nav-button">›</button>
     </div>
@@ -168,9 +184,7 @@
     </div>
   {:else if $viewMode === 'week'}
     <div class="month-view">
-      <Calendar bind:this={calendarComponent} on:mount={() => {
-        calendarTitle = calendarComponent?.getCurrentTitle() || '';
-      }} />
+      <Calendar bind:this={calendarComponent} />
     </div>
   {/if}
 </div>
