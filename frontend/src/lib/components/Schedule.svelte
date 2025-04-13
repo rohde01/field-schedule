@@ -2,6 +2,7 @@
   import { browser } from '$app/environment';
   import { dropdownState } from '../../stores/ScheduleDropdownState';
   import type { Field } from '$lib/schemas/field';
+  import type { ProcessedScheduleEntry } from '$lib/utils/calendarUtils'; // Import the proper type
   import { fields } from '$stores/fields';
   import { teams } from '$stores/teams';
   import { derived } from 'svelte/store';
@@ -31,6 +32,16 @@
     return lookup;
   }) : derived(teams, () => new Map());
 
+  // Function to get the best title for an entry, prioritizing summary
+  function getEntryTitle(entry: ProcessedScheduleEntry): string {
+    if (entry.summary) {
+      return entry.summary;
+    }
+    if (entry.team_id != null) {
+      return $teamNameLookup.get(entry.team_id) ?? `Team ${entry.team_id}`;
+    }
+    return "Untitled Event";
+  }
 </script>
 
 <div class="schedule-container">
@@ -96,9 +107,7 @@
           "
         >
           <div class="event-team font-bold text-[1.15em]">
-            { entry.team_id != null 
-                ? ($teamNameLookup.get(entry.team_id) ?? `Team ${entry.team_id}`) 
-                : "No team" }
+            {getEntryTitle(entry)}
           </div>
           {#if visibility.showField}
             <div class="event-field flex items-center gap-1 text-[1.12em] text-gray-600">

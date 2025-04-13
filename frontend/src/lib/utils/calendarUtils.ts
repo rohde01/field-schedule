@@ -249,8 +249,7 @@ function getAllEntriesForDate(schedule: {schedule_entries?: ScheduleEntry[]} | n
         recurringEntries.push({
           ...exception,
           start_time: getTimeFromDate(exception.dtstart),
-          end_time: getTimeFromDate(exception.dtend),
-          master_schedule_entry_id: master.schedule_entry_id
+          end_time: getTimeFromDate(exception.dtend)
         });
       } else {
         recurringEntries.push(instance);
