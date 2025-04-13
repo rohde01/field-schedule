@@ -4,6 +4,16 @@ import { writable } from 'svelte/store';
 import { derived } from 'svelte/store';
 import { dropdownState } from '../../stores/ScheduleDropdownState';
 import { browser } from '$app/environment';
+import * as rrulelib from 'rrule';
+const { RRuleSet, rrulestr } = rrulelib;
+
+type RRuleSetType = typeof RRuleSet;
+
+export type ProcessedScheduleEntry = ScheduleEntry & {
+  start_time: string;
+  end_time: string;
+  master_schedule_entry_id?: number;
+};
 
 export const currentDate = writable(new Date());
 export const weekDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -120,34 +130,143 @@ export function getEntryContentVisibility(startRow: number, endRow: number) {
   return {
     showTeamName: true,
     showField: rowsSpanned >= 2,
-    showTime: rowsSpanned >= 3
+    showTime: rowsSpanned >= 3 
   };
 }
 
-// THIS SECTION HANDLES THE SCHEDULE ENTRIES
-
-export const processedEntries = browser ? derived(dropdownState, ($dropdownState) => {
-  const selectedSchedule = $dropdownState.selectedSchedule;
-  if (!selectedSchedule) return [];
-  
-  // Process schedule entries to include time information
-  return selectedSchedule.schedule_entries.map(entry => ({
-    ...entry,
-    start_time: getTimeFromDate(entry.dtstart),
-    end_time: getTimeFromDate(entry.dtend)
-  }));
-}) : writable([]);
-
-// Check if an entry should be shown on a given date based on its dtstart date
-export function shouldShowEntryOnDate(entry: ScheduleEntry, date: Date): boolean {
-  const entryDate = new Date(entry.dtstart);
-  
-  return isSameDay(entryDate, date);
-}
-
-// Compare two dates to see if they're the same day
 export function isSameDay(date1: Date, date2: Date): boolean {
   return date1.getFullYear() === date2.getFullYear() &&
          date1.getMonth() === date2.getMonth() &&
          date1.getDate() === date2.getDate();
 }
+
+// SCHEDULE ENTRIES SECTION
+export function shouldShowEntryOnDate(entry: ScheduleEntry, date: Date): boolean {
+  const entryDate = new Date(entry.dtstart);
+  return isSameDay(entryDate, date);
+}
+
+function createRecurringEvents(entry: ScheduleEntry, startDate: Date, endDate: Date): ProcessedScheduleEntry[] {
+  if (!entry.recurrence_rule) return [];
+
+  try {
+    // Create RRuleSet and parse the recurrence rule
+    const rruleSet = new RRuleSet();
+    const dtstart = new Date(entry.dtstart);
+    
+    const ruleContent = entry.recurrence_rule.startsWith('RRULE:') 
+      ? entry.recurrence_rule
+      : `RRULE:${entry.recurrence_rule}`;
+      
+    const ruleString = `DTSTART:${dtstart.toISOString().replace(/[-:]/g, '').split('.')[0]}Z\n${ruleContent}`;
+    const rule = rrulestr(ruleString);
+    rruleSet.rrule(rule);
+
+    // Process exclusion dates if any
+    if (entry.exdate && Array.isArray(entry.exdate)) {
+      entry.exdate.forEach(exdate => {
+        rruleSet.exdate(new Date(exdate));
+      });
+    }
+
+    // Get all occurrences and generate entries for each date
+    const occurrences = rruleSet.between(startDate, endDate, true);
+    return occurrences.map(date => {
+      const durationMs = new Date(entry.dtend).getTime() - new Date(entry.dtstart).getTime();
+      const endDate = new Date(date.getTime() + durationMs);
+      
+      return {
+        ...entry,
+        dtstart: date,
+        dtend: endDate,
+        start_time: getTimeFromDate(date),
+        end_time: getTimeFromDate(endDate),
+        master_schedule_entry_id: entry.schedule_entry_id
+      };
+    });
+  } catch (error) {
+    console.error("Error creating recurring events:", error, entry.recurrence_rule);
+    return [];
+  }
+}
+
+// Find matching exception for a recurring event instance
+function findExceptionForDate(exceptions: ScheduleEntry[], date: Date): ScheduleEntry | undefined {
+  return exceptions.find(exception => {
+    if (!exception.recurrence_id) return false;
+    return isSameDay(new Date(exception.recurrence_id), date);
+  });
+}
+
+function getAllEntriesForDate(schedule: {schedule_entries?: ScheduleEntry[]} | null, date: Date): ProcessedScheduleEntry[] {
+  if (!schedule) return [];
+  
+  const entries = schedule.schedule_entries || [];
+  
+  // Categorize entries into regular, recurring masters, and exceptions
+  const regularEntries: ScheduleEntry[] = [];
+  const recurringMasters: ScheduleEntry[] = [];
+  const exceptions: ScheduleEntry[] = [];
+  
+  entries.forEach(entry => {
+    if (entry.recurrence_id) {
+      exceptions.push(entry);
+    } else if (entry.recurrence_rule) {
+      recurringMasters.push(entry);
+    } else {
+      regularEntries.push(entry);
+    }
+  });
+  
+  // Process one-time entries for this day
+  const oneTimeEntries = regularEntries
+    .filter(entry => shouldShowEntryOnDate(entry, date))
+    .map(entry => ({
+      ...entry,
+      start_time: getTimeFromDate(entry.dtstart),
+      end_time: getTimeFromDate(entry.dtend)
+    }));
+    
+  // Set date range for recurring events (30 days back and forward)
+  const lookBackDate = new Date(date);
+  lookBackDate.setDate(lookBackDate.getDate() - 30);
+  
+  const lookForwardDate = new Date(date);
+  lookForwardDate.setDate(lookForwardDate.getDate() + 30);
+    
+  const recurringEntries: ProcessedScheduleEntry[] = [];
+  
+  recurringMasters.forEach(master => {
+    // Get instances for this recurring pattern falling on our target date
+    const instances = createRecurringEvents(master, lookBackDate, lookForwardDate)
+      .filter(instance => shouldShowEntryOnDate(instance, date));
+    
+    instances.forEach(instance => {
+      // Use exception if one exists for this date, otherwise use the instance
+      const exception = findExceptionForDate(exceptions, new Date(instance.dtstart));
+      
+      if (exception) {
+        recurringEntries.push({
+          ...exception,
+          start_time: getTimeFromDate(exception.dtstart),
+          end_time: getTimeFromDate(exception.dtend),
+          master_schedule_entry_id: master.schedule_entry_id
+        });
+      } else {
+        recurringEntries.push(instance);
+      }
+    });
+  });
+  
+  return [...oneTimeEntries, ...recurringEntries];
+}
+
+export const processedEntries = browser ? derived(
+  [dropdownState, currentDate], 
+  ([$dropdownState, $currentDate]) => {
+    const selectedSchedule = $dropdownState.selectedSchedule;
+    if (!selectedSchedule) return [];
+    
+    return getAllEntriesForDate(selectedSchedule, $currentDate);
+  }
+) : writable([]);
