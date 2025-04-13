@@ -11,6 +11,7 @@
           getEntryContentVisibility,
           currentDate, formatDate, shouldShowEntryOnDate, processedEntries } from '$lib/utils/calendarUtils';
   import { getFieldColumns, buildFieldToGridColumnMap, generateHeaderCells, getFieldName } from '$lib/utils/fieldUtils';
+  import { writable } from 'svelte/store';
 
   const activeFields = browser ? derived([fields, dropdownState], ([$fields, $dropdownState]) => {
     return buildResources($fields, $dropdownState.selectedSchedule);
@@ -42,6 +43,9 @@
     }
     return "Untitled Event";
   }
+
+  const viewMode = writable('day');
+
 </script>
 
 <div class="schedule-container">
@@ -53,74 +57,95 @@
       </span>
       <button on:click={nextDay} class="nav-button">›</button>
     </div>
+
+    <div class="view-toggle">
+      <button
+        class="view-toggle-btn { $viewMode === 'day' ? 'active' : '' }"
+        on:click={() => $viewMode = 'day'}
+      >
+        Day
+      </button>
+      <button
+        class="view-toggle-btn { $viewMode === 'week' ? 'active' : '' }"
+        on:click={() => $viewMode = 'week'}
+      >
+        Month
+      </button>
+    </div>
   </div>
 
-  <div 
-    class="schedule-grid"
-    style="--total-columns: {totalColumns}; --total-rows: {$timeSlots.length + 1};"
-  >
-    <!-- HEADER ROW -->
-    <div class="schedule-header schedule-header-time">
-      Time
-    </div>
-
-    {#each headerCells as cell}
-      <div
-        class="schedule-header"
-        style="grid-column: {cell.colIndex} / span {cell.colSpan}; grid-row: 1;"
-      >
-        {cell.label}
-      </div>
-    {/each}
-
-    <!-- TIMESLOT ROWS -->
-    {#each $timeSlots as time, rowIndex}
-      <div
-        class="schedule-time"
-        style="grid-column: 1; grid-row: {rowIndex + 2};"
-      >
-        {time}
+  {#if $viewMode === 'day'}
+    <div 
+      class="schedule-grid"
+      style="--total-columns: {totalColumns}; --total-rows: {$timeSlots.length + 1};"
+    >
+      <!-- HEADER ROW -->
+      <div class="schedule-header schedule-header-time">
+        Time
       </div>
 
       {#each headerCells as cell}
         <div
-          class="schedule-cell"
-          style="grid-column: {cell.colIndex} / span {cell.colSpan}; grid-row: {rowIndex + 2};"
-        ></div>
-      {/each}
-    {/each}
-
-    <!-- ENTRIES -->
-    {#each $processedEntries.filter(entry => shouldShowEntryOnDate(entry, $currentDate)) as entry (entry.schedule_entry_id)}
-      {#if entry.field_id != null && fieldToGridColMap.has(entry.field_id)}
-        {@const mapping = fieldToGridColMap.get(entry.field_id)!}
-        {@const startRow = getRowForTimeWithSlots(entry.start_time, $timeSlots)}
-        {@const endRow = getEntryRowEndWithSlots(entry.end_time, $timeSlots)}
-        {@const visibility = getEntryContentVisibility(startRow, endRow)}
-        <div
-          class="schedule-event"
-          style="
-            grid-row-start: {startRow};
-            grid-row-end: {endRow + 1};
-            grid-column-start: {mapping.colIndex};
-            grid-column-end: span {mapping.colSpan};
-          "
+          class="schedule-header"
+          style="grid-column: {cell.colIndex} / span {cell.colSpan}; grid-row: 1;"
         >
-          <div class="event-team font-bold text-[1.15em]">
-            {getEntryTitle(entry)}
-          </div>
-          {#if visibility.showField}
-            <div class="event-field flex items-center gap-1 text-[1.12em] text-gray-600">
-              📍 {getFieldName(entry.field_id!, $activeFields)}
-            </div>
-          {/if}
-          {#if visibility.showTime}
-            <div class="event-time flex items-center gap-1 text-[1.12em] text-gray-600">
-              🕐 {entry.start_time} - {entry.end_time}
-            </div>
-          {/if}
+          {cell.label}
         </div>
-      {/if}
-    {/each}
-  </div>
+      {/each}
+
+      <!-- TIMESLOT ROWS -->
+      {#each $timeSlots as time, rowIndex}
+        <div
+          class="schedule-time"
+          style="grid-column: 1; grid-row: {rowIndex + 2};"
+        >
+          {time}
+        </div>
+
+        {#each headerCells as cell}
+          <div
+            class="schedule-cell"
+            style="grid-column: {cell.colIndex} / span {cell.colSpan}; grid-row: {rowIndex + 2};"
+          ></div>
+        {/each}
+      {/each}
+
+      <!-- ENTRIES -->
+      {#each $processedEntries.filter(entry => shouldShowEntryOnDate(entry, $currentDate)) as entry (entry.schedule_entry_id)}
+        {#if entry.field_id != null && fieldToGridColMap.has(entry.field_id)}
+          {@const mapping = fieldToGridColMap.get(entry.field_id)!}
+          {@const startRow = getRowForTimeWithSlots(entry.start_time, $timeSlots)}
+          {@const endRow = getEntryRowEndWithSlots(entry.end_time, $timeSlots)}
+          {@const visibility = getEntryContentVisibility(startRow, endRow)}
+          <div
+            class="schedule-event"
+            style="
+              grid-row-start: {startRow};
+              grid-row-end: {endRow + 1};
+              grid-column-start: {mapping.colIndex};
+              grid-column-end: span {mapping.colSpan};
+            "
+          >
+            <div class="event-team font-bold text-[1.15em]">
+              {getEntryTitle(entry)}
+            </div>
+            {#if visibility.showField}
+              <div class="event-field flex items-center gap-1 text-[1.12em] text-gray-600">
+                📍 {getFieldName(entry.field_id!, $activeFields)}
+              </div>
+            {/if}
+            {#if visibility.showTime}
+              <div class="event-time flex items-center gap-1 text-[1.12em] text-gray-600">
+                🕐 {entry.start_time} - {entry.end_time}
+              </div>
+            {/if}
+          </div>
+        {/if}
+      {/each}
+    </div>
+  {:else if $viewMode === 'week'}
+    <div class="month-view p-8 text-center text-xl font-bold">
+      TO BE IMPLEMENTED
+    </div>
+  {/if}
 </div>
