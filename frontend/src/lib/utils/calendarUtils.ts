@@ -84,7 +84,7 @@ export function rowForTime(time: string, timeSlots: string[]): number {
   return timeSlots.indexOf(normalizeTime(time)) + 2;
 }
 
-export function getEventEndRow(endTime: string, timeSlots: string[]): number {
+export function getEntryEndRow(endTime: string, timeSlots: string[]): number {
   const endTimeNormalized = normalizeTime(endTime);
   const lastOccupiedSlot = timeSlots.findIndex(slot => slot >= endTimeNormalized) - 1;
   return lastOccupiedSlot + 2; 
@@ -94,8 +94,8 @@ export function getRowForTimeWithSlots(time: string, timeSlots: string[]): numbe
   return rowForTime(time, timeSlots);
 }
 
-export function getEventRowEndWithSlots(endTime: string, timeSlots: string[]): number {
-  return getEventEndRow(endTime, timeSlots);
+export function getEntryRowEndWithSlots(endTime: string, timeSlots: string[]): number {
+  return getEntryEndRow(endTime, timeSlots);
 }
 
 export function nextDay() {
@@ -114,7 +114,7 @@ export function previousDay() {
   });
 }
 
-export function getEventContentVisibility(startRow: number, endRow: number) {
+export function getEntryContentVisibility(startRow: number, endRow: number) {
   const rowsSpanned = endRow - startRow + 1;
   
   return {
@@ -126,23 +126,23 @@ export function getEventContentVisibility(startRow: number, endRow: number) {
 
 // THIS SECTION HANDLES THE SCHEDULE ENTRIES
 
-export const processedEvents = browser ? derived(dropdownState, ($dropdownState) => {
+export const processedEntries = browser ? derived(dropdownState, ($dropdownState) => {
   const selectedSchedule = $dropdownState.selectedSchedule;
   if (!selectedSchedule) return [];
   
   // Process schedule entries to include time information
-  return selectedSchedule.schedule_entries.map(event => ({
-    ...event,
-    start_time: getTimeFromDate(event.dtstart),
-    end_time: getTimeFromDate(event.dtend)
+  return selectedSchedule.schedule_entries.map(entry => ({
+    ...entry,
+    start_time: getTimeFromDate(entry.dtstart),
+    end_time: getTimeFromDate(entry.dtend)
   }));
 }) : writable([]);
 
-// Check if an event should be shown on a given date based on its dtstart date
-export function shouldShowEventOnDate(event: ScheduleEntry, date: Date): boolean {
-  const eventDate = new Date(event.dtstart);
+// Check if an entry should be shown on a given date based on its dtstart date
+export function shouldShowEntryOnDate(entry: ScheduleEntry, date: Date): boolean {
+  const entryDate = new Date(entry.dtstart);
   
-  return isSameDay(eventDate, date);
+  return isSameDay(entryDate, date);
 }
 
 // Compare two dates to see if they're the same day

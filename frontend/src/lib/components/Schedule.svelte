@@ -6,9 +6,9 @@
   import { teams } from '$stores/teams';
   import { derived } from 'svelte/store';
   import { buildResources, timeSlots,
-          nextDay, previousDay, getRowForTimeWithSlots, getEventRowEndWithSlots,
-          getEventContentVisibility,
-          currentDate, formatDate, shouldShowEventOnDate, processedEvents } from '$lib/utils/calendarUtils';
+          nextDay, previousDay, getRowForTimeWithSlots, getEntryRowEndWithSlots,
+          getEntryContentVisibility,
+          currentDate, formatDate, shouldShowEntryOnDate, processedEntries } from '$lib/utils/calendarUtils';
   import { getFieldColumns, buildFieldToGridColumnMap, generateHeaderCells, getFieldName } from '$lib/utils/fieldUtils';
 
   const activeFields = browser ? derived([fields, dropdownState], ([$fields, $dropdownState]) => {
@@ -79,13 +79,13 @@
       {/each}
     {/each}
 
-    <!-- EVENTS -->
-    {#each $processedEvents.filter(event => shouldShowEventOnDate(event, $currentDate)) as event (event.schedule_entry_id)}
-      {#if event.field_id != null && fieldToGridColMap.has(event.field_id)}
-        {@const mapping = fieldToGridColMap.get(event.field_id)!}
-        {@const startRow = getRowForTimeWithSlots(event.start_time, $timeSlots)}
-        {@const endRow = getEventRowEndWithSlots(event.end_time, $timeSlots)}
-        {@const visibility = getEventContentVisibility(startRow, endRow)}
+    <!-- ENTRIES -->
+    {#each $processedEntries.filter(entry => shouldShowEntryOnDate(entry, $currentDate)) as entry (entry.schedule_entry_id)}
+      {#if entry.field_id != null && fieldToGridColMap.has(entry.field_id)}
+        {@const mapping = fieldToGridColMap.get(entry.field_id)!}
+        {@const startRow = getRowForTimeWithSlots(entry.start_time, $timeSlots)}
+        {@const endRow = getEntryRowEndWithSlots(entry.end_time, $timeSlots)}
+        {@const visibility = getEntryContentVisibility(startRow, endRow)}
         <div
           class="schedule-event"
           style="
@@ -96,18 +96,18 @@
           "
         >
           <div class="event-team font-bold text-[1.15em]">
-            { event.team_id != null 
-                ? ($teamNameLookup.get(event.team_id) ?? `Team ${event.team_id}`) 
+            { entry.team_id != null 
+                ? ($teamNameLookup.get(entry.team_id) ?? `Team ${entry.team_id}`) 
                 : "No team" }
           </div>
           {#if visibility.showField}
             <div class="event-field flex items-center gap-1 text-[1.12em] text-gray-600">
-              📍 {getFieldName(event.field_id!, $activeFields)}
+              📍 {getFieldName(entry.field_id!, $activeFields)}
             </div>
           {/if}
           {#if visibility.showTime}
             <div class="event-time flex items-center gap-1 text-[1.12em] text-gray-600">
-              🕐 {event.start_time} - {event.end_time}
+              🕐 {entry.start_time} - {entry.end_time}
             </div>
           {/if}
         </div>
