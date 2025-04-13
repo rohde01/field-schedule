@@ -13,7 +13,6 @@ export const load: LayoutServerLoad = async ({ locals, locals: { safeGetSession,
             fields: [],
             teams: [],
             schedules: [],
-            events: [],
             session,
             cookies: cookies.getAll()
         };
