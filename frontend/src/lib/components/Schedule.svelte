@@ -8,7 +8,7 @@
   import { derived } from 'svelte/store';
   import { buildResources, timeSlots,
           nextDay, previousDay, getRowForTimeWithSlots, getEntryRowEndWithSlots,
-          getEntryContentVisibility,
+          getEntryContentVisibility, isDraftSchedule, formatWeekdayOnly,
           currentDate, formatDate, shouldShowEntryOnDate, processedEntries } from '$lib/utils/calendarUtils';
   import { getFieldColumns, buildFieldToGridColumnMap, generateHeaderCells, getFieldName } from '$lib/utils/fieldUtils';
   import { writable } from 'svelte/store';
@@ -85,13 +85,20 @@
   $: if ($viewMode === 'week') {
     $currentMonthDate = new Date();
   }
+
+  // Check if the current schedule is a draft
+  $: isDraft = isDraftSchedule($dropdownState.selectedSchedule);
 </script>
 
 <div class="schedule-container">
   <div class="schedule-controls flex items-center my-2 py-2">
     <div class="current-date flex-1">
       <span class="text-xl font-semibold text-black">
-        {$viewMode === 'day' ? formatDate($currentDate) : monthViewTitle}
+        {#if $viewMode === 'day'}
+          {isDraft ? formatWeekdayOnly($currentDate) : formatDate($currentDate)}
+        {:else}
+          {monthViewTitle}
+        {/if}
       </span>
     </div>
 
@@ -155,7 +162,7 @@
       {/each}
 
       <!-- ENTRIES -->
-      {#each $processedEntries.filter(entry => shouldShowEntryOnDate(entry, $currentDate)) as entry (entry.schedule_entry_id)}
+      {#each $processedEntries as entry (entry.schedule_entry_id)}
         {#if entry.field_id != null && fieldToGridColMap.has(entry.field_id)}
           {@const mapping = fieldToGridColMap.get(entry.field_id)!}
           {@const startRow = getRowForTimeWithSlots(entry.start_time, $timeSlots)}

@@ -41,18 +41,25 @@
     }
     
     // Convert active schedules to calendar events
-    $: activeScheduleEvents = $activeSchedules.map(schedule => {
-        const scheduleName = $schedules.find(s => s.schedule_id === schedule.schedule_id)?.name ?? `Schedule ${schedule.schedule_id}`;
-        return {
-            id: `active_${schedule.active_schedule_id}`,
-            title: `Active: ${scheduleName}`,
-            start: new Date(schedule.start_date),
-            end: new Date(schedule.end_date),
-            allDay: true,
-            color: '#4CAF50'
-        };
-    });
-    
+    $: activeScheduleEvents = $activeSchedules
+        .map(schedule => {
+            const scheduleName = $schedules.find(s => s.schedule_id === schedule.schedule_id)?.name ?? `Schedule ${schedule.schedule_id}`;
+
+            if (!schedule.start_date || !schedule.end_date) return null;
+            
+            return {
+                id: `active_${schedule.active_schedule_id}`,
+                title: `Active: ${scheduleName}`,
+                start: new Date(schedule.start_date).toISOString(),
+                end: new Date(schedule.end_date).toISOString(),
+                allDay: true,
+                color: '#4CAF50'
+            };
+        })
+        .filter((event): event is { id: string; title: string; start: string; end: string; allDay: boolean; color: string; } => 
+            event !== null
+        ); 
+
     // Convert schedules to calendar events using active_from and active_until
     $: scheduleEvents = $schedules
         .filter(schedule => schedule.active_from && schedule.active_until)
@@ -60,13 +67,13 @@
             return {
                 id: `schedule_${schedule.schedule_id}`,
                 title: schedule.name,
-                start: new Date(schedule.active_from),
-                end: new Date(schedule.active_until),
+                start: new Date(schedule.active_from!).toISOString(),
+                end: new Date(schedule.active_until!).toISOString(),
                 allDay: true,
                 color: '#2196F3'
             };
         });
-    
+
     // Combine both event types
     $: calendarEvents = [...activeScheduleEvents, ...scheduleEvents];
 

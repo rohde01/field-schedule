@@ -38,18 +38,28 @@ export function formatDate(date: Date): string {
   })}`;
 }
 
+// Get only the weekday name
+export function formatWeekdayOnly(date: Date): string {
+  return weekDays[date.getDay()];
+}
+
+// Check if a schedule is a draft schedule (no active dates)
+export function isDraftSchedule(schedule: any): boolean {
+  return !schedule?.active_from || !schedule?.active_until;
+}
+
 export function getTimeFromDate(date: Date | string): string {
   if (date instanceof Date) {
     return date.toTimeString().slice(0, 5);
   } else if (typeof date === 'string') {
-    // Extract time from ISO format string like "2025-04-07T17:00:00"
+
     const timePart = date.split('T')[1];
     if (timePart) {
-      return timePart.substring(0, 5); // Get HH:MM part
+      return timePart.substring(0, 5);
     }
     return normalizeTime(date);
   }
-  return "00:00"; // Default fallback
+  return "00:00";
 }
 
 // Get weekday index using JavaScript's standard (0=Sunday, 6=Saturday) from a date
@@ -203,6 +213,21 @@ function getAllEntriesForDate(schedule: {schedule_entries?: ScheduleEntry[]} | n
   if (!schedule) return [];
   
   const entries = schedule.schedule_entries || [];
+  
+  // If this is a draft schedule, only return master recurring entries
+  if (isDraftSchedule(schedule)) {
+    return entries
+      .filter(entry => entry.recurrence_rule)
+      .filter(entry => {
+        const entryDate = new Date(entry.dtstart);
+        return entryDate.getDay() === date.getDay();
+      })
+      .map(entry => ({
+        ...entry,
+        start_time: getTimeFromDate(entry.dtstart),
+        end_time: getTimeFromDate(entry.dtend)
+      }));
+  }
   
   // Categorize entries into regular, recurring masters, and exceptions
   const regularEntries: ScheduleEntry[] = [];
