@@ -9,7 +9,7 @@
   import { buildResources, timeSlots,
           nextDay, previousDay, getRowForTimeWithSlots, getEntryRowEndWithSlots,
           getEntryContentVisibility, isDraftSchedule, formatWeekdayOnly,
-          currentDate, formatDate, shouldShowEntryOnDate, processedEntries } from '$lib/utils/calendarUtils';
+          currentDate, formatDate, processedEntries } from '$lib/utils/calendarUtils';
   import { getFieldColumns, buildFieldToGridColumnMap, generateHeaderCells, getFieldName } from '$lib/utils/fieldUtils';
   import { writable } from 'svelte/store';
   import Calendar from '$lib/components/Calendar.svelte';

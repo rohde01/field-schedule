@@ -10,7 +10,6 @@ const { RRuleSet, rrulestr } = rrulelib;
 export type ProcessedScheduleEntry = ScheduleEntry & {
   start_time: string;
   end_time: string;
-  master_schedule_entry_id?: number;
 };
 
 export const currentDate = writable(new Date());
@@ -191,8 +190,7 @@ function createRecurringEvents(entry: ScheduleEntry, schedule: any): ProcessedSc
         dtstart: date,
         dtend: endDate,
         start_time: getTimeFromDate(date),
-        end_time: getTimeFromDate(endDate),
-        master_schedule_entry_id: entry.schedule_entry_id
+        end_time: getTimeFromDate(endDate)
       };
     });
   } catch (error) {
@@ -202,10 +200,15 @@ function createRecurringEvents(entry: ScheduleEntry, schedule: any): ProcessedSc
 }
 
 // Find matching exception for a recurring event instance
-function findExceptionForDate(exceptions: ScheduleEntry[], date: Date): ScheduleEntry | undefined {
+function findExceptionForDate(exceptions: ScheduleEntry[], date: Date, masterUid: string): ScheduleEntry | undefined {
   return exceptions.find(exception => {
-    if (!exception.recurrence_id) return false;
-    return isSameDay(new Date(exception.recurrence_id), date);
+    if (!exception.recurrence_id || exception.uid !== masterUid) return false;
+    
+    // Compare exact timestamps using UTC epoch milliseconds
+    const recurrenceIdTime = new Date(exception.recurrence_id).getTime();
+    const instanceTime = date.getTime();
+    
+    return recurrenceIdTime === instanceTime;
   });
 }
 
@@ -261,7 +264,7 @@ function getAllEntriesForDate(schedule: {schedule_entries?: ScheduleEntry[]} | n
     
     instances.forEach(instance => {
       // Use exception if one exists for this date, otherwise use the instance
-      const exception = findExceptionForDate(exceptions, new Date(instance.dtstart));
+      const exception = findExceptionForDate(exceptions, new Date(instance.dtstart), master.uid);
       
       if (exception) {
         recurringEntries.push({
@@ -284,6 +287,8 @@ export const processedEntries = browser ? derived(
     const selectedSchedule = $dropdownState.selectedSchedule;
     if (!selectedSchedule) return [];
     
-    return getAllEntriesForDate(selectedSchedule, $currentDate);
+    const entries = getAllEntriesForDate(selectedSchedule, $currentDate);
+    console.log("Processed Entries:", entries);
+    return entries;
   }
 ) : writable([]);
