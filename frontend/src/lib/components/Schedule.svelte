@@ -90,6 +90,11 @@
 
   // Check if the current schedule is a draft
   $: isDraft = isDraftSchedule($dropdownState.selectedSchedule);
+
+  // Function to check if a time slot is an hour mark (00 minutes)
+  function isHourMark(time: string): boolean {
+    return time.endsWith(':00');
+  }
 </script>
 
 <div class="schedule-container">
@@ -128,73 +133,78 @@
   </div>
 
   {#if $viewMode === 'day'}
-    <div 
-      class="schedule-grid"
-      style="--total-columns: {totalColumns}; --total-rows: {$timeSlots.length + 1};"
-    >
-      <!-- HEADER ROW -->
-      <div class="schedule-header schedule-header-time">
-        Time
-      </div>
-
-      {#each headerCells as cell}
-        <div
-          class="schedule-header"
-          style="grid-column: {cell.colIndex} / span {cell.colSpan}; grid-row: 1;"
-        >
-          {cell.label}
-        </div>
-      {/each}
-
-      <!-- TIMESLOT ROWS -->
-      {#each $timeSlots as time, rowIndex}
-        <div
-          class="schedule-time"
-          style="grid-column: 1; grid-row: {rowIndex + 2};"
-        >
-          {time}
+    <div class="daily-schedule-wrapper" 
+         style="height: calc(80vh); overflow-y: auto; overscroll-behavior: contain;">
+      <div 
+        class="schedule-grid"
+        style="--total-columns: {totalColumns}; --total-rows: {$timeSlots.length + 1};"
+      >
+        <!-- HEADER ROW -->
+        <div class="schedule-header schedule-header-time">
+          Time
         </div>
 
         {#each headerCells as cell}
           <div
-            class="schedule-cell"
-            style="grid-column: {cell.colIndex} / span {cell.colSpan}; grid-row: {rowIndex + 2};"
-          ></div>
-        {/each}
-      {/each}
-
-      <!-- ENTRIES -->
-      {#each $processedEntries as entry (entry.schedule_entry_id)}
-        {#if entry.field_id != null && fieldToGridColMap.has(entry.field_id)}
-          {@const mapping = fieldToGridColMap.get(entry.field_id)!}
-          {@const startRow = getRowForTimeWithSlots(entry.start_time, $timeSlots)}
-          {@const endRow = getEntryRowEndWithSlots(entry.end_time, $timeSlots)}
-          {@const visibility = getEntryContentVisibility(startRow, endRow)}
-          <div
-            class="schedule-event"
-            style="
-              grid-row-start: {startRow};
-              grid-row-end: {endRow + 1};
-              grid-column-start: {mapping.colIndex};
-              grid-column-end: span {mapping.colSpan};
-            "
+            class="schedule-header"
+            style="grid-column: {cell.colIndex} / span {cell.colSpan}; grid-row: 1;"
           >
-            <div class="event-team font-bold text-[1.15em]">
-              {getEntryTitle(entry)}
-            </div>
-            {#if visibility.showField}
-              <div class="event-field flex items-center gap-1 text-[1.12em] text-gray-600">
-                📍 {getFieldName(entry.field_id!, $activeFields)}
-              </div>
-            {/if}
-            {#if visibility.showTime}
-              <div class="event-time flex items-center gap-1 text-[1.12em] text-gray-600">
-                🕐 {entry.start_time} - {entry.end_time}
-              </div>
+            {cell.label}
+          </div>
+        {/each}
+
+        <!-- TIMESLOT ROWS -->
+        {#each $timeSlots as time, rowIndex}
+          <div
+            class="schedule-time"
+            style="grid-column: 1; grid-row: {rowIndex + 2};"
+          >
+            {#if isHourMark(time)}
+              {time}
             {/if}
           </div>
-        {/if}
-      {/each}
+
+          {#each headerCells as cell}
+            <div
+              class="schedule-cell"
+              style="grid-column: {cell.colIndex} / span {cell.colSpan}; grid-row: {rowIndex + 2};"
+            ></div>
+          {/each}
+        {/each}
+
+        <!-- ENTRIES -->
+        {#each $processedEntries as entry (entry.schedule_entry_id)}
+          {#if entry.field_id != null && fieldToGridColMap.has(entry.field_id)}
+            {@const mapping = fieldToGridColMap.get(entry.field_id)!}
+            {@const startRow = getRowForTimeWithSlots(entry.start_time, $timeSlots)}
+            {@const endRow = getEntryRowEndWithSlots(entry.end_time, $timeSlots)}
+            {@const visibility = getEntryContentVisibility(startRow, endRow)}
+            <div
+              class="schedule-event"
+              style="
+                grid-row-start: {startRow};
+                grid-row-end: {endRow + 1};
+                grid-column-start: {mapping.colIndex};
+                grid-column-end: span {mapping.colSpan};
+              "
+            >
+              <div class="event-team font-bold text-[1.15em]">
+                {getEntryTitle(entry)}
+              </div>
+              {#if visibility.showField}
+                <div class="event-field flex items-center gap-1 text-[1.12em] text-gray-600">
+                  📍 {getFieldName(entry.field_id!, $activeFields)}
+                </div>
+              {/if}
+              {#if visibility.showTime}
+                <div class="event-time flex items-center gap-1 text-[1.12em] text-gray-600">
+                  🕐 {entry.start_time} - {entry.end_time}
+                </div>
+              {/if}
+            </div>
+          {/if}
+        {/each}
+      </div>
     </div>
   {:else if $viewMode === 'week'}
     <div class="month-view">

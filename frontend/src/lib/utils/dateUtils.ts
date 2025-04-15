@@ -1,5 +1,4 @@
 import { writable, derived } from 'svelte/store';
-import { browser } from '$app/environment';
 
 const today = new Date();
 export const currentDate = writable(new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())));
