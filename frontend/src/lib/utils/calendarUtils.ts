@@ -5,7 +5,12 @@ import { derived } from 'svelte/store';
 import { dropdownState } from '../../stores/ScheduleDropdownState';
 import { browser } from '$app/environment';
 import * as rrulelib from 'rrule';
-const { RRuleSet, rrulestr } = rrulelib;
+const { RRuleSet, rrulestr, RRule } = rrulelib;
+
+// Helper function to create dates in the correct UTC format as recommended by RRule docs
+function datetime(year, month, day, hour = 0, minute = 0, second = 0) {
+  return new Date(Date.UTC(year, month - 1, day, hour, minute, second));
+}
 
 export type ProcessedScheduleEntry = ScheduleEntry & {
   start_time: string;
@@ -157,39 +162,79 @@ function createRecurringEvents(entry: ScheduleEntry, schedule: any): ProcessedSc
   if (!entry.recurrence_rule) return [];
 
   try {
-    // Create RRuleSet and parse the recurrence rule
+    // Create RRuleSet
     const rruleSet = new RRuleSet();
-    const dtstart = new Date(entry.dtstart);
     
+    // Parse the original start date to extract components
+    const dtstart = new Date(entry.dtstart);
+    const dtstartYear = dtstart.getFullYear();
+    const dtstartMonth = dtstart.getMonth() + 1; // Month is 0-indexed in JS Date, but 1-indexed in our helper
+    const dtstartDay = dtstart.getDate();
+    const dtstartHours = dtstart.getHours();
+    const dtstartMinutes = dtstart.getMinutes();
+    
+    // Create a proper UTC date for RRule using the helper
+    const dtstartUTC = datetime(dtstartYear, dtstartMonth, dtstartDay, dtstartHours, dtstartMinutes);
+    
+    // Parse the recurrence rule
     const ruleContent = entry.recurrence_rule.startsWith('RRULE:') 
       ? entry.recurrence_rule
       : `RRULE:${entry.recurrence_rule}`;
-      
-    const ruleString = `DTSTART:${dtstart.toISOString().replace(/[-:]/g, '').split('.')[0]}Z\n${ruleContent}`;
-    const rule = rrulestr(ruleString);
+    
+    // Create the rule with proper DTSTART in UTC
+    const options = RRule.parseString(ruleContent);
+    options.dtstart = dtstartUTC;
+    const rule = new RRule(options);
     rruleSet.rrule(rule);
 
-    // Process exclusion dates if any
+    // Process exclusion dates if any - using proper UTC dates
     if (entry.exdate && Array.isArray(entry.exdate)) {
       entry.exdate.forEach(exdate => {
-        rruleSet.exdate(new Date(exdate));
+        const exdateObj = new Date(exdate);
+        // Create a proper UTC exclusion date
+        const exYear = exdateObj.getFullYear();
+        const exMonth = exdateObj.getMonth() + 1; // Month is 0-indexed in JS Date, but 1-indexed in our helper
+        const exDay = exdateObj.getDate();
+        const exHours = exdateObj.getHours();
+        const exMinutes = exdateObj.getMinutes();
+        
+        const exdateUTC = datetime(exYear, exMonth, exDay, exHours, exMinutes);
+        rruleSet.exdate(exdateUTC);
       });
     }
 
-    const startDate = new Date(`${schedule.active_from}T00:00:00`);
-    const endDate = new Date(`${schedule.active_until}T23:59:59`);
+    // Convert schedule dates to UTC format
+    const [activeFromYear, activeFromMonth, activeFromDay] = schedule.active_from.split('-').map(Number);
+    const [activeUntilYear, activeUntilMonth, activeUntilDay] = schedule.active_until.split('-').map(Number);
+    
+    const startDate = datetime(activeFromYear, activeFromMonth, activeFromDay);
+    const endDate = datetime(activeUntilYear, activeUntilMonth, activeUntilDay, 23, 59, 59);
 
-    // Get all occurrences within the schedule's date range
+    // Get all occurrences within the schedule's date range using RRule's UTC handling
     const occurrences = rruleSet.between(startDate, endDate, true);
+    
+    // Calculate duration in milliseconds from original entry
+    const durationMs = new Date(entry.dtend).getTime() - new Date(entry.dtstart).getTime();
+    
     return occurrences.map(date => {
-      const durationMs = new Date(entry.dtend).getTime() - new Date(entry.dtstart).getTime();
-      const endDate = new Date(date.getTime() + durationMs);
+      // Create a new date with the original event's time components
+      // Note that we're using the hours/minutes extracted from original entry
+      const correctedDate = new Date(
+        date.getUTCFullYear(),
+        date.getUTCMonth(),
+        date.getUTCDate(),
+        dtstartHours,
+        dtstartMinutes
+      );
+      
+      // Create end date by adding the original duration
+      const endDate = new Date(correctedDate.getTime() + durationMs);
       
       return {
         ...entry,
-        dtstart: date,
+        dtstart: correctedDate,
         dtend: endDate,
-        start_time: getTimeFromDate(date),
+        start_time: getTimeFromDate(correctedDate),
         end_time: getTimeFromDate(endDate)
       };
     });
@@ -204,11 +249,14 @@ function findExceptionForDate(exceptions: ScheduleEntry[], date: Date, masterUid
   return exceptions.find(exception => {
     if (!exception.recurrence_id || exception.uid !== masterUid) return false;
     
-    // Compare exact timestamps using UTC epoch milliseconds
-    const recurrenceIdTime = new Date(exception.recurrence_id).getTime();
-    const instanceTime = date.getTime();
+    const exceptionDate = new Date(exception.recurrence_id);
     
-    return recurrenceIdTime === instanceTime;
+    // Compare year, month, day, hour, and minute to match events regardless of timezone
+    return exceptionDate.getFullYear() === date.getFullYear() &&
+           exceptionDate.getMonth() === date.getMonth() &&
+           exceptionDate.getDate() === date.getDate() &&
+           exceptionDate.getHours() === date.getHours() &&
+           exceptionDate.getMinutes() === date.getMinutes();
   });
 }
 
