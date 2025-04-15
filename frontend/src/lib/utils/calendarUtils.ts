@@ -5,25 +5,13 @@ import { derived } from 'svelte/store';
 import { dropdownState } from '../../stores/ScheduleDropdownState';
 import { browser } from '$app/environment';
 import * as rrulelib from 'rrule';
-const { RRuleSet, rrulestr, RRule } = rrulelib;
-
-// Helper function to create dates in the correct UTC format as recommended by RRule docs
-function datetime(year, month, day, hour = 0, minute = 0, second = 0) {
-  return new Date(Date.UTC(year, month - 1, day, hour, minute, second));
-}
+import { createUTCDate, getTimeFromDate, normalizeTime, currentDate } from './dateUtils';
+const { RRuleSet, rrulestr } = rrulelib;
 
 export type ProcessedScheduleEntry = ScheduleEntry & {
   start_time: string;
   end_time: string;
 };
-
-export const currentDate = writable(new Date());
-export const weekDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
-// Derive current weekday from the date using JavaScript's standard (0=Sunday, 6=Saturday)
-export const currentWeekDay = derived(currentDate, ($currentDate) => {
-  return $currentDate.getDay();
-});
 
 export const timeSlots = writable((() => {
   if (!browser) return [];
@@ -33,42 +21,8 @@ export const timeSlots = writable((() => {
   return generateTimeSlots(earliestStart, latestEnd, intervalMinutes);
 })());
 
-// Format the date as "Monday, January 1, 2023"
-export function formatDate(date: Date): string {
-  return `${weekDays[date.getDay()]}, ${date.toLocaleDateString('en-US', { 
-    month: 'long', 
-    day: 'numeric',
-    year: 'numeric'
-  })}`;
-}
-
-// Get only the weekday name
-export function formatWeekdayOnly(date: Date): string {
-  return weekDays[date.getDay()];
-}
-
-// Check if a schedule is a draft schedule (no active dates)
 export function isDraftSchedule(schedule: any): boolean {
   return !schedule?.active_from || !schedule?.active_until;
-}
-
-export function getTimeFromDate(date: Date | string): string {
-  if (date instanceof Date) {
-    return date.toTimeString().slice(0, 5);
-  } else if (typeof date === 'string') {
-
-    const timePart = date.split('T')[1];
-    if (timePart) {
-      return timePart.substring(0, 5);
-    }
-    return normalizeTime(date);
-  }
-  return "00:00";
-}
-
-// Get weekday index using JavaScript's standard (0=Sunday, 6=Saturday) from a date
-export function getCurrentWeekday(date: Date): number {
-  return date.getDay();
 }
 
 export function buildResources(allFields: Field[], selectedSchedule: any | null): Field[] {
@@ -98,42 +52,14 @@ export function generateTimeSlots(
     return slots;
 }
 
-export function normalizeTime(time: string): string {
-  return time.slice(0, 5);
-}
-
-export function rowForTime(time: string, timeSlots: string[]): number {
+export function getRowForTimeWithSlots(time: string, timeSlots: string[]): number {
   return timeSlots.indexOf(normalizeTime(time)) + 2;
 }
 
-export function getEntryEndRow(endTime: string, timeSlots: string[]): number {
+export function getEntryRowEndWithSlots(endTime: string, timeSlots: string[]): number {
   const endTimeNormalized = normalizeTime(endTime);
   const lastOccupiedSlot = timeSlots.findIndex(slot => slot >= endTimeNormalized) - 1;
   return lastOccupiedSlot + 2; 
-}
-
-export function getRowForTimeWithSlots(time: string, timeSlots: string[]): number {
-  return rowForTime(time, timeSlots);
-}
-
-export function getEntryRowEndWithSlots(endTime: string, timeSlots: string[]): number {
-  return getEntryEndRow(endTime, timeSlots);
-}
-
-export function nextDay() {
-  currentDate.update(date => {
-    const newDate = new Date(date);
-    newDate.setDate(date.getDate() + 1);
-    return newDate;
-  });
-}
-
-export function previousDay() {
-  currentDate.update(date => {
-    const newDate = new Date(date);
-    newDate.setDate(date.getDate() - 1);
-    return newDate;
-  });
 }
 
 export function getEntryContentVisibility(startRow: number, endRow: number) {
@@ -146,96 +72,66 @@ export function getEntryContentVisibility(startRow: number, endRow: number) {
   };
 }
 
-export function isSameDay(date1: Date, date2: Date): boolean {
-  return date1.getFullYear() === date2.getFullYear() &&
-         date1.getMonth() === date2.getMonth() &&
-         date1.getDate() === date2.getDate();
-}
-
-// SCHEDULE ENTRIES SECTION
 export function shouldShowEntryOnDate(entry: ScheduleEntry, date: Date): boolean {
-  const entryDate = new Date(entry.dtstart);
-  return isSameDay(entryDate, date);
+  const entryDateString = typeof entry.dtstart === 'string' ? entry.dtstart : null;
+  const entryDate = entryDateString ? 
+    new Date(entryDateString + 'Z') : 
+    entry.dtstart;
+  
+  return entryDate.getUTCFullYear() === date.getUTCFullYear() &&
+         entryDate.getUTCMonth() === date.getUTCMonth() &&
+         entryDate.getUTCDate() === date.getUTCDate();
 }
 
 function createRecurringEvents(entry: ScheduleEntry, schedule: any): ProcessedScheduleEntry[] {
   if (!entry.recurrence_rule) return [];
 
   try {
-    // Create RRuleSet
     const rruleSet = new RRuleSet();
+    const dtstart = createUTCDate(entry.dtstart);
+    const ruleContent = entry.recurrence_rule;
     
-    // Parse the original start date to extract components
-    const dtstart = new Date(entry.dtstart);
-    const dtstartYear = dtstart.getFullYear();
-    const dtstartMonth = dtstart.getMonth() + 1; // Month is 0-indexed in JS Date, but 1-indexed in our helper
-    const dtstartDay = dtstart.getDate();
-    const dtstartHours = dtstart.getHours();
-    const dtstartMinutes = dtstart.getMinutes();
-    
-    // Create a proper UTC date for RRule using the helper
-    const dtstartUTC = datetime(dtstartYear, dtstartMonth, dtstartDay, dtstartHours, dtstartMinutes);
-    
-    // Parse the recurrence rule
-    const ruleContent = entry.recurrence_rule.startsWith('RRULE:') 
-      ? entry.recurrence_rule
-      : `RRULE:${entry.recurrence_rule}`;
-    
-    // Create the rule with proper DTSTART in UTC
-    const options = RRule.parseString(ruleContent);
-    options.dtstart = dtstartUTC;
-    const rule = new RRule(options);
-    rruleSet.rrule(rule);
+    try {
+      const ruleText = ruleContent.startsWith('RRULE:') ? ruleContent : `RRULE:${ruleContent}`;
+      const rule = rrulestr(ruleText, { dtstart });
+      rruleSet.rrule(rule);
+    } catch (error) {
+      console.warn("Error with rrulestr", error);
+    }
 
-    // Process exclusion dates if any - using proper UTC dates
     if (entry.exdate && Array.isArray(entry.exdate)) {
       entry.exdate.forEach(exdate => {
-        const exdateObj = new Date(exdate);
-        // Create a proper UTC exclusion date
-        const exYear = exdateObj.getFullYear();
-        const exMonth = exdateObj.getMonth() + 1; // Month is 0-indexed in JS Date, but 1-indexed in our helper
-        const exDay = exdateObj.getDate();
-        const exHours = exdateObj.getHours();
-        const exMinutes = exdateObj.getMinutes();
-        
-        const exdateUTC = datetime(exYear, exMonth, exDay, exHours, exMinutes);
-        rruleSet.exdate(exdateUTC);
+        const exdateObj = createUTCDate(exdate);
+        rruleSet.exdate(exdateObj);
       });
     }
 
-    // Convert schedule dates to UTC format
-    const [activeFromYear, activeFromMonth, activeFromDay] = schedule.active_from.split('-').map(Number);
-    const [activeUntilYear, activeUntilMonth, activeUntilDay] = schedule.active_until.split('-').map(Number);
+    let startDate, endDate;
     
-    const startDate = datetime(activeFromYear, activeFromMonth, activeFromDay);
-    const endDate = datetime(activeUntilYear, activeUntilMonth, activeUntilDay, 23, 59, 59);
+    if (schedule.active_from && schedule.active_until) {
+      startDate = createUTCDate(schedule.active_from);
+      endDate = createUTCDate(schedule.active_until);
+      endDate.setUTCHours(23, 59, 59, 999);
+    } else {
+      const currentYear = new Date().getFullYear();
+      startDate = new Date(Date.UTC(currentYear - 1, 0, 1));
+      endDate = new Date(Date.UTC(currentYear + 1, 11, 31, 23, 59, 59));
+    }
 
-    // Get all occurrences within the schedule's date range using RRule's UTC handling
     const occurrences = rruleSet.between(startDate, endDate, true);
     
-    // Calculate duration in milliseconds from original entry
-    const durationMs = new Date(entry.dtend).getTime() - new Date(entry.dtstart).getTime();
+    const dtend = createUTCDate(entry.dtend);
+    const durationMs = dtend.getTime() - dtstart.getTime();
     
-    return occurrences.map(date => {
-      // Create a new date with the original event's time components
-      // Note that we're using the hours/minutes extracted from original entry
-      const correctedDate = new Date(
-        date.getUTCFullYear(),
-        date.getUTCMonth(),
-        date.getUTCDate(),
-        dtstartHours,
-        dtstartMinutes
-      );
-      
-      // Create end date by adding the original duration
-      const endDate = new Date(correctedDate.getTime() + durationMs);
-      
+    return occurrences.map(startOccurrenceDate => {
+      const end = new Date(startOccurrenceDate.getTime() + durationMs);
+
       return {
         ...entry,
-        dtstart: correctedDate,
-        dtend: endDate,
-        start_time: getTimeFromDate(correctedDate),
-        end_time: getTimeFromDate(endDate)
+        dtstart: startOccurrenceDate,
+        dtend: end,
+        start_time: getTimeFromDate(startOccurrenceDate),
+        end_time: getTimeFromDate(end)
       };
     });
   } catch (error) {
@@ -244,19 +140,14 @@ function createRecurringEvents(entry: ScheduleEntry, schedule: any): ProcessedSc
   }
 }
 
-// Find matching exception for a recurring event instance
 function findExceptionForDate(exceptions: ScheduleEntry[], date: Date, masterUid: string): ScheduleEntry | undefined {
   return exceptions.find(exception => {
     if (!exception.recurrence_id || exception.uid !== masterUid) return false;
     
-    const exceptionDate = new Date(exception.recurrence_id);
-    
-    // Compare year, month, day, hour, and minute to match events regardless of timezone
-    return exceptionDate.getFullYear() === date.getFullYear() &&
-           exceptionDate.getMonth() === date.getMonth() &&
-           exceptionDate.getDate() === date.getDate() &&
-           exceptionDate.getHours() === date.getHours() &&
-           exceptionDate.getMinutes() === date.getMinutes();
+    const exceptionDate = createUTCDate(exception.recurrence_id);
+    const eventTime = date.getTime();
+    const exceptionTime = exceptionDate.getTime();
+    return Math.abs(exceptionTime - eventTime) < 60000;
   });
 }
 
@@ -265,22 +156,26 @@ function getAllEntriesForDate(schedule: {schedule_entries?: ScheduleEntry[]} | n
   
   const entries = schedule.schedule_entries || [];
   
-  // If this is a draft schedule, only return master recurring entries
   if (isDraftSchedule(schedule)) {
     return entries
       .filter(entry => entry.recurrence_rule)
       .filter(entry => {
-        const entryDate = new Date(entry.dtstart);
-        return entryDate.getDay() === date.getDay();
+        const entryDate = createUTCDate(entry.dtstart);
+        return entryDate.getUTCDay() === date.getUTCDay();
       })
-      .map(entry => ({
-        ...entry,
-        start_time: getTimeFromDate(entry.dtstart),
-        end_time: getTimeFromDate(entry.dtend)
-      }));
+      .map(entry => {
+        const dtstart = createUTCDate(entry.dtstart);
+        const dtend = createUTCDate(entry.dtend);
+        return {
+          ...entry,
+          dtstart,
+          dtend,
+          start_time: getTimeFromDate(dtstart),
+          end_time: getTimeFromDate(dtend)
+        };
+      });
   }
   
-  // Categorize entries into regular, recurring masters, and exceptions
   const regularEntries: ScheduleEntry[] = [];
   const recurringMasters: ScheduleEntry[] = [];
   const exceptions: ScheduleEntry[] = [];
@@ -295,14 +190,19 @@ function getAllEntriesForDate(schedule: {schedule_entries?: ScheduleEntry[]} | n
     }
   });
   
-  // Process one-time entries for this day
   const oneTimeEntries = regularEntries
     .filter(entry => shouldShowEntryOnDate(entry, date))
-    .map(entry => ({
-      ...entry,
-      start_time: getTimeFromDate(entry.dtstart),
-      end_time: getTimeFromDate(entry.dtend)
-    }));
+    .map(entry => {
+      const dtstart = createUTCDate(entry.dtstart);
+      const dtend = createUTCDate(entry.dtend);
+      return {
+        ...entry,
+        dtstart,
+        dtend,
+        start_time: getTimeFromDate(dtstart),
+        end_time: getTimeFromDate(dtend)
+      };
+    });
     
   const recurringEntries: ProcessedScheduleEntry[] = [];
   
@@ -311,14 +211,17 @@ function getAllEntriesForDate(schedule: {schedule_entries?: ScheduleEntry[]} | n
       .filter(instance => shouldShowEntryOnDate(instance, date));
     
     instances.forEach(instance => {
-      // Use exception if one exists for this date, otherwise use the instance
-      const exception = findExceptionForDate(exceptions, new Date(instance.dtstart), master.uid);
+      const exception = findExceptionForDate(exceptions, instance.dtstart, master.uid);
       
       if (exception) {
+        const exDtstart = createUTCDate(exception.dtstart);
+        const exDtend = createUTCDate(exception.dtend);
         recurringEntries.push({
           ...exception,
-          start_time: getTimeFromDate(exception.dtstart),
-          end_time: getTimeFromDate(exception.dtend)
+          dtstart: exDtstart,
+          dtend: exDtend,
+          start_time: getTimeFromDate(exDtstart),
+          end_time: getTimeFromDate(exDtend)
         });
       } else {
         recurringEntries.push(instance);
@@ -334,9 +237,7 @@ export const processedEntries = browser ? derived(
   ([$dropdownState, $currentDate]) => {
     const selectedSchedule = $dropdownState.selectedSchedule;
     if (!selectedSchedule) return [];
-    
     const entries = getAllEntriesForDate(selectedSchedule, $currentDate);
-    console.log("Processed Entries:", entries);
     return entries;
   }
 ) : writable([]);

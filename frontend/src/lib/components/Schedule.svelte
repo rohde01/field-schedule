@@ -6,10 +6,12 @@
   import { fields } from '$stores/fields';
   import { teams } from '$stores/teams';
   import { derived } from 'svelte/store';
-  import { buildResources, timeSlots,
-          nextDay, previousDay, getRowForTimeWithSlots, getEntryRowEndWithSlots,
-          getEntryContentVisibility, isDraftSchedule, formatWeekdayOnly,
-          currentDate, formatDate, processedEntries } from '$lib/utils/calendarUtils';
+  import { buildResources, timeSlots, 
+          getRowForTimeWithSlots, getEntryRowEndWithSlots,
+          getEntryContentVisibility, isDraftSchedule, 
+          processedEntries } from '$lib/utils/calendarUtils';
+  import { currentDate, formatDate, formatWeekdayOnly,
+          nextDay, previousDay } from '$lib/utils/dateUtils';
   import { getFieldColumns, buildFieldToGridColumnMap, generateHeaderCells, getFieldName } from '$lib/utils/fieldUtils';
   import { writable } from 'svelte/store';
   import Calendar from '$lib/components/Calendar.svelte';
