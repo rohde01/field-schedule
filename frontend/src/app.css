@@ -295,6 +295,36 @@
     border-top: 1px solid #e5e5e5; /* Only hour marks have top borders */
   }
 
+  /* Current time indicator styling */
+  .current-time-indicator {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    z-index: 20;
+    pointer-events: none;
+    width: 100%;
+    left: 0;
+  }
+  
+  .current-time-bubble {
+    background-color: #FF3B30;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 6px;
+    padding: 2px 6px;
+    line-height: 1.2;
+    margin-left: 0;
+    min-width: 50px;
+    text-align: center;
+  }
+  
+  .current-time-line {
+    flex: 1;
+    height: 2.5px;
+    background-color: #FF3B30;
+  }
+
   .schedule-event {
     @apply bg-mint-100 text-mint-800 p-1.5 rounded text-sm font-medium flex flex-col gap-1 absolute inset-0 z-10;
     margin: 2px;

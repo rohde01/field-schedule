@@ -2,6 +2,63 @@ import { writable, derived } from 'svelte/store';
 
 const today = new Date();
 export const currentDate = writable(new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())));
+export const currentTime = writable(new Date());
+export let timeTrackingEnabled = false;
+
+export function updateCurrentTime() {
+  currentTime.set(new Date());
+  if (isToday()){
+    timeTrackingEnabled = true;
+  } else {
+    timeTrackingEnabled = false;
+  }
+  return timeTrackingEnabled;
+}
+
+export function getCurrentTimePosition(): number {
+  const now = new Date();
+  const hours = now.getHours();
+  const minutes = now.getMinutes();
+  const totalMinutes = hours * 60 + minutes;
+  return (totalMinutes / (24 * 60)) * 100;
+}
+
+export function isToday(): boolean {
+  let now = new Date();
+  let curDate: Date | undefined;
+  
+  currentDate.subscribe(val => {
+    curDate = val;
+  })();
+  
+  if (!curDate) return false;
+  
+  return curDate.getDate() === now.getDate() &&
+         curDate.getMonth() === now.getMonth() &&
+         curDate.getFullYear() === now.getFullYear();
+}
+
+export function formatTimeForDisplay(date: Date): string {
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  return `${hours}.${minutes}`;
+}
+
+export function shouldHideHourLabel(time: string): boolean {
+  if (!timeTrackingEnabled || !isHourMark(time)) return false;
+  
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentMinutes = now.getMinutes();
+  const timeHour = parseInt(time.split(':')[0]);
+  
+  return currentHour === timeHour && 
+         (currentMinutes >= 50 || currentMinutes <= 10);
+}
+
+export function isHourMark(time: string): boolean {
+  return time.endsWith(':00') && time !== '00:00' && time !== '24:00';
+}
 
 export const weekDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 

@@ -6,15 +6,44 @@
   import { fields } from '$stores/fields';
   import { teams } from '$stores/teams';
   import { derived } from 'svelte/store';
+  import { onMount } from 'svelte';
   import { buildResources, timeSlots, 
           getRowForTimeWithSlots, getEntryRowEndWithSlots,
           getEntryContentVisibility, isDraftSchedule, 
           processedEntries } from '$lib/utils/calendarUtils';
   import { currentDate, formatDate, formatWeekdayOnly,
-          nextDay, previousDay } from '$lib/utils/dateUtils';
+          nextDay, previousDay, currentTime, updateCurrentTime,
+          getCurrentTimePosition, isToday, formatTimeForDisplay,
+          shouldHideHourLabel, isHourMark, timeTrackingEnabled } from '$lib/utils/dateUtils';
   import { getFieldColumns, buildFieldToGridColumnMap, generateHeaderCells, getFieldName } from '$lib/utils/fieldUtils';
   import { writable } from 'svelte/store';
   import Calendar from '$lib/components/Calendar.svelte';
+
+  // Time tracking variables
+  let currentTimePosition = 0;
+  let timeTrackingInterval: ReturnType<typeof setInterval>;
+
+  // Initialize time tracking on component mount
+  onMount(() => {
+    updateCurrentTime();
+    timeTrackingInterval = setInterval(() => {
+      updateCurrentTime();
+      currentTimePosition = getCurrentTimePosition();
+    }, 60000); // Update every minute
+    
+    return () => {
+      clearInterval(timeTrackingInterval);
+    };
+  });
+  
+  // Update time tracking when date changes
+  $: {
+    $currentDate;
+    if (browser) {
+      updateCurrentTime();
+      currentTimePosition = getCurrentTimePosition();
+    }
+  }
 
   const activeFields = browser ? derived([fields, dropdownState], ([$fields, $dropdownState]) => {
     return buildResources($fields, $dropdownState.selectedSchedule);
@@ -90,11 +119,6 @@
 
   // Check if the current schedule is a draft
   $: isDraft = isDraftSchedule($dropdownState.selectedSchedule);
-
-  // Function to check if a time slot is an hour mark (00 minutes) and should be displayed
-  function isHourMark(time: string): boolean {
-    return time.endsWith(':00') && time !== '00:00' && time !== '24:00';
-  }
 </script>
 
 <div class="schedule-container">
@@ -157,7 +181,7 @@
             class="schedule-time"
             style="grid-column: 1; grid-row: {rowIndex + 2}; justify-content: flex-end;"
           >
-            {#if isHourMark(time)}
+            {#if isHourMark(time) && !shouldHideHourLabel(time)}
               <span style="transform: translateY(-50%);">{time}</span>
             {/if}
           </div>
@@ -169,6 +193,19 @@
             ></div>
           {/each}
         {/each}
+
+        <!-- CURRENT TIME INDICATOR -->
+        {#if timeTrackingEnabled && $viewMode === 'day'}
+          <div 
+            class="current-time-indicator" 
+            style="grid-column: 1 / span {totalColumns}; top: calc({currentTimePosition}% - 1px);"
+          >
+            <div class="current-time-bubble">
+              {formatTimeForDisplay($currentTime)}
+            </div>
+            <div class="current-time-line"></div>
+          </div>
+        {/if}
 
         <!-- ENTRIES -->
         {#each $processedEntries as entry (entry.schedule_entry_id)}
