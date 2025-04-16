@@ -133,26 +133,25 @@
   </div>
 
   {#if $viewMode === 'day'}
+    <!-- HEADER ROW OUTSIDE SCROLLABLE CONTAINER -->
+    <div class="schedule-grid" style="--total-columns: {totalColumns};">
+      <div class="schedule-header schedule-header-time">
+        Time
+      </div>
+      {#each headerCells as cell}
+        <div
+          class="schedule-header"
+          style="grid-column: {cell.colIndex} / span {cell.colSpan};"
+        >
+          {cell.label}
+        </div>
+      {/each}
+    </div>
     <div class="daily-schedule-wrapper" 
          style="height: calc(80vh); overflow-y: auto; overscroll-behavior: contain;">
       <div 
         class="schedule-grid"
-        style="--total-columns: {totalColumns}; --total-rows: {$timeSlots.length + 1};"
-      >
-        <!-- HEADER ROW -->
-        <div class="schedule-header schedule-header-time">
-          Time
-        </div>
-
-        {#each headerCells as cell}
-          <div
-            class="schedule-header"
-            style="grid-column: {cell.colIndex} / span {cell.colSpan}; grid-row: 1;"
-          >
-            {cell.label}
-          </div>
-        {/each}
-
+        style="--total-columns: {totalColumns}; --total-rows: {$timeSlots.length + 1};">
         <!-- TIMESLOT ROWS -->
         {#each $timeSlots as time, rowIndex}
           <div
