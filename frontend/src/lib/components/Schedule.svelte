@@ -95,6 +95,11 @@
   function isHourMark(time: string): boolean {
     return time.endsWith(':00');
   }
+
+  // Function to check if we should display a horizontal gridline (only for hour marks)
+  function shouldShowGridline(time: string): boolean {
+    return isHourMark(time);
+  }
 </script>
 
 <div class="schedule-container">
@@ -155,7 +160,7 @@
         <!-- TIMESLOT ROWS -->
         {#each $timeSlots as time, rowIndex}
           <div
-            class="schedule-time"
+            class="schedule-time {shouldShowGridline(time) ? 'border-t border-gray-200' : 'border-0'}"
             style="grid-column: 1; grid-row: {rowIndex + 2};"
           >
             {#if isHourMark(time)}
@@ -165,7 +170,7 @@
 
           {#each headerCells as cell}
             <div
-              class="schedule-cell"
+              class="schedule-cell {shouldShowGridline(time) ? 'border-t border-gray-200' : 'border-0'}"
               style="grid-column: {cell.colIndex} / span {cell.colSpan}; grid-row: {rowIndex + 2};"
             ></div>
           {/each}
