@@ -16,7 +16,7 @@ export type ProcessedScheduleEntry = ScheduleEntry & {
 export const timeSlots = writable((() => {
   if (!browser) return [];
   const earliestStart = "00:00";
-  const latestEnd = "24:00";
+  const latestEnd = "23:45";
   const intervalMinutes = 15;
   return generateTimeSlots(earliestStart, latestEnd, intervalMinutes);
 })());

@@ -268,28 +268,65 @@
   }
 
   .schedule-header {
-    @apply bg-sage-50 px-4 py-2 font-medium text-sage-700 border-b border-r border-sage-200 text-center;
+    @apply bg-sage-50 px-4 py-2 font-medium text-sage-700 border-r border-sage-200 text-center;
   }
 
   .schedule-time, .schedule-header-time {
-    @apply bg-sage-50 py-2 font-medium text-sage-700 border-b border-r border-sage-200;
+    @apply bg-sage-50 py-2 font-medium text-sage-700 border-r border-sage-200;
     width: 50px !important;
     min-width: 50px !important;
     max-width: 50px !important;
     padding-left: 4px !important;
     padding-right: 4px !important;
     text-align: center;
+    display: flex;
+    align-items: flex-start; 
+    padding-top: 0 !important;
+    line-height: 1; 
   }
 
   .schedule-cell {
-    @apply bg-white px-4 py-2 border-b border-r border-sage-200 relative;
+    @apply bg-white px-4 py-2 border-r border-sage-200 relative;
+    border-bottom: 0;
+    height: 1.50rem; /* Set a fixed height for all time slot cells */
+  }
+
+  .schedule-hour-mark {
+    border-top: 1px solid #e5e5e5; /* Only hour marks have top borders */
   }
 
   .schedule-event {
-    @apply bg-mint-100 text-mint-800 p-2.5 rounded text-sm font-medium flex flex-col gap-1 absolute inset-0 z-10;
-    margin: 5px;
+    @apply bg-mint-100 text-mint-800 p-1.5 rounded text-sm font-medium flex flex-col gap-1 absolute inset-0 z-10;
+    margin: 2px;
     transition: transform 0.15s ease-out, box-shadow 0.15s ease-out, border-left 0.15s ease-out;
   }
+
+    /* Schedule grid container with fixed header */
+    .schedule-grid-container {
+      @apply w-full border border-sage-200 rounded-lg;
+      display: flex;
+      flex-direction: column;
+    }
+  
+    .schedule-header-row {
+      @apply w-full bg-sage-50;
+      display: grid;
+      grid-template-columns: 50px repeat(calc(var(--total-columns) - 1), 1fr);
+      grid-template-rows: auto;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      border-bottom: 2px solid #d1d5db;
+      padding-top: 8px;
+      padding-bottom: 8px;
+      margin-bottom: 4px; 
+    }
+  
+    .daily-schedule-wrapper {
+      @apply overflow-y-auto;
+      max-height: calc(100vh - 14rem);
+      padding-top: 6px; 
+    }
 
   /* Visual indicators for overlapping events */
   .schedule-event:hover {

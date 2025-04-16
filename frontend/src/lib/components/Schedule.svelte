@@ -91,14 +91,9 @@
   // Check if the current schedule is a draft
   $: isDraft = isDraftSchedule($dropdownState.selectedSchedule);
 
-  // Function to check if a time slot is an hour mark (00 minutes)
+  // Function to check if a time slot is an hour mark (00 minutes) and should be displayed
   function isHourMark(time: string): boolean {
-    return time.endsWith(':00');
-  }
-
-  // Function to check if we should display a horizontal gridline (only for hour marks)
-  function shouldShowGridline(time: string): boolean {
-    return isHourMark(time);
+    return time.endsWith(':00') && time !== '00:00' && time !== '24:00';
   }
 </script>
 
@@ -141,7 +136,6 @@
     <!-- HEADER ROW OUTSIDE SCROLLABLE CONTAINER -->
     <div class="schedule-grid" style="--total-columns: {totalColumns};">
       <div class="schedule-header schedule-header-time">
-        Time
       </div>
       {#each headerCells as cell}
         <div
@@ -160,17 +154,17 @@
         <!-- TIMESLOT ROWS -->
         {#each $timeSlots as time, rowIndex}
           <div
-            class="schedule-time {shouldShowGridline(time) ? 'border-t border-gray-200' : 'border-0'}"
-            style="grid-column: 1; grid-row: {rowIndex + 2};"
+            class="schedule-time"
+            style="grid-column: 1; grid-row: {rowIndex + 2}; justify-content: flex-end;"
           >
             {#if isHourMark(time)}
-              {time}
+              <span style="transform: translateY(-50%);">{time}</span>
             {/if}
           </div>
 
           {#each headerCells as cell}
             <div
-              class="schedule-cell {shouldShowGridline(time) ? 'border-t border-gray-200' : 'border-0'}"
+              class={`schedule-cell ${isHourMark(time) ? 'schedule-hour-mark' : ''}`}
               style="grid-column: {cell.colIndex} / span {cell.colSpan}; grid-row: {rowIndex + 2};"
             ></div>
           {/each}
