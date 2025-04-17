@@ -6,7 +6,6 @@
     import type { SuperForm } from 'sveltekit-superforms';
     import type { GenerateScheduleRequest } from '$lib/schemas/schedule';
     import { page } from '$app/stores';
-    import { createEmptySchedule, deleteSchedule } from '$stores/schedules';
 
     let { teams: propTeams, form } = $props<{ 
         teams: Team[], 
