@@ -1,7 +1,6 @@
 <script lang="ts">
   import EditableField from './EditableField.svelte';
   import { writable, type Writable, get } from 'svelte/store';
-  import type { ScheduleEntry } from '$lib/schemas/schedule';
   import { onMount } from 'svelte';
   import { schedules } from '../../stores/schedules';
   import { teams } from '../../stores/teams';
@@ -48,7 +47,7 @@
         ends: entry.dtend,
         dtstart: entry.dtstart,
         dtend: entry.dtend,
-        description: entry.description || '',
+        summary: entry.summary || '',
         schedule_entry_id: entry.schedule_entry_id
       });
       
@@ -57,6 +56,7 @@
         team_id: entry.team_id,
         field_id: entry.field_id,
         starts: entry.dtstart,
+        description: entry.description,
         ends: entry.dtend
       });
     }
@@ -74,13 +74,10 @@
     <EditableField
       form={infoCardForm}
       errors={{}}
-      name="team_id"
+      name="summary"
       label=""
-      type="select"
+      type="text"
       view_mode_style="title"
-      options={teamsData
-        .filter(team => team.team_id !== undefined)
-        .map(team => ({ value: team.team_id as number, label: team.name }))}
       required={true}
     />
   </div>
@@ -96,6 +93,18 @@
         options={fieldsData
           .filter(field => field.field_id !== undefined)
           .map(field => ({ value: field.field_id, label: field.name }))}
+        required={true}
+      />
+      <EditableField
+        form={infoCardForm}
+        errors={{}}
+        name="team_id"
+        label="Team"
+        type="select"
+        view_mode_style="normal"
+        options={teamsData
+          .filter(team => team.team_id !== undefined)
+          .map(team => ({ value: team.team_id as number, label: team.name }))}
         required={true}
       />
     </div>
