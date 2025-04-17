@@ -300,7 +300,7 @@
     position: absolute;
     display: flex;
     align-items: center;
-    z-index: 20;
+    z-index: 0;
     pointer-events: none;
     width: 100%;
     left: 0;
@@ -326,7 +326,7 @@
   }
 
   .schedule-event {
-    @apply bg-mint-100 text-mint-800 p-1.5 rounded text-sm font-medium flex flex-col gap-1 absolute inset-0 z-10;
+    @apply bg-mint-100 text-mint-800 p-1.5 rounded text-sm font-medium flex flex-col gap-1 absolute inset-0;
     margin: 2px;
     transition: transform 0.15s ease-out, box-shadow 0.15s ease-out, border-left 0.15s ease-out;
   }
@@ -472,6 +472,30 @@
     }
     .event-info-card-grid {
       @apply grid grid-cols-2 gap-4;
+    }
+    
+    /* InfoCard positioning */
+    .info-card-container {
+      position: absolute;
+      z-index: 200; /* Increased z-index to ensure it's above time indicator */
+      left: 50%;
+      bottom: 100%; /* Position above the entry */
+      transform: translateX(-50%);
+      margin-bottom: 8px;
+      filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+      width: 400px; /* Fixed width */
+    }
+    
+    /* Add a small arrow pointing to the event */
+    .info-card-container::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 8px;
+      border-style: solid;
+      border-color: white transparent transparent transparent;
     }
   }
 

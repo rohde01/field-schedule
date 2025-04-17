@@ -13,7 +13,7 @@
           processedEntries } from '$lib/utils/calendarUtils';
   import { currentDate, formatDate, formatWeekdayOnly,
           nextDay, previousDay, currentTime, updateCurrentTime,
-          getCurrentTimePosition, isToday, formatTimeForDisplay,
+          getCurrentTimePosition, formatTimeForDisplay,
           shouldHideHourLabel, isHourMark, timeTrackingEnabled } from '$lib/utils/dateUtils';
   import { getFieldColumns, buildFieldToGridColumnMap, generateHeaderCells, getFieldName } from '$lib/utils/fieldUtils';
   import { writable } from 'svelte/store';
@@ -22,7 +22,6 @@
 
   // InfoCard state
   let showInfoCard = false;
-  let editingEventPosition = { top: 0, left: 0 };
   let selectedEntryUid = "";
   
   // Handle single click on entry
@@ -31,9 +30,6 @@
     if (event instanceof KeyboardEvent && !(event.key === 'Enter' || event.key === ' ')) return;
     showInfoCard = true;
     selectedEntryUid = entry.uid;
-    const element = event.currentTarget as HTMLElement;
-    const rect = element.getBoundingClientRect();
-    editingEventPosition = { top: rect.top, left: rect.left - 420 };
     event.stopPropagation();
     
     // Add document click listener when InfoCard is shown
@@ -277,6 +273,11 @@
                   🕐 {entry.start_time} - {entry.end_time}
                 </div>
               {/if}
+              {#if showInfoCard && selectedEntryUid === entry.uid}
+                <div class="info-card-container">
+                  <InfoCard entryUid={entry.uid} />
+                </div>
+              {/if}
             </div>
           {/if}
         {/each}
@@ -285,14 +286,6 @@
   {:else if $viewMode === 'week'}
     <div class="month-view">
       <Calendar bind:this={calendarComponent} />
-    </div>
-  {/if}
-
-  {#if showInfoCard}
-    <div class="info-card-container" style="position: absolute; top: {editingEventPosition.top}px; left: {editingEventPosition.left}px;">
-      <InfoCard 
-        entryUid={selectedEntryUid}
-      />
     </div>
   {/if}
 </div>
