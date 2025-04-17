@@ -25,14 +25,14 @@
 
   // InfoCard state
   let showInfoCard = false;
-  let selectedEntryUid = "";
+  let selectedEntryUiId = "";
   
   // Handle single click on entry
   function handleEntryInteraction(event: MouseEvent|KeyboardEvent, entry: ProcessedScheduleEntry) {
     // only respond to click or Enter/Space key
     if (event instanceof KeyboardEvent && !(event.key === 'Enter' || event.key === ' ')) return;
     showInfoCard = true;
-    selectedEntryUid = entry.uid;
+    selectedEntryUiId = entry.ui_id;
     event.stopPropagation();
     
     // Add document click listener when InfoCard is shown
@@ -267,7 +267,7 @@
         {/if}
 
         <!-- ENTRIES -->
-        {#each $processedEntries as entry (entry.schedule_entry_id)}
+        {#each $processedEntries as entry (entry.ui_id)}
           {#if entry.field_id != null && fieldToGridColMap.has(entry.field_id)}
             {@const mapping = fieldToGridColMap.get(entry.field_id)!}
             {@const startRow = getRowForTimeWithSlots(entry.start_time, $timeSlots)}
@@ -299,9 +299,9 @@
                   🕐 {entry.start_time} - {entry.end_time}
                 </div>
               {/if}
-              {#if showInfoCard && selectedEntryUid === entry.uid}
+              {#if showInfoCard && selectedEntryUiId === entry.ui_id}
                 <div class="info-card-container">
-                  <InfoCard entryUid={entry.uid} />
+                  <InfoCard entryUiId={entry.ui_id} />
                 </div>
               {/if}
             </div>

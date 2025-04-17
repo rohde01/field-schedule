@@ -11,6 +11,7 @@ const { RRuleSet, rrulestr } = rrulelib;
 export type ProcessedScheduleEntry = ScheduleEntry & {
   start_time: string;
   end_time: string;
+  ui_id: string;
 };
 
 export const timeSlots = writable((() => {
@@ -131,7 +132,8 @@ function createRecurringEvents(entry: ScheduleEntry, schedule: any): ProcessedSc
         dtstart: startOccurrenceDate,
         dtend: end,
         start_time: getTimeFromDate(startOccurrenceDate),
-        end_time: getTimeFromDate(end)
+        end_time: getTimeFromDate(end),
+        ui_id: `${entry.uid}-${startOccurrenceDate.toISOString()}`
       };
     });
   } catch (error) {
@@ -171,7 +173,8 @@ function getAllEntriesForDate(schedule: {schedule_entries?: ScheduleEntry[]} | n
           dtstart,
           dtend,
           start_time: getTimeFromDate(dtstart),
-          end_time: getTimeFromDate(dtend)
+          end_time: getTimeFromDate(dtend),
+          ui_id: `${entry.uid}-${dtstart.toISOString()}`
         };
       });
   }
@@ -200,7 +203,8 @@ function getAllEntriesForDate(schedule: {schedule_entries?: ScheduleEntry[]} | n
         dtstart,
         dtend,
         start_time: getTimeFromDate(dtstart),
-        end_time: getTimeFromDate(dtend)
+        end_time: getTimeFromDate(dtend),
+        ui_id: `${entry.uid}-${dtstart.toISOString()}`
       };
     });
     
@@ -221,7 +225,8 @@ function getAllEntriesForDate(schedule: {schedule_entries?: ScheduleEntry[]} | n
           dtstart: exDtstart,
           dtend: exDtend,
           start_time: getTimeFromDate(exDtstart),
-          end_time: getTimeFromDate(exDtend)
+          end_time: getTimeFromDate(exDtend),
+          ui_id: `${exception.uid}-${exDtstart.toISOString()}`
         });
       } else {
         recurringEntries.push(instance);
@@ -239,7 +244,7 @@ export const processedEntries = browser ? derived(
     if (!selectedSchedule) return [];
     const entries = getAllEntriesForDate(selectedSchedule, $currentDate);
     
-    // Append dtstart to the UID to ensure uniqueness for all entries
+    // Generate ui_id for uniqueness
     const processed = entries.map(entry => {
       const dtstampStr = entry.dtstart instanceof Date 
         ? entry.dtstart.toISOString() 
@@ -248,7 +253,7 @@ export const processedEntries = browser ? derived(
           : '';
       return {
         ...entry,
-        uid: `${entry.uid}-${dtstampStr}`
+        ui_id: `${entry.uid}-${dtstampStr}`
       };
     });
 

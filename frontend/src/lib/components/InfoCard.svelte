@@ -8,8 +8,8 @@
   import { fields, getFlattenedFields } from '../../stores/fields';
   import type { Field } from '$lib/schemas/field';
 
-  // Accept only UID from the clicked entry
-  export let entryUid: string;
+  // Accept only UiId from the clicked entry
+  export let entryUiId: string;
   
   // Create an internal writable store for the form state
   const infoCardForm: Writable<Record<string, any>> = writable({});
@@ -31,7 +31,7 @@
   // Initialize form data based on entry UID
   onMount(async () => {
     const currentEntries = get(processedEntries);
-    const entry = currentEntries.find(entry => entry.uid === entryUid);
+    const entry = currentEntries.find(entry => entry.ui_id === entryUiId);
 
     if (entry) {
 
