@@ -108,3 +108,11 @@ export function getTimeFromDate(date: Date | string): string {
 export function normalizeTime(time: string): string {
   return time.slice(0, 5);
 }
+
+// Add helper to combine date and time into a single UTC Date
+export function combineDateAndTime(dateInput: Date | string, time: string): Date {
+  const baseDate = new Date(dateInput);
+  const [h, m] = time.split(':').map(Number);
+  baseDate.setUTCHours(h, m, 0, 0);
+  return baseDate;
+}

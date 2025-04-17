@@ -35,3 +35,17 @@ export function addSchedule(schedule: Schedule) {
         return updatedSchedules;
     });
 }
+
+export function addScheduleEntry(entry: ScheduleEntry) {
+    schedules.update(schedulesList => {
+        const updatedSchedules = schedulesList.map(schedule => {
+            if (schedule.schedule_id === entry.schedule_id) {
+                const updatedSchedule = { ...schedule, schedule_entries: [...schedule.schedule_entries, entry] };
+                console.log(`Added entry to schedule ${schedule.schedule_id}:`, entry);
+                return updatedSchedule;
+            }
+            return schedule;
+        });
+        return updatedSchedules;
+    });
+}

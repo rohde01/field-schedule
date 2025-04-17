@@ -14,11 +14,14 @@
   import { currentDate, formatDate, formatWeekdayOnly,
           nextDay, previousDay, currentTime, updateCurrentTime,
           getCurrentTimePosition, formatTimeForDisplay,
-          shouldHideHourLabel, isHourMark, timeTrackingEnabled } from '$lib/utils/dateUtils';
+          shouldHideHourLabel, isHourMark, timeTrackingEnabled,
+          combineDateAndTime } from '$lib/utils/dateUtils';
   import { getFieldColumns, buildFieldToGridColumnMap, generateHeaderCells, getFieldName } from '$lib/utils/fieldUtils';
   import { writable } from 'svelte/store';
   import Calendar from '$lib/components/Calendar.svelte';
   import InfoCard from '$lib/components/InfoCard.svelte';
+  import { addScheduleEntry } from '$stores/schedules';
+  import { get } from 'svelte/store';
 
   // InfoCard state
   let showInfoCard = false;
@@ -151,6 +154,26 @@
 
   // Check if the current schedule is a draft
   $: isDraft = isDraftSchedule($dropdownState.selectedSchedule);
+
+  // create new entry on double-click
+  function handleSlotDoubleClick(event: MouseEvent, cell: any, time: string) {
+    event.stopPropagation();
+    const startDateTime = combineDateAndTime(get(currentDate), time);
+    addScheduleEntry({
+      schedule_entry_id: -Date.now(),
+      schedule_id: get(dropdownState).selectedSchedule!.schedule_id,
+      uid: crypto.randomUUID(),
+      dtstart: startDateTime,
+      dtend: new Date(startDateTime.getTime() + 3600000),
+      summary: 'new event',
+      description: null,
+      team_id: null,
+      field_id: cell.fieldId,
+      recurrence_rule: null,
+      recurrence_id: null,
+      exdate: null
+    });
+  }
 </script>
 
 <!-- make container focusable and keyboard-operable -->
@@ -222,7 +245,10 @@
           {#each headerCells as cell}
             <div
               class={`schedule-cell ${isHourMark(time) ? 'schedule-hour-mark' : ''}`}
+              role="button"
+              tabindex="0"
               style="grid-column: {cell.colIndex} / span {cell.colSpan}; grid-row: {rowIndex + 2};"
+              on:dblclick={(e) => handleSlotDoubleClick(e, cell, time)}
             ></div>
           {/each}
         {/each}
