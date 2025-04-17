@@ -300,7 +300,7 @@
     position: absolute;
     display: flex;
     align-items: center;
-    z-index: 0;
+    z-index: 100;
     pointer-events: none;
     width: 100%;
     left: 0;
@@ -359,12 +359,6 @@
     }
 
   /* Visual indicators for overlapping events */
-  .schedule-event:hover {
-    @apply shadow-md;
-    transform: scale(1.02);
-    z-index: 50 !important;
-  }
-
   .schedule-event[data-overlapping="true"] {
     border-left: 3px solid #e53e3e;
   }
