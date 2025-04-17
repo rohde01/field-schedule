@@ -75,16 +75,6 @@
 
     $: selectedOption = options.find(opt => String(opt.value) === String(fieldValue ?? ''));
 
-    $: {
-        if (
-            fieldValue === undefined ||
-            fieldValue === null ||
-            (typeof fieldValue === 'string' && fieldValue === '')
-        ) {
-            isEditMode.set(true);
-        }
-    }
-
     type PointerType = Record<string, any> | any[];
 
     function updateFormValue(value: any) {

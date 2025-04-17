@@ -18,6 +18,42 @@
   import { getFieldColumns, buildFieldToGridColumnMap, generateHeaderCells, getFieldName } from '$lib/utils/fieldUtils';
   import { writable } from 'svelte/store';
   import Calendar from '$lib/components/Calendar.svelte';
+  import InfoCard from '$lib/components/InfoCard.svelte';
+
+  // InfoCard state
+  let showInfoCard = false;
+  let editingEventPosition = { top: 0, left: 0 };
+  let selectedEntryUid = "";
+  
+  // Handle single click on entry
+  function handleEntryInteraction(event: MouseEvent|KeyboardEvent, entry: ProcessedScheduleEntry) {
+    // only respond to click or Enter/Space key
+    if (event instanceof KeyboardEvent && !(event.key === 'Enter' || event.key === ' ')) return;
+    showInfoCard = true;
+    selectedEntryUid = entry.uid;
+    const element = event.currentTarget as HTMLElement;
+    const rect = element.getBoundingClientRect();
+    editingEventPosition = { top: rect.top, left: rect.left - 420 };
+    event.stopPropagation();
+    
+    // Add document click listener when InfoCard is shown
+    setTimeout(() => {
+      document.addEventListener('click', handleOutsideClick);
+    }, 0);
+  }
+
+  function closeInfoCard() {
+    showInfoCard = false;
+    document.removeEventListener('click', handleOutsideClick);
+  }
+  
+  // Handle clicks outside the InfoCard
+  function handleOutsideClick(event: MouseEvent) {
+    const infoCard = document.querySelector('.info-card-container');
+    if (infoCard && !infoCard.contains(event.target as Node)) {
+      closeInfoCard();
+    }
+  }
 
   // Time tracking variables
   let currentTimePosition = 0;
@@ -121,7 +157,8 @@
   $: isDraft = isDraftSchedule($dropdownState.selectedSchedule);
 </script>
 
-<div class="schedule-container">
+<!-- make container focusable and keyboard-operable -->
+<div class="schedule-container" role="button" tabindex="0" on:click|self={closeInfoCard} on:keydown|self={(e) => (e.key === 'Enter' || e.key === ' ') && (closeInfoCard(), e.preventDefault())}>
   <div class="schedule-controls flex items-center my-2 py-2">
     <div class="current-date flex-1">
       <span class="text-xl font-semibold text-black">
@@ -216,12 +253,16 @@
             {@const visibility = getEntryContentVisibility(startRow, endRow)}
             <div
               class="schedule-event"
+              role="button"
+              tabindex="0"
               style="
                 grid-row-start: {startRow};
                 grid-row-end: {endRow + 1};
                 grid-column-start: {mapping.colIndex};
                 grid-column-end: span {mapping.colSpan};
               "
+              on:click={(e) => handleEntryInteraction(e, entry)}
+              on:keydown={(e) => handleEntryInteraction(e, entry)}
             >
               <div class="event-team font-bold text-[1.15em]">
                 {getEntryTitle(entry)}
@@ -244,6 +285,14 @@
   {:else if $viewMode === 'week'}
     <div class="month-view">
       <Calendar bind:this={calendarComponent} />
+    </div>
+  {/if}
+
+  {#if showInfoCard}
+    <div class="info-card-container" style="position: absolute; top: {editingEventPosition.top}px; left: {editingEventPosition.left}px;">
+      <InfoCard 
+        entryUid={selectedEntryUid}
+      />
     </div>
   {/if}
 </div>
