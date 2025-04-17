@@ -75,7 +75,7 @@ export function getEntryContentVisibility(startRow: number, endRow: number) {
 export function shouldShowEntryOnDate(entry: ScheduleEntry, date: Date): boolean {
   const entryDateString = typeof entry.dtstart === 'string' ? entry.dtstart : null;
   const entryDate = entryDateString ? 
-    new Date(entryDateString + 'Z') : 
+    createUTCDate(entryDateString) : 
     entry.dtstart;
   
   return entryDate.getUTCFullYear() === date.getUTCFullYear() &&
@@ -238,6 +238,21 @@ export const processedEntries = browser ? derived(
     const selectedSchedule = $dropdownState.selectedSchedule;
     if (!selectedSchedule) return [];
     const entries = getAllEntriesForDate(selectedSchedule, $currentDate);
-    return entries;
+    
+    // Append dtstart to the UID to ensure uniqueness for all entries
+    const processed = entries.map(entry => {
+      const dtstampStr = entry.dtstart instanceof Date 
+        ? entry.dtstart.toISOString() 
+        : typeof entry.dtstart === 'string' 
+          ? entry.dtstart 
+          : '';
+      return {
+        ...entry,
+        uid: `${entry.uid}-${dtstampStr}`
+      };
+    });
+
+    console.log('Processed Entries:', processed);
+    return processed;
   }
 ) : writable([]);

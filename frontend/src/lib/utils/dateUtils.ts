@@ -95,7 +95,7 @@ export function previousDay() {
 }
 
 export function createUTCDate(dateInput: string | Date): Date {
-  return new Date(dateInput + 'Z');
+  return new Date(dateInput);
 }
 
 export function getTimeFromDate(date: Date | string): string {

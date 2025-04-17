@@ -2,7 +2,7 @@
   import EditableField from './EditableField.svelte';
   import { writable, type Writable, get } from 'svelte/store';
   import { onMount } from 'svelte';
-  import { schedules } from '../../stores/schedules';
+  import { processedEntries } from '$lib/utils/calendarUtils';
   import { teams } from '../../stores/teams';
   import type { Team } from '$lib/schemas/team';
   import { fields, getFlattenedFields } from '../../stores/fields';
@@ -30,34 +30,19 @@
   
   // Initialize form data based on entry UID
   onMount(async () => {
-    // Get all schedules from the store
-    const allSchedules = get(schedules);
-    
-    // Find the entry with the matching UID across all schedules
-    const entry = allSchedules
-      .flatMap(schedule => schedule.schedule_entries)
-      .find(entry => entry.uid === entryUid);
-    
+    const currentEntries = get(processedEntries);
+    const entry = currentEntries.find(entry => entry.uid === entryUid);
+
     if (entry) {
+
       infoCardForm.set({
         uid: entry.uid,
         team_id: entry.team_id || null,
         field_id: entry.field_id || null,
-        starts: entry.dtstart,
-        ends: entry.dtend,
-        dtstart: entry.dtstart,
-        dtend: entry.dtend,
+        starts: entry.dtstart.toISOString(),
+        ends: entry.dtend.toISOString(),
         summary: entry.summary || '',
         schedule_entry_id: entry.schedule_entry_id
-      });
-      
-      // Log to debug values
-      console.log("InfoCard form data:", {
-        team_id: entry.team_id,
-        field_id: entry.field_id,
-        starts: entry.dtstart,
-        description: entry.description,
-        ends: entry.dtend
       });
     }
   });
