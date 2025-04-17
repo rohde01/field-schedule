@@ -86,6 +86,20 @@ export const fieldSchema = z.object({
   half_subfields: z.array(subFieldSchema)
 });
 
+const flattenedFieldSchema: z.ZodType<any> = z.object({
+  field_id: z.number().int().positive(),
+  facility_id: z.number().int().positive(),
+  club_id: z.number().int().positive(),
+  name: z.string().min(1).max(255),
+  is_active: z.boolean(),
+  size: fieldSizeEnum,
+  field_type: fieldTypeEnum,
+  parent_field_id: z.number().int().positive().nullable(),
+  availability: z.record(dayOfWeekEnum, fieldAvailabilitySchema).optional().default({}),
+  quarter_subfields: z.array(z.lazy(() => fieldSchema)).optional().default([]),
+  half_subfields: z.array(z.lazy(() => fieldSchema)).optional().default([])
+});
+
 // Field availability creation schema
 export const fieldAvailabilityCreateSchema = z.object({
   availabilities: z.array(fieldAvailabilitySchema)
@@ -102,6 +116,7 @@ export type DeleteFieldResponse = {
 
 // Types
 export type Field = z.infer<typeof fieldSchema>;
+export type flattenedFieldSchemaType = z.infer<typeof flattenedFieldSchema>;
 export type FieldCreate = z.infer<typeof fieldCreateSchema>;
 export type FieldAvailability = z.infer<typeof fieldAvailabilitySchema>;
 export type FieldAvailabilityCreate = z.infer<typeof fieldAvailabilityCreateSchema>;

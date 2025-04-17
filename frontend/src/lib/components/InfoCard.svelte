@@ -6,7 +6,7 @@
   import { schedules } from '../../stores/schedules';
   import { teams } from '../../stores/teams';
   import type { Team } from '$lib/schemas/team';
-  import { fields } from '../../stores/fields';
+  import { fields, getFlattenedFields } from '../../stores/fields';
   import type { Field } from '$lib/schemas/field';
 
   // Accept only UID from the clicked entry
@@ -24,8 +24,9 @@
     teamsData = data;
   });
   
-  fields.subscribe(data => {
-    fieldsData = data;
+  // Use getFlattenedFields function to get all fields including subfields
+  fields.subscribe(() => {
+    fieldsData = getFlattenedFields();
   });
   
   // Initialize form data based on entry UID
@@ -89,7 +90,7 @@
         form={infoCardForm}
         errors={{}}
         name="field_id"
-        label="Location"
+        label="Field"
         type="select"
         view_mode_style="pill"
         options={fieldsData
