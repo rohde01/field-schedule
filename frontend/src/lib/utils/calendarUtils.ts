@@ -129,6 +129,7 @@ function createRecurringEvents(entry: ScheduleEntry, schedule: any): ProcessedSc
 
       return {
         ...entry,
+        schedule_entry_id: null,
         dtstart: startOccurrenceDate,
         dtend: end,
         start_time: getTimeFromDate(startOccurrenceDate),
