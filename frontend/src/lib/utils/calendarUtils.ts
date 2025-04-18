@@ -12,6 +12,7 @@ export type ProcessedScheduleEntry = ScheduleEntry & {
   start_time: string;
   end_time: string;
   ui_id: string;
+  isRecurring: boolean;
 };
 
 export const timeSlots = writable((() => {
@@ -134,7 +135,8 @@ function createRecurringEvents(entry: ScheduleEntry, schedule: any): ProcessedSc
         dtend: end,
         start_time: getTimeFromDate(startOccurrenceDate),
         end_time: getTimeFromDate(end),
-        ui_id: `${entry.uid}-${startOccurrenceDate.toISOString()}`
+        ui_id: `${entry.uid}-${startOccurrenceDate.toISOString()}`,
+        isRecurring: true
       };
     });
   } catch (error) {
@@ -175,7 +177,8 @@ function getAllEntriesForDate(schedule: {schedule_entries?: ScheduleEntry[]} | n
           dtend,
           start_time: getTimeFromDate(dtstart),
           end_time: getTimeFromDate(dtend),
-          ui_id: `${entry.uid}-${dtstart.toISOString()}`
+          ui_id: `${entry.uid}-${dtstart.toISOString()}`,
+          isRecurring: false
         };
       });
   }
@@ -205,7 +208,8 @@ function getAllEntriesForDate(schedule: {schedule_entries?: ScheduleEntry[]} | n
         dtend,
         start_time: getTimeFromDate(dtstart),
         end_time: getTimeFromDate(dtend),
-        ui_id: `${entry.uid}-${dtstart.toISOString()}`
+        ui_id: `${entry.uid}-${dtstart.toISOString()}`,
+        isRecurring: false
       };
     });
     
@@ -227,7 +231,8 @@ function getAllEntriesForDate(schedule: {schedule_entries?: ScheduleEntry[]} | n
           dtend: exDtend,
           start_time: getTimeFromDate(exDtstart),
           end_time: getTimeFromDate(exDtend),
-          ui_id: `${exception.uid}-${exDtstart.toISOString()}`
+          ui_id: `${exception.uid}-${exDtstart.toISOString()}`,
+          isRecurring: false
         });
       } else {
         recurringEntries.push(instance);

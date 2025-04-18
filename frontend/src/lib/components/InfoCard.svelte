@@ -7,12 +7,17 @@
   import type { Team } from '$lib/schemas/team';
   import { fields, getFlattenedFields } from '../../stores/fields';
   import type { Field } from '$lib/schemas/field';
+  import { updateScheduleEntry } from '../../stores/schedules';
 
   // Accept only UiId from the clicked entry
   export let entryUiId: string;
   
   // Create an internal writable store for the form state
   const infoCardForm: Writable<Record<string, any>> = writable({});
+  
+  // Track previous IDs for change detection
+  let prevTeamId: number | null | undefined;
+  let prevFieldId: number | null | undefined;
   
   // Get teams and fields from the stores
   let teamsData: Team[] = [];
@@ -37,14 +42,32 @@
 
       infoCardForm.set({
         uid: entry.uid,
+        schedule_id: entry.schedule_id,
         team_id: entry.team_id || null,
         field_id: entry.field_id || null,
         starts: entry.dtstart.toISOString(),
         ends: entry.dtend.toISOString(),
         summary: entry.summary || '',
-        schedule_entry_id: entry.schedule_entry_id
+        recurrence_id: entry.recurrence_id || null,
+        isRecurring: entry.isRecurring
       });
+  
+      // Initialize previous values
+      prevTeamId = entry.team_id;
+      prevFieldId = entry.field_id;
     }
+  });
+  
+  // Subscribe to form changes to update schedule entry on team/field change
+  infoCardForm.subscribe(form => {
+    if (prevTeamId !== undefined && form.team_id !== prevTeamId) {
+      updateScheduleEntry({ uid: form.uid, schedule_id: form.schedule_id, team_id: form.team_id, recurrence_id: form.isRecurring ? form.starts : form.recurrence_id });
+    }
+    if (prevFieldId !== undefined && form.field_id !== prevFieldId) {
+      updateScheduleEntry({ uid: form.uid, schedule_id: form.schedule_id, field_id: form.field_id, recurrence_id: form.isRecurring ? form.starts : form.recurrence_id });
+    }
+    prevTeamId = form.team_id;
+    prevFieldId = form.field_id;
   });
 </script>
 

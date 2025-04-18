@@ -49,3 +49,63 @@ export function addScheduleEntry(entry: ScheduleEntry) {
         return updatedSchedules;
     });
 }
+
+export function updateScheduleEntry(updatedEntry: Partial<ScheduleEntry> & Pick<ScheduleEntry, 'uid' | 'schedule_id'>) {
+    schedules.update(schedulesList => {
+        return schedulesList.map(schedule => {
+            if (schedule.schedule_id !== updatedEntry.schedule_id) return schedule;
+
+            const entries = schedule.schedule_entries;
+            const targetUid = updatedEntry.uid;
+            const targetRecurrenceId = updatedEntry.recurrence_id ? updatedEntry.recurrence_id : null;
+            let updatedEntries = [...entries];
+
+            if (targetRecurrenceId) {
+                // --- Case 1: Updating an existing exception
+                const existingExceptionIndex = entries.findIndex(e =>
+                    e.uid === targetUid && e.recurrence_id
+                );
+
+                if (existingExceptionIndex !== -1) {
+                    const originalException = entries[existingExceptionIndex];
+                    const mergedException = { ...originalException, ...updatedEntry };
+                    updatedEntries[existingExceptionIndex] = mergedException;
+                    console.log(`Updated existing exception entry ${targetUid} for instance ${targetRecurrenceId}:`, mergedException);
+                } else {
+                    // --- Case 2: No existing exception found - Create a new exception
+                    const masterEntry = entries.find(e => e.uid === targetUid && !e.recurrence_id && e.recurrence_rule);
+                    if (masterEntry) {
+                        const newExceptionData = {
+                            ...masterEntry,
+                            ...updatedEntry,
+                            schedule_entry_id: null,
+                            recurrence_id: targetRecurrenceId,
+                            recurrence_rule: null,
+                            exdate: null,
+                        };
+                        updatedEntries.push(newExceptionData as ScheduleEntry);
+                        console.log(`Created new exception entry for ${targetUid} instance ${targetRecurrenceId}:`, newExceptionData);
+                    } else {
+                        console.warn(`Cannot update instance ${targetRecurrenceId} for entry ${targetUid}: Master recurring entry not found or update data incomplete.`);
+                        return schedule;
+                    }
+                }
+            } else {
+                // --- Case 3: Updating standalone entry
+                const masterIndex = entries.findIndex(e => e.uid === targetUid && !e.recurrence_id);
+                if (masterIndex !== -1) {
+  
+                    const originalMaster = entries[masterIndex];
+                    const mergedMaster = { ...originalMaster, ...updatedEntry };
+
+                    updatedEntries[masterIndex] = mergedMaster;
+                    console.log(`Updated standalone entry ${targetUid}:`, mergedMaster);
+                } else {
+                    console.warn(`Cannot update standalone entry ${targetUid}: Entry not found.`);
+                    return schedule;
+                }
+            }
+            return { ...schedule, schedule_entries: updatedEntries };
+        });
+    });
+}
