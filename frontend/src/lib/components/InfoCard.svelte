@@ -3,6 +3,7 @@
   import { writable, type Writable, get } from 'svelte/store';
   import { onMount } from 'svelte';
   import { processedEntries } from '$lib/utils/calendarUtils';
+  import { formatDateTimeUTC } from '$lib/utils/dateUtils';
   import { teams } from '../../stores/teams';
   import type { Team } from '$lib/schemas/team';
   import { fields, getFlattenedFields } from '../../stores/fields';
@@ -45,9 +46,9 @@
         schedule_id: entry.schedule_id,
         team_id: entry.team_id || null,
         field_id: entry.field_id || null,
-        starts: entry.dtstart.toISOString(),
-        ends: entry.dtend.toISOString(),
-        summary: entry.summary || '',
+        starts: formatDateTimeUTC(entry.dtstart),
+        ends: formatDateTimeUTC(entry.dtend),
+        summary: entry.summary,
         recurrence_id: entry.recurrence_id || null,
         isRecurring: entry.isRecurring
       });
@@ -69,14 +70,26 @@
     prevTeamId = form.team_id;
     prevFieldId = form.field_id;
   });
+
+  // Handle form submission
+  function handleSubmit() {
+    const formData = get(infoCardForm);
+    updateScheduleEntry({ 
+      uid: formData.uid, 
+      schedule_id: formData.schedule_id, 
+      team_id: formData.team_id, 
+      field_id: formData.field_id,
+      recurrence_id: formData.isRecurring ? formData.starts : formData.recurrence_id 
+    });
+  }
 </script>
 
 <div 
+  class="p-4 rounded-lg shadow-lg bg-white"
   role="button"
   tabindex="0"
   on:keydown={(e) => { if(e.key === "Enter" || e.key === " ") e.stopPropagation(); }}
   on:click|stopPropagation
-  class="event-info-card"
 >
   <div class="event-info-card-header">
     <EditableField

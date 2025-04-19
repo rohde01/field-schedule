@@ -109,6 +109,19 @@ export function normalizeTime(time: string): string {
   return time.slice(0, 5);
 }
 
+// Format date to DD/MM/YYYY-HH:MM (UTC)
+export function formatDateTimeUTC(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  
+  const day = d.getUTCDate().toString().padStart(2, '0');
+  const month = (d.getUTCMonth() + 1).toString().padStart(2, '0');
+  const year = d.getUTCFullYear();
+  const hours = d.getUTCHours().toString().padStart(2, '0');
+  const minutes = d.getUTCMinutes().toString().padStart(2, '0');
+  
+  return `${day}/${month}/${year}-${hours}:${minutes}`;
+}
+
 // Add helper to combine date and time into a single UTC Date
 export function combineDateAndTime(dateInput: Date | string, time: string): Date {
   const baseDate = new Date(dateInput);
