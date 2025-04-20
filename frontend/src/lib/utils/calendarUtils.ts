@@ -5,7 +5,7 @@ import { derived } from 'svelte/store';
 import { dropdownState } from '../../stores/ScheduleDropdownState';
 import { browser } from '$app/environment';
 import * as rrulelib from 'rrule';
-import { createUTCDate, getTimeFromDate, normalizeTime, currentDate } from './dateUtils';
+import { createUTCDate, getTimeFromDate, normalizeTime, currentDate, isSameDay } from './dateUtils';
 const { RRuleSet, rrulestr } = rrulelib;
 
 export type ProcessedScheduleEntry = ScheduleEntry & {
@@ -145,17 +145,6 @@ function createRecurringEvents(entry: ScheduleEntry, schedule: any): ProcessedSc
   }
 }
 
-function findExceptionForDate(exceptions: ScheduleEntry[], date: Date, masterUid: string): ScheduleEntry | undefined {
-  return exceptions.find(exception => {
-    if (!exception.recurrence_id || exception.uid !== masterUid) return false;
-    
-    const exceptionDate = createUTCDate(exception.recurrence_id);
-    const eventTime = date.getTime();
-    const exceptionTime = exceptionDate.getTime();
-    return Math.abs(exceptionTime - eventTime) < 60000;
-  });
-}
-
 function getAllEntriesForDate(schedule: {schedule_entries?: ScheduleEntry[]} | null, date: Date): ProcessedScheduleEntry[] {
   if (!schedule) return [];
 
@@ -184,6 +173,7 @@ function getAllEntriesForDate(schedule: {schedule_entries?: ScheduleEntry[]} | n
       });
   }
   
+  // Categorize all entries
   const regularEntries: ScheduleEntry[] = [];
   const recurringMasters: ScheduleEntry[] = [];
   const exceptions: ScheduleEntry[] = [];
@@ -198,6 +188,7 @@ function getAllEntriesForDate(schedule: {schedule_entries?: ScheduleEntry[]} | n
     }
   });
   
+  // Process single occurrences (non-recurring events)
   const oneTimeEntries = regularEntries
     .filter(entry => shouldShowEntryOnDate(entry, date))
     .map(entry => {
@@ -214,9 +205,12 @@ function getAllEntriesForDate(schedule: {schedule_entries?: ScheduleEntry[]} | n
       };
     });
 
-
+  // Process exceptions for this date - only include exceptions that match this date
   const exceptionEntries = exceptions
-    .filter(entry => shouldShowEntryOnDate(entry, date))
+    .filter(entry => {
+      const dtstart = createUTCDate(entry.dtstart);
+      return isSameDay(dtstart, date);
+    })
     .map(entry => {
       const dtstart = createUTCDate(entry.dtstart);
       const dtend = createUTCDate(entry.dtend);
@@ -231,16 +225,38 @@ function getAllEntriesForDate(schedule: {schedule_entries?: ScheduleEntry[]} | n
       };
     });
 
+  // Process recurring entries
   const recurringEntries: ProcessedScheduleEntry[] = [];
   
+  // Create a set of all exception dates per master UID for quick lookup
+  const masterExceptions: Map<string, Date[]> = new Map();
+  exceptions.forEach(exception => {
+    if (!exception.recurrence_id || !exception.uid) return;
+    
+    const exDate = createUTCDate(exception.recurrence_id);
+    if (!masterExceptions.has(exception.uid)) {
+      masterExceptions.set(exception.uid, []);
+    }
+    masterExceptions.get(exception.uid)?.push(exDate);
+  });
+
   recurringMasters.forEach(master => {
+    // Get all occurrences for this master event on the selected date
     const instances = createRecurringEvents(master, schedule)
-      .filter(instance => shouldShowEntryOnDate(instance, date));
+      .filter(instance => isSameDay(instance.dtstart, date));
+    
+    // Filter out instances that match an exception's recurrence ID
+    const exceptDates = masterExceptions.get(master.uid) || [];
     
     instances.forEach(instance => {
-      const exception = findExceptionForDate(exceptions, instance.dtstart, master.uid);
-      // Only include recurring instances not overridden by exceptions
-      if (!exception) {
+      const hasMatchingException = exceptDates.some(exceptDate => 
+        isSameDay(exceptDate, instance.dtstart) && 
+        exceptDate.getUTCHours() === instance.dtstart.getUTCHours() && 
+        exceptDate.getUTCMinutes() === instance.dtstart.getUTCMinutes()
+      );
+      
+      // Only add instances that don't have exceptions replacing them
+      if (!hasMatchingException) {
         recurringEntries.push(instance);
       }
     });

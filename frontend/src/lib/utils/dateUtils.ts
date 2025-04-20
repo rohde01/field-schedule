@@ -66,6 +66,12 @@ export const currentWeekDay = derived(currentDate, ($currentDate) => {
   return $currentDate.getDay();
 });
 
+export function isSameDay(date1: Date, date2: Date): boolean {
+  return date1.getUTCFullYear() === date2.getUTCFullYear() &&
+         date1.getUTCMonth() === date2.getUTCMonth() &&
+         date1.getUTCDate() === date2.getUTCDate();
+}
+
 export function formatDate(date: Date): string {
   return `${weekDays[date.getDay()]}, ${date.toLocaleDateString('en-US', { 
     month: 'long', 
