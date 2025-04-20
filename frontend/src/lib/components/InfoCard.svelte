@@ -1,9 +1,8 @@
 <script lang="ts">
-  import EditableField from './EditableField.svelte';
+  import { Label, Input, Select } from 'flowbite-svelte';
   import { writable, type Writable, get } from 'svelte/store';
   import { onMount } from 'svelte';
   import { processedEntries } from '$lib/utils/calendarUtils';
-  import { formatDateTimeUTC } from '$lib/utils/dateUtils';
   import { teams } from '../../stores/teams';
   import type { Team } from '$lib/schemas/team';
   import { fields, getFlattenedFields } from '../../stores/fields';
@@ -15,10 +14,6 @@
   
   // Create an internal writable store for the form state
   const infoCardForm: Writable<Record<string, any>> = writable({});
-  
-  // Track previous IDs for change detection
-  let prevTeamId: number | null | undefined;
-  let prevFieldId: number | null | undefined;
   
   // Get teams and fields from the stores
   let teamsData: Team[] = [];
@@ -46,113 +41,68 @@
         schedule_id: entry.schedule_id,
         team_id: entry.team_id || null,
         field_id: entry.field_id || null,
-        starts: formatDateTimeUTC(entry.dtstart),
-        ends: formatDateTimeUTC(entry.dtend),
-        summary: entry.summary,
+        starts: entry.dtstart.toISOString(),
+        ends: entry.dtend.toISOString(),
+        summary: entry.summary || '',
         recurrence_id: entry.recurrence_id || null,
         isRecurring: entry.isRecurring
       });
-  
-      // Initialize previous values
-      prevTeamId = entry.team_id;
-      prevFieldId = entry.field_id;
     }
   });
-  
-  // Subscribe to form changes to update schedule entry on team/field change
-  infoCardForm.subscribe(form => {
-    if (prevTeamId !== undefined && form.team_id !== prevTeamId) {
-      updateScheduleEntry({ uid: form.uid, schedule_id: form.schedule_id, team_id: form.team_id, recurrence_id: form.isRecurring ? form.starts : form.recurrence_id });
-    }
-    if (prevFieldId !== undefined && form.field_id !== prevFieldId) {
-      updateScheduleEntry({ uid: form.uid, schedule_id: form.schedule_id, field_id: form.field_id, recurrence_id: form.isRecurring ? form.starts : form.recurrence_id });
-    }
-    prevTeamId = form.team_id;
-    prevFieldId = form.field_id;
-  });
-
-  // Handle form submission
-  function handleSubmit() {
-    const formData = get(infoCardForm);
-    updateScheduleEntry({ 
-      uid: formData.uid, 
-      schedule_id: formData.schedule_id, 
-      team_id: formData.team_id, 
-      field_id: formData.field_id,
-      recurrence_id: formData.isRecurring ? formData.starts : formData.recurrence_id 
-    });
-  }
 </script>
 
 <div 
-  class="p-4 rounded-lg shadow-lg bg-white"
   role="button"
   tabindex="0"
   on:keydown={(e) => { if(e.key === "Enter" || e.key === " ") e.stopPropagation(); }}
   on:click|stopPropagation
+  class="event-info-card"
 >
   <div class="event-info-card-header">
-    <EditableField
-      form={infoCardForm}
-      errors={{}}
-      name="summary"
-      label=""
-      type="text"
-      view_mode_style="title"
-      required={true}
-    />
+    <Label class="space-y-2">
+      <span>Summary</span>
+      <Input
+        type="text"
+        size="sm"
+        placeholder="Summary"
+        bind:value={$infoCardForm.summary}
+        required
+        on:change={() => updateScheduleEntry({ uid: $infoCardForm.uid, schedule_id: $infoCardForm.schedule_id, summary: $infoCardForm.summary, recurrence_id: $infoCardForm.isRecurring ? $infoCardForm.starts : $infoCardForm.recurrence_id })}
+      />
+    </Label>
   </div>
   <div class="event-info-card-content">
     <div class="event-info-card-grid">
-      <EditableField
-        form={infoCardForm}
-        errors={{}}
-        name="field_id"
-        label="Field"
-        type="select"
-        view_mode_style="pill"
-        options={fieldsData
-          .filter(field => field.field_id !== undefined)
-          .map(field => ({ value: field.field_id, label: field.name }))}
-        required={true}
-      />
-      <EditableField
-        form={infoCardForm}
-        errors={{}}
-        name="team_id"
-        label="Team"
-        type="select"
-        view_mode_style="normal"
-        options={teamsData
-          .filter(team => team.team_id !== undefined)
-          .map(team => ({ value: team.team_id as number, label: team.name }))}
-        required={true}
-      />
+      <Label>
+        <span>Field</span>
+        <Select
+          class="mt-2"
+          items={fieldsData.filter(f => f.field_id !== undefined).map(f => ({ value: f.field_id, name: f.name }))}
+          bind:value={$infoCardForm.field_id}
+          required
+          on:change={() => updateScheduleEntry({ uid: $infoCardForm.uid, schedule_id: $infoCardForm.schedule_id, field_id: $infoCardForm.field_id, recurrence_id: $infoCardForm.isRecurring ? $infoCardForm.starts : $infoCardForm.recurrence_id })}
+        />
+      </Label>
+      <Label>
+        <span>Team</span>
+        <Select
+          class="mt-2"
+          items={teamsData.filter(t => t.team_id !== undefined).map(t => ({ value: t.team_id, name: t.name }))}
+          bind:value={$infoCardForm.team_id}
+          required
+          on:change={() => updateScheduleEntry({ uid: $infoCardForm.uid, schedule_id: $infoCardForm.schedule_id, team_id: $infoCardForm.team_id, recurrence_id: $infoCardForm.isRecurring ? $infoCardForm.starts : $infoCardForm.recurrence_id })}
+        />
+      </Label>
     </div>
     <div class="event-info-card-grid">
-      <EditableField
-        form={infoCardForm}
-        errors={{}}
-        name="starts"
-        label="Starts"
-        type="text"
-        placeholder="HH:MM"
-        view_mode_style="normal"
-        required={true}
-      />
-      <EditableField
-        form={infoCardForm}
-        errors={{}}
-        name="ends"
-        label="Ends"
-        type="text"
-        placeholder="HH:MM"
-        view_mode_style="normal"
-        required={true}
-      />
+      <Label>
+        <span>Starts</span>
+        <Input class="mb-6 mt-2" size="sm" disabled value={$infoCardForm.starts} />
+      </Label>
+      <Label>
+        <span>Ends</span>
+        <Input class="mb-6 mt-2" size="sm" disabled value={$infoCardForm.ends} />
+      </Label>
     </div>
   </div>
 </div>
-
-
-

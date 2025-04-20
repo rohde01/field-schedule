@@ -2,8 +2,25 @@
 
 @plugin '@tailwindcss/typography';
 @plugin '@tailwindcss/forms';
+@plugin 'flowbite/plugin';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
 
 @theme {
+
+
+  --color-primary-50: #fff5f2;
+  --color-primary-100: #fff1ee;
+  --color-primary-200: #ffe4de;
+  --color-primary-300: #ffd5cc;
+  --color-primary-400: #ffbcad;
+  --color-primary-500: #fe795d;
+  --color-primary-600: #ef562f;
+  --color-primary-700: #eb4f27;
+  --color-primary-800: #cc4522;
+  --color-primary-900: #a5371b;
+  
   --color-sage-50: #f4f7f4;
   --color-sage-100: #e6ede6;
   --color-sage-200: #d1e0d2;
@@ -25,7 +42,9 @@
   --color-mint-700: #006e4c;
   --color-mint-800: #00583d;
   --color-mint-900: #004831;
+
 }
+
 
 /*
   The default border color has changed to `currentcolor` in Tailwind CSS v4,
@@ -35,15 +54,14 @@
   If we ever want to remove these styles, we need to add an explicit border
   color utility to any element that depends on these defaults.
 */
+
+
 @layer base {
-  *,
-  ::after,
-  ::before,
-  ::backdrop,
-  ::file-selector-button {
-    border-color: var(--color-gray-200, currentcolor);
+  button, [role="button"] {
+    cursor: pointer;
   }
 }
+@source "../node_modules/flowbite-svelte/dist";
 
 @utility btn {
   @apply px-4 py-2 rounded-lg font-medium transition-colors duration-200 focus:outline-hidden focus:ring-2 focus:ring-offset-2;

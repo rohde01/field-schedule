@@ -49,9 +49,14 @@
   // Handle clicks outside the InfoCard
   function handleOutsideClick(event: MouseEvent) {
     const infoCard = document.querySelector('.info-card-container');
-    if (infoCard && !infoCard.contains(event.target as Node)) {
-      closeInfoCard();
+    const active = document.activeElement as Node;
+    if (
+      infoCard && 
+      (infoCard.contains(event.target as Node) || infoCard.contains(active))
+    ) {
+      return;
     }
+    closeInfoCard();
   }
 
   // Time tracking variables
