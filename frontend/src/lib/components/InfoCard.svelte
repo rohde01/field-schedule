@@ -8,6 +8,8 @@
   import { fields, getFlattenedFields } from '../../stores/fields';
   import type { Field } from '$lib/schemas/field';
   import { updateScheduleEntry } from '../../stores/schedules';
+  import { Datepicker } from 'flowbite-svelte';
+  import { formatDateAsYYYYMMDD } from '$lib/utils/dateUtils';
 
   // Accept only UiId from the clicked entry
   export let entryUiId: string;
@@ -29,6 +31,29 @@
     fieldsData = getFlattenedFields();
   });
   
+  let selectedDate: Date | null = null;
+
+  $: if (selectedDate) {
+    handleDateChange();
+  }
+
+  function handleDateChange() {
+    if (!selectedDate) return;
+    const oldStartTime = $infoCardForm.starts.slice(11, 19);
+    const oldEndTime = $infoCardForm.ends.slice(11, 19);
+    const [sh, sm] = oldStartTime.split(':').map(Number);
+    const [eh, em] = oldEndTime.split(':').map(Number);
+    const [year, month, day] = formatDateAsYYYYMMDD(selectedDate).split('-').map(Number);
+    const newStartDate = new Date(Date.UTC(year, month - 1, day, sh, sm));
+    const newEndDate = new Date(Date.UTC(year, month - 1, day, eh, em));
+    const newStartIso = newStartDate.toISOString();
+    const newEndIso = newEndDate.toISOString();
+    const formValues = get(infoCardForm);
+    const recId = formValues.isRecurring ? formValues.starts : formValues.recurrence_id;
+    updateScheduleEntry({ uid: formValues.uid, schedule_id: formValues.schedule_id, dtstart: newStartDate, dtend: newEndDate, recurrence_id: recId });
+    infoCardForm.update(f => ({ ...f, starts: newStartIso, ends: newEndIso }));
+  }
+
   // Initialize form data based on entry UID
   onMount(async () => {
     const currentEntries = get(processedEntries);
@@ -47,6 +72,7 @@
         recurrence_id: entry.recurrence_id || null,
         isRecurring: entry.isRecurring
       });
+      selectedDate = entry.dtstart;
     }
   });
 </script>
@@ -93,7 +119,7 @@
           on:change={() => updateScheduleEntry({ uid: $infoCardForm.uid, schedule_id: $infoCardForm.schedule_id, team_id: $infoCardForm.team_id, recurrence_id: $infoCardForm.isRecurring ? $infoCardForm.starts : $infoCardForm.recurrence_id })}
         />
       </Label>
-    </div>
+    </div>  
     <div class="event-info-card-grid">
       <Label>
         <span>Starts</span>
@@ -102,6 +128,14 @@
       <Label>
         <span>Ends</span>
         <Input class="mb-6 mt-2" size="sm" disabled value={$infoCardForm.ends} />
+      </Label>
+    </div>
+    <div class="mt-4">
+      <Label>
+        <span>Date</span>
+        <Datepicker
+          bind:value={selectedDate}
+        />
       </Label>
     </div>
   </div>

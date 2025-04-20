@@ -158,9 +158,10 @@ function findExceptionForDate(exceptions: ScheduleEntry[], date: Date, masterUid
 
 function getAllEntriesForDate(schedule: {schedule_entries?: ScheduleEntry[]} | null, date: Date): ProcessedScheduleEntry[] {
   if (!schedule) return [];
-  
+
   const entries = schedule.schedule_entries || [];
-  
+
+  // --- Draft Schedule Handling ---
   if (isDraftSchedule(schedule)) {
     return entries
       .filter(entry => entry.recurrence_rule)
@@ -178,7 +179,7 @@ function getAllEntriesForDate(schedule: {schedule_entries?: ScheduleEntry[]} | n
           start_time: getTimeFromDate(dtstart),
           end_time: getTimeFromDate(dtend),
           ui_id: `${entry.uid}-${dtstart.toISOString()}`,
-          isRecurring: false
+          isRecurring: false 
         };
       });
   }
@@ -212,7 +213,24 @@ function getAllEntriesForDate(schedule: {schedule_entries?: ScheduleEntry[]} | n
         isRecurring: false
       };
     });
-    
+
+
+  const exceptionEntries = exceptions
+    .filter(entry => shouldShowEntryOnDate(entry, date))
+    .map(entry => {
+      const dtstart = createUTCDate(entry.dtstart);
+      const dtend = createUTCDate(entry.dtend);
+      return {
+        ...entry,
+        dtstart,
+        dtend,
+        start_time: getTimeFromDate(dtstart),
+        end_time: getTimeFromDate(dtend),
+        ui_id: `${entry.uid}-${dtstart.toISOString()}`,
+        isRecurring: false
+      };
+    });
+
   const recurringEntries: ProcessedScheduleEntry[] = [];
   
   recurringMasters.forEach(master => {
@@ -221,26 +239,14 @@ function getAllEntriesForDate(schedule: {schedule_entries?: ScheduleEntry[]} | n
     
     instances.forEach(instance => {
       const exception = findExceptionForDate(exceptions, instance.dtstart, master.uid);
-      
-      if (exception) {
-        const exDtstart = createUTCDate(exception.dtstart);
-        const exDtend = createUTCDate(exception.dtend);
-        recurringEntries.push({
-          ...exception,
-          dtstart: exDtstart,
-          dtend: exDtend,
-          start_time: getTimeFromDate(exDtstart),
-          end_time: getTimeFromDate(exDtend),
-          ui_id: `${exception.uid}-${exDtstart.toISOString()}`,
-          isRecurring: false
-        });
-      } else {
+      // Only include recurring instances not overridden by exceptions
+      if (!exception) {
         recurringEntries.push(instance);
       }
     });
   });
   
-  return [...oneTimeEntries, ...recurringEntries];
+  return [...oneTimeEntries, ...exceptionEntries, ...recurringEntries];
 }
 
 export const processedEntries = browser ? derived(
