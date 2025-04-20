@@ -1,6 +1,5 @@
 <script lang="ts">
   import { Label, Input, Select } from 'flowbite-svelte';
-  import { ClockSolid } from 'flowbite-svelte-icons';
   import { writable, type Writable, get } from 'svelte/store';
   import { onMount } from 'svelte';
   import { processedEntries } from '$lib/utils/calendarUtils';
@@ -19,6 +18,11 @@
   let fieldsData: Field[] = [];
   let timeUpdateTimer: ReturnType<typeof setTimeout> | null = null;
   let originalStartTimeForRecurrence: string | null = null; // store original start for recurrence
+  let summaryEditing = false;
+  let fieldEditing = false;
+  let teamEditing = false;
+  let dateEditing = false;
+  let showTimeInput = false;
 
   teams.subscribe(data => {
     teamsData = data;
@@ -139,17 +143,18 @@
   tabindex="0"
   on:keydown={(e) => { if(e.key === "Enter" || e.key === " ") e.stopPropagation(); }}
   on:click|stopPropagation
-  class="event-info-card"
+  class="event-info-card max-w-[280px]"
 >
-  <div class="event-info-card-header">
-    <Label class="space-y-2">
-      <span>Summary</span>
+  <div class="event-info-card-header mb-1">
+    <Label class="space-y-0">
       <Input
         type="text"
-        size="sm"
-        placeholder="Summary"
+        placeholder="Event name"
         bind:value={$infoCardForm.summary}
         required
+        class="text-xl font-semibold text-black mt-0 bg-transparent border-none focus:ring-0 focus:border-none px-2 py-0.5 placeholder:text-gray-300"
+        on:focus={() => summaryEditing = true}
+        on:blur={() => summaryEditing = false}
         on:change={() => {
           console.log('Summary changed:', $infoCardForm.summary);
           updateScheduleEntry({ uid: $infoCardForm.uid, schedule_id: $infoCardForm.schedule_id, summary: $infoCardForm.summary, dtstart: new Date($infoCardForm.starts), dtend: new Date($infoCardForm.ends), recurrence_id: originalStartTimeForRecurrence ? new Date(originalStartTimeForRecurrence) : ($infoCardForm.recurrence_id ? new Date($infoCardForm.recurrence_id) : null) });
@@ -158,54 +163,69 @@
     </Label>
   </div>
   <div class="event-info-card-content">
-    <div class="event-info-card-grid">
-      <Label>
-        <span>Field</span>
-        <Select
-          class="mt-2"
-          items={fieldsData.filter(f => f.field_id !== undefined).map(f => ({ value: f.field_id, name: f.name }))}
-          bind:value={$infoCardForm.field_id}
-          required
-          on:change={() => {
-            console.log('Field changed:', $infoCardForm.field_id);
-            updateScheduleEntry({ uid: $infoCardForm.uid, schedule_id: $infoCardForm.schedule_id, field_id: $infoCardForm.field_id, dtstart: new Date($infoCardForm.starts), dtend: new Date($infoCardForm.ends), recurrence_id: originalStartTimeForRecurrence ? new Date(originalStartTimeForRecurrence) : ($infoCardForm.recurrence_id ? new Date($infoCardForm.recurrence_id) : null) });
-          }}
-        />
-      </Label>
-      <Label>
-        <span>Team</span>
-        <Select
-          class="mt-2"
-          items={teamsData.filter(t => t.team_id !== undefined).map(t => ({ value: t.team_id, name: t.name }))}
-          bind:value={$infoCardForm.team_id}
-          required
-          on:change={() => {
-            console.log('Team changed:', $infoCardForm.team_id);
-            updateScheduleEntry({ uid: $infoCardForm.uid, schedule_id: $infoCardForm.schedule_id, team_id: $infoCardForm.team_id, dtstart: new Date($infoCardForm.starts), dtend: new Date($infoCardForm.ends), recurrence_id: originalStartTimeForRecurrence ? new Date(originalStartTimeForRecurrence) : ($infoCardForm.recurrence_id ? new Date($infoCardForm.recurrence_id) : null) });
-          }}
-        />
-      </Label>
-    </div>
-    <div class="mt-4">
-      <Label>
-        <span>Date</span>
-        <Datepicker
-          bind:value={selectedDate}
-          on:select={handleDateChange}
-        />
-      </Label>
-    </div>
-    <div class="event-info-card-grid">
-      <Label>
-        <span>Select Time Range:</span>
-        <Timepicker
-          icon={ClockSolid as any}
-          type="range"
-          value={selectedTimerange.time}
-          endValue={selectedTimerange.endTime}
-          on:select={handleTimeChange} 
-        />
-      </Label>
+    <div class="flex flex-col space-y-3">
+      <div class="grid grid-cols-2 gap-3">
+        <Label class="space-y-2">
+          <Select
+            class="mt-2 text-s border-gray-200 bg-transparent h-8 py-0"
+            size="sm"
+            items={fieldsData.filter(f => f.field_id !== undefined).map(f => ({ value: f.field_id, name: f.name }))}
+            bind:value={$infoCardForm.field_id}
+            required
+            on:focus={() => fieldEditing = true}
+            on:blur={() => fieldEditing = false}
+            on:change={() => {
+              console.log('Field changed:', $infoCardForm.field_id);
+              updateScheduleEntry({ uid: $infoCardForm.uid, schedule_id: $infoCardForm.schedule_id, field_id: $infoCardForm.field_id, dtstart: new Date($infoCardForm.starts), dtend: new Date($infoCardForm.ends), recurrence_id: originalStartTimeForRecurrence ? new Date(originalStartTimeForRecurrence) : ($infoCardForm.recurrence_id ? new Date($infoCardForm.recurrence_id) : null) });
+            }}
+          />
+        </Label>
+        <Label class="space-y-2">
+          <Select
+            class="mt-2 text-s border-gray-200 bg-transparent h-8 py-0"
+            size="sm"
+            items={teamsData.filter(t => t.team_id !== undefined).map(t => ({ value: t.team_id, name: t.name }))}
+            bind:value={$infoCardForm.team_id}
+            required
+            on:focus={() => teamEditing = true}
+            on:blur={() => teamEditing = false}
+            on:change={() => {
+              console.log('Team changed:', $infoCardForm.team_id);
+              updateScheduleEntry({ uid: $infoCardForm.uid, schedule_id: $infoCardForm.schedule_id, team_id: $infoCardForm.team_id, dtstart: new Date($infoCardForm.starts), dtend: new Date($infoCardForm.ends), recurrence_id: originalStartTimeForRecurrence ? new Date(originalStartTimeForRecurrence) : ($infoCardForm.recurrence_id ? new Date($infoCardForm.recurrence_id) : null) });
+            }}
+          />
+        </Label>
+      </div>
+
+      <div class="flex flex-col space-y-2">
+        <Label class="mt-2">
+          <Datepicker
+            bind:value={selectedDate}
+            on:select={handleDateChange}
+            inputClass="mt-2 text-s border-gray-200 h-8 py-0"
+            on:focus={() => dateEditing = true}
+            on:blur={() => dateEditing = false}
+          />
+        </Label>
+        
+        <button class="text-gray-400 text-[16px] mt-1 hover:text-gray-600 focus:outline-none text-left pl-1" on:click={() => showTimeInput = !showTimeInput}>
+          {showTimeInput ? '− time' : '+ time'}
+        </button>
+        
+        {#if showTimeInput}
+          <div class="mt-2 bg-transparent">
+            <Label class="space-y-2 ">
+              <Timepicker
+                type="range"
+                size="sm"
+                value={selectedTimerange.time}
+                endValue={selectedTimerange.endTime}
+                on:select={handleTimeChange} 
+              />
+            </Label>
+          </div>
+        {/if}
+      </div>
     </div>
   </div>
 </div>

@@ -10,16 +10,16 @@
 @theme {
 
 
-  --color-primary-50: #fff5f2;
-  --color-primary-100: #fff1ee;
-  --color-primary-200: #ffe4de;
-  --color-primary-300: #ffd5cc;
-  --color-primary-400: #ffbcad;
-  --color-primary-500: #fe795d;
-  --color-primary-600: #ef562f;
-  --color-primary-700: #eb4f27;
-  --color-primary-800: #cc4522;
-  --color-primary-900: #a5371b;
+  --color-primary-50: #f2f9f6;
+  --color-primary-100: #e6f3ed;
+  --color-primary-200: #bfe3d3;
+  --color-primary-300: #99d3b9;
+  --color-primary-400: #4db38f;
+  --color-primary-500: #009365;
+  --color-primary-600: #00845b;
+  --color-primary-700: #006e4c;
+  --color-primary-800: #00583d;
+  --color-primary-900: #004831;
   
   --color-sage-50: #f4f7f4;
   --color-sage-100: #e6ede6;
@@ -77,6 +77,10 @@
 
 @utility form-input {
   @apply block w-full rounded-lg border-sage-200 shadow-xs focus:border-mint-500 focus:ring-mint-500;
+}
+
+@utility form-select-pill {
+  @apply form-input rounded-full px-4 py-1 bg-sage-50 border-sage-200 text-sage-700 hover:bg-sage-100 focus:ring-1 focus:ring-mint-500;
 }
 
 @utility form-input-sm {
@@ -567,13 +571,19 @@
 
 @utility event-info-card {
   @layer components {
-    @apply bg-white rounded-lg shadow-md p-6 z-50 min-w-[400px];
+    @apply bg-white rounded-lg shadow-md p-4 z-50 min-w-[320px];
   }
 }
 
 @utility event-info-card-grid {
   @layer components {
     @apply grid grid-cols-2 gap-4;
+  }
+}
+
+@utility event-info-card-content {
+  @layer components {
+    @apply pt-0;
   }
 }
 
