@@ -56,13 +56,13 @@
                 <h2 class="text-2xl font-semibold text-sage-900 mb-6">{isLogin ? 'Welcome back!' : 'Create Account'}</h2>
 
                 {#if $message}
-                    <div class="mb-4 p-3 rounded bg-red-50 text-red-600 text-sm" role="alert">
+                    <div class="mb-4 p-3 rounded-sm bg-red-50 text-red-600 text-sm" role="alert">
                         {$message}
                     </div>
                 {/if}
 
                 {#if $errors._errors}
-                    <div class="mb-4 p-3 rounded bg-red-50 text-red-600 text-sm" role="alert">
+                    <div class="mb-4 p-3 rounded-sm bg-red-50 text-red-600 text-sm" role="alert">
                         {$errors._errors.join(', ')}
                     </div>
                 {/if}
@@ -103,7 +103,7 @@
                     <div class="space-y-3">
                         <button 
                             formaction={isLogin ? "?/login" : "?/signup"}
-                            class="w-full bg-mint-500 hover:bg-mint-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200"
+                            class="w-full bg-mint-500 hover:bg-mint-700 text-white font-bold py-2 px-4 rounded-sm transition-colors duration-200"
                         >
                             {isLogin ? 'Login' : 'Sign up'}
                         </button>

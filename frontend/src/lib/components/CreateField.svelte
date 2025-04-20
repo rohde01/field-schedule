@@ -117,13 +117,13 @@
 
 <div class="detail-card">
     {#if $page.status === 400 && $page.form?.error}
-        <div class="mb-4 p-4 rounded bg-red-100 text-red-700">
+        <div class="mb-4 p-4 rounded-sm bg-red-100 text-red-700">
             {$page.form.error}
         </div>
     {/if}
 
     {#if !$dropdownState.selectedFacility}
-        <div class="mb-4 p-4 rounded bg-yellow-100 text-yellow-700">
+        <div class="mb-4 p-4 rounded-sm bg-yellow-100 text-yellow-700">
             Please select a facility first
         </div>
     {/if}

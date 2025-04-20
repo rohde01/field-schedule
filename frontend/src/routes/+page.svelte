@@ -5,13 +5,13 @@
 <div class="flex flex-col">
     <!-- Hero Section -->
     <div class="px-4 py-8">
-        <div class="flex flex-col justify-center items-center py-32 bg-gradient-to-br from-mint-500 to-sage-500 rounded-3xl shadow-lg">
+        <div class="flex flex-col justify-center items-center py-32 bg-linear-to-br from-mint-500 to-sage-500 rounded-3xl shadow-lg">
             <div class="w-full max-w-4xl mx-auto text-center px-4" in:fly="{{ y: 50, duration: 1000 }}">
                 <h1 class="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-8">
                     Baneplanen.
                 </h1>
                 <p class="text-xl sm:text-2xl text-white/90 mb-12">
-                    En tidlig prototype udviklet i samarbejde med og for <span class="font-bold bg-gradient-to-r from-[#C8102E] to-blue-800 text-transparent bg-clip-text">Boldklubben af 1893</span>
+                    En tidlig prototype udviklet i samarbejde med og for <span class="font-bold bg-linear-to-r from-[#C8102E] to-blue-800 text-transparent bg-clip-text">Boldklubben af 1893</span>
                 </p>
                 <div class="flex flex-col sm:flex-row gap-4 justify-center">
                     <a href="/register" class="btn-primary text-lg px-8 py-3 bg-white text-mint-600 hover:bg-mint-50">

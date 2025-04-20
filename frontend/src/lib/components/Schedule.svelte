@@ -189,7 +189,7 @@
       </span>
     </div>
 
-    <div class="view-toggle-container flex-shrink-0">
+    <div class="view-toggle-container shrink-0">
       <div class="view-toggle">
         <button
           class="view-toggle-btn { $viewMode === 'day' ? 'active' : '' }"

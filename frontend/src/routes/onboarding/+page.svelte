@@ -27,7 +27,7 @@
                 <h2 class="text-2xl font-semibold text-sage-900 mb-6">Complete Your Profile</h2>
                 
                 {#if $nameMessage}
-                    <div class="mb-4 p-3 rounded bg-red-50 text-red-600 text-sm" role="alert">
+                    <div class="mb-4 p-3 rounded-sm bg-red-50 text-red-600 text-sm" role="alert">
                         {$nameMessage}
                     </div>
                 {/if}
@@ -67,7 +67,7 @@
 
                     <button 
                         type="submit"
-                        class="w-full bg-mint-500 hover:bg-mint-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200"
+                        class="w-full bg-mint-500 hover:bg-mint-700 text-white font-bold py-2 px-4 rounded-sm transition-colors duration-200"
                     >
                         Save Profile
                     </button>
@@ -78,7 +78,7 @@
                 <h2 class="text-2xl font-semibold text-sage-900 mb-6">Create Your Club</h2>
                 
                 {#if $clubMessage}
-                    <div class="mb-4 p-3 rounded bg-red-50 text-red-600 text-sm" role="alert">
+                    <div class="mb-4 p-3 rounded-sm bg-red-50 text-red-600 text-sm" role="alert">
                         {$clubMessage}
                     </div>
                 {/if}
@@ -102,7 +102,7 @@
 
                     <button 
                         type="submit"
-                        class="w-full bg-mint-500 hover:bg-mint-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200"
+                        class="w-full bg-mint-500 hover:bg-mint-700 text-white font-bold py-2 px-4 rounded-sm transition-colors duration-200"
                     >
                         Create Club
                     </button>

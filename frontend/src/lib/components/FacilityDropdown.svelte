@@ -170,7 +170,7 @@
                                             type="checkbox"
                                             name="is_primary"
                                             value="true"
-                                            class="rounded border-sage-300 text-mint-600 focus:ring-mint-500"
+                                            class="rounded-sm border-sage-300 text-mint-600 focus:ring-mint-500"
                                         >
                                         <span>Set as primary facility</span>
                                     </div>

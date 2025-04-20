@@ -138,11 +138,7 @@
     }
 </script>
 
-<style>
-    .team-inactive {
-        @apply text-red-600;
-    }
-</style>
+
 
 <div class="schedules-sidebar">
     <div class="bg-white rounded-2xl shadow-xl border border-mint-100 overflow-hidden">
