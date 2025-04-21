@@ -27,9 +27,11 @@
   // InfoCard state
   let showInfoCard = false;
   let selectedEntryUiId = "";
-  
+  let recentDrag = false;
+
   // Handle single click on entry
   function handleEntryInteraction(event: MouseEvent|KeyboardEvent, entry: ProcessedScheduleEntry) {
+    if (recentDrag) { recentDrag = false; return; }
     // only respond to click or Enter/Space key
     if (event instanceof KeyboardEvent && !(event.key === 'Enter' || event.key === ' ')) return;
     showInfoCard = true;
@@ -182,37 +184,6 @@
   }
 </script>
 
-<style>
-  .resize-handle {
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 6px;
-    background: transparent;
-    z-index: 2;
-  }
-  .resize-handle.top {
-    top: 0;
-  }
-  .resize-handle.bottom {
-    bottom: 0;
-  }
-  .horizontal-handle {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 6px;
-    background: transparent;
-    z-index: 2;
-    cursor: ew-resize;
-  }
-  .horizontal-handle.left {
-    left: 0;
-  }
-  .horizontal-handle.right {
-    right: 0;
-  }
-</style>
 
 <!-- make container focusable and keyboard-operable -->
 <div class="schedule-container" role="button" tabindex="0" on:click|self={closeInfoCard} on:keydown|self={(e) => (e.key === 'Enter' || e.key === ' ') && (closeInfoCard(), e.preventDefault())}>
@@ -312,6 +283,7 @@
             {@const endRow = getEntryRowEndWithSlots(entry.end_time, $timeSlots)}
             {@const visibility = getEntryContentVisibility(startRow, endRow)}
             <div use:moveHandle={{ ui_id: entry.ui_id, totalColumns, activeFields: $activeFields, fieldToGridColMap }}
+               on:dragend={(e) => recentDrag = !!e.detail}
                class="schedule-event"
                role="button"
                tabindex="0"

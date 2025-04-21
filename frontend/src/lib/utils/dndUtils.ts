@@ -7,12 +7,14 @@ export function resizeHandle(node: HTMLElement, { ui_id, edge }: { ui_id: string
   // make handle visible as resizer and prevent text selection
   node.style.cursor = 'ns-resize';
   node.style.userSelect = 'none';
+  let moved = false;
   let startY: number;
   let initialIndex: number;
   let slots: string[];
   let rowHeight: number;
 
   const onMouseMove = (e: MouseEvent) => {
+    moved = true;
     const deltaY = e.clientY - startY;
     const sensitivityFactor = 2.5;
     const deltaSlots = deltaY >= 0
@@ -36,11 +38,13 @@ export function resizeHandle(node: HTMLElement, { ui_id, edge }: { ui_id: string
   };
 
   const onMouseUp = () => {
+    node.dispatchEvent(new CustomEvent('dragend', { detail: moved, bubbles: true }));
     document.removeEventListener('mousemove', onMouseMove);
     document.removeEventListener('mouseup', onMouseUp);
   };
 
   const onMouseDown = (e: MouseEvent) => {
+    moved = false;
     e.preventDefault();
     e.stopPropagation();
     startY = e.clientY;
@@ -65,7 +69,9 @@ export function resizeHandle(node: HTMLElement, { ui_id, edge }: { ui_id: string
 export function horizontalDrag(node: HTMLElement, { ui_id, direction, totalColumns, activeFields, fieldToGridColMap }: any) {
   node.style.cursor = 'ew-resize';
   node.style.userSelect = 'none';
+  let moved = false;
   const onMouseDown = (ev: MouseEvent) => {
+    moved = false;
     ev.preventDefault(); ev.stopPropagation();
     const entry = get(processedEntries).find(e => e.ui_id === ui_id);
     if (!entry) return;
@@ -87,6 +93,7 @@ export function horizontalDrag(node: HTMLElement, { ui_id, direction, totalColum
       );
     let lastUpdate: Partial<any> | null = null;
     const onMove = (e2: MouseEvent) => {
+      moved = true;
       const currentEntry = get(processedEntries).find(e => e.ui_id === ui_id);
       if (!currentEntry) return;
       const currentOriginal = candidates.find(c => c.field_id === currentEntry.field_id);
@@ -108,6 +115,7 @@ export function horizontalDrag(node: HTMLElement, { ui_id, direction, totalColum
       }
     };
     const onUp = () => {
+      node.dispatchEvent(new CustomEvent('dragend', { detail: moved, bubbles: true }));
       if (lastUpdate) processedEntries.update(entries =>
         entries.map(ent =>
           ent.ui_id === entry.ui_id ? { ...ent, ...lastUpdate! } : ent
@@ -139,8 +147,10 @@ export function moveHandle(node: HTMLElement, { ui_id, totalColumns, activeField
   let candidates: any[];
   let originalType: string;
   let mainField: any;
+  let moved = false;
 
   const onMouseMove = (e: MouseEvent) => {
+    moved = true;
     const deltaY = e.clientY - startY;
     const sensitivityFactor = 2.5;
     const deltaSlots = deltaY >= 0
@@ -189,9 +199,16 @@ export function moveHandle(node: HTMLElement, { ui_id, totalColumns, activeField
   const onMouseUp = () => {
     document.removeEventListener('mousemove', onMouseMove);
     document.removeEventListener('mouseup', onMouseUp);
+    node.dispatchEvent(new CustomEvent('dragend', { detail: moved }));
   };
 
   const onMouseDown = (e: MouseEvent) => {
+    moved = false;
+    const target = e.target as HTMLElement;
+    if (target.closest('.info-card-container') || target.closest('input') || target.closest('select') || target.closest('button')) {
+      return;
+    }
+
     e.preventDefault();
     e.stopPropagation();
     startY = e.clientY;

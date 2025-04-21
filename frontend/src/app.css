@@ -71,6 +71,35 @@
   button, [role="button"] {
     cursor: pointer;
   }
+  .resize-handle {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background: transparent;
+    z-index: 2;
+  }
+  .resize-handle.top {
+    top: 0;
+  }
+  .resize-handle.bottom {
+    bottom: 0;
+  }
+  .horizontal-handle {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    background: transparent;
+    z-index: 2;
+    cursor: ew-resize;
+  }
+  .horizontal-handle.left {
+    left: 0;
+  }
+  .horizontal-handle.right {
+    right: 0;
+  }
 }
 @source "../node_modules/flowbite-svelte/dist";
 
