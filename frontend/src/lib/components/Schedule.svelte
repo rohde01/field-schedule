@@ -20,7 +20,7 @@
   import { writable } from 'svelte/store';
   import Calendar from '$lib/components/Calendar.svelte';
   import InfoCard from '$lib/components/InfoCard.svelte';
-  import { resizeHandle } from '$lib/utils/dndUtils';
+  import { resizeHandle, horizontalDrag } from '$lib/utils/dndUtils';
   import { addScheduleEntry } from '$stores/schedules';
   import { get } from 'svelte/store';
 
@@ -197,6 +197,21 @@
   .resize-handle.bottom {
     bottom: 0;
   }
+  .horizontal-handle {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    background: transparent;
+    z-index: 2;
+    cursor: ew-resize;
+  }
+  .horizontal-handle.left {
+    left: 0;
+  }
+  .horizontal-handle.right {
+    right: 0;
+  }
 </style>
 
 <!-- make container focusable and keyboard-operable -->
@@ -311,6 +326,8 @@
             >
               <div class="resize-handle top" use:resizeHandle={{ ui_id: entry.ui_id, edge: 'top' }}></div>
               <div class="resize-handle bottom" use:resizeHandle={{ ui_id: entry.ui_id, edge: 'bottom' }}></div>
+              <div class="horizontal-handle left" use:horizontalDrag={{ ui_id: entry.ui_id, direction: 'left', totalColumns, headerCells, activeFields: $activeFields, fieldToGridColMap }}></div>
+              <div class="horizontal-handle right" use:horizontalDrag={{ ui_id: entry.ui_id, direction: 'right', totalColumns, headerCells, activeFields: $activeFields, fieldToGridColMap }}></div>
               <div class="event-team font-bold text-[1.15em]">
                 {getEntryTitle(entry)}
               </div>

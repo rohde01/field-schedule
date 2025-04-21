@@ -63,3 +63,68 @@ export function resizeHandle(node: HTMLElement, { ui_id, edge }: { ui_id: string
   };
 }
 
+export function horizontalDrag(node: HTMLElement, { ui_id, direction, totalColumns, activeFields, fieldToGridColMap }: any) {
+  node.style.cursor = 'ew-resize';
+  node.style.userSelect = 'none';
+  const onMouseDown = (ev: MouseEvent) => {
+    ev.preventDefault(); ev.stopPropagation();
+    const entry = get(processedEntries).find(e => e.ui_id === ui_id);
+    if (!entry) return;
+    const gridEl = node.closest('.schedule-grid') as HTMLElement;
+    const { left, width } = gridEl.getBoundingClientRect();
+    const columnWidth = width / totalColumns;
+    const mainField = getMainFieldForEvent(entry.field_id!, activeFields);
+    if (!mainField) return;
+    const candidates = getCandidateStatesForMainField(mainField, fieldToGridColMap);
+    const original = candidates.find(c => c.field_id === entry.field_id);
+    if (!original) return;
+    const isRight = direction === 'right';
+    const edgeIndex = isRight ? original.colIndex : original.colIndex + original.width - 1;
+    const forEdge = candidates
+      .filter(c => isRight ? c.colIndex === edgeIndex : (c.colIndex + c.width - 1) === edgeIndex)
+      .sort((a, b) => isRight
+        ? (a.colIndex + a.width) - (b.colIndex + b.width)
+        : b.colIndex - a.colIndex
+      );
+    let lastUpdate: Partial<any> | null = null;
+    const onMove = (e2: MouseEvent) => {
+      const currentEntry = get(processedEntries).find(e => e.ui_id === ui_id);
+      if (!currentEntry) return;
+      const currentOriginal = candidates.find(c => c.field_id === currentEntry.field_id);
+      if (!currentOriginal) return;
+      const rel = Math.max(0, Math.min(e2.clientX - left, width));
+      const target = Math.floor(rel / columnWidth) + 1;
+      let chosen = currentOriginal;
+      for (const c of forEdge) {
+        const edge = isRight ? c.colIndex + c.width - 1 : c.colIndex;
+        if (isRight ? target >= edge : target <= edge) chosen = c;
+      }
+      if (chosen.field_id !== currentEntry.field_id) {
+        lastUpdate = { field_id: chosen.field_id };
+        processedEntries.update(entries =>
+          entries.map(ent =>
+            ent.ui_id === ui_id ? { ...ent, ...lastUpdate! } : ent
+          )
+        );
+      }
+    };
+    const onUp = () => {
+      if (lastUpdate) processedEntries.update(entries =>
+        entries.map(ent =>
+          ent.ui_id === entry.ui_id ? { ...ent, ...lastUpdate! } : ent
+        )
+      );
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+  node.addEventListener('mousedown', onMouseDown);
+  return {
+    destroy() {
+      node.removeEventListener('mousedown', onMouseDown);
+    }
+  };
+}
+
