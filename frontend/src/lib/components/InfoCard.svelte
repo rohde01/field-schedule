@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { Label, Input, Select } from 'flowbite-svelte';
+  import { Label, Input, Select, Datepicker, Timepicker } from 'flowbite-svelte';
+  import { TrashBinSolid, ClockSolid } from 'flowbite-svelte-icons';
   import { writable, type Writable, get } from 'svelte/store';
   import { onMount } from 'svelte';
   import { processedEntries } from '$lib/utils/calendarUtils';
@@ -7,8 +8,7 @@
   import type { Team } from '$lib/schemas/team';
   import { fields, getFlattenedFields } from '../../stores/fields';
   import type { Field } from '$lib/schemas/field';
-  import { updateScheduleEntry } from '../../stores/schedules';
-  import { Datepicker, Timepicker } from 'flowbite-svelte';
+  import { updateScheduleEntry, deleteScheduleEntry } from '../../stores/schedules';
   import { formatDateAsYYYYMMDD } from '$lib/utils/dateUtils';
 
   export let entryUiId: string;
@@ -23,6 +23,7 @@
   let teamEditing = false;
   let dateEditing = false;
   let showTimeInput = false;
+  let isDeleting = false;
 
   teams.subscribe(data => {
     teamsData = data;
@@ -98,6 +99,18 @@
     infoCardForm.update(f => ({ ...f, starts: newStartIso, ends: newEndIso }));
   }
 
+  function handleDelete() {
+    isDeleting = true;
+    const formValues = get(infoCardForm);
+    const recDate = originalStartTimeForRecurrence
+      ? new Date(originalStartTimeForRecurrence)
+      : formValues.recurrence_id
+        ? new Date(formValues.recurrence_id)
+        : null;
+    deleteScheduleEntry(formValues.uid, formValues.schedule_id, recDate);
+    isDeleting = false;
+  }
+
   onMount(async () => {
     const currentEntries = get(processedEntries);
     const entry = currentEntries.find(entry => entry.ui_id === entryUiId);
@@ -143,7 +156,7 @@
   tabindex="0"
   on:keydown={(e) => { if(e.key === "Enter" || e.key === " ") e.stopPropagation(); }}
   on:click|stopPropagation
-  class="event-info-card max-w-[280px]"
+  class="event-info-card max-w-[280px] relative"
 >
   <div class="event-info-card-header mb-1">
     <Label class="space-y-0">
@@ -218,6 +231,7 @@
               <Timepicker
                 type="range"
                 size="sm"
+                icon={ClockSolid as any}
                 value={selectedTimerange.time}
                 endValue={selectedTimerange.endTime}
                 on:select={handleTimeChange} 
@@ -228,4 +242,9 @@
       </div>
     </div>
   </div>
+
+  <!-- trash icon -->
+  <button class="absolute bottom-2 right-2 text-red-500 hover:text-red-600" on:click={handleDelete}>
+    <TrashBinSolid />
+  </button>
 </div>

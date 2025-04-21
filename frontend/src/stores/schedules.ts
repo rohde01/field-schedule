@@ -109,3 +109,38 @@ export function updateScheduleEntry(updatedEntry: Partial<ScheduleEntry> & Pick<
         });
     });
 }
+
+export function deleteScheduleEntry(uid: string, schedule_id: number, recurrence_id: Date | null) {
+    schedules.update(schedulesList => {
+        return schedulesList.map(schedule => {
+            if (schedule.schedule_id !== schedule_id) return schedule;
+
+            let updatedEntries = [...schedule.schedule_entries];
+            const masterIndex = updatedEntries.findIndex(e => e.uid === uid && !e.recurrence_id);
+            const masterEntry = masterIndex !== -1 ? updatedEntries[masterIndex] : undefined;
+
+            if (recurrence_id === null && masterEntry && !masterEntry.recurrence_rule) {
+                // Remove standalone master entry
+                updatedEntries = updatedEntries.filter(e => !(e.uid === uid && !e.recurrence_id));
+                console.log(`Deleted standalone entry ${uid}`);
+            } else if (recurrence_id) {
+                // Remove existing exception if found
+                const exceptionIndex = updatedEntries.findIndex(e => e.uid === uid && e.recurrence_id instanceof Date && e.recurrence_id.getTime() === recurrence_id.getTime());
+                if (exceptionIndex !== -1) {
+                    updatedEntries.splice(exceptionIndex, 1);
+                    console.log(`Removed exception for ${uid} at ${recurrence_id}`);
+                }
+                // Add recurrence_id to master's exdate
+                if (masterEntry) {
+                    const existingExdates = masterEntry.exdate ? [...masterEntry.exdate] : [];
+                    existingExdates.push(recurrence_id);
+                    const updatedMaster = { ...masterEntry, exdate: existingExdates };
+                    updatedEntries[masterIndex] = updatedMaster;
+                    console.log(`Added exdate ${recurrence_id} to master ${uid}`);
+                }
+            }
+
+            return { ...schedule, schedule_entries: updatedEntries };
+        });
+    });
+}
