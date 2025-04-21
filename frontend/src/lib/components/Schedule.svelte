@@ -20,7 +20,7 @@
   import { writable } from 'svelte/store';
   import Calendar from '$lib/components/Calendar.svelte';
   import InfoCard from '$lib/components/InfoCard.svelte';
-  import { resizeHandle, horizontalDrag } from '$lib/utils/dndUtils';
+  import { resizeHandle, horizontalDrag, moveHandle } from '$lib/utils/dndUtils';
   import { addScheduleEntry } from '$stores/schedules';
   import { get } from 'svelte/store';
 
@@ -311,19 +311,15 @@
             {@const startRow = getRowForTimeWithSlots(entry.start_time, $timeSlots)}
             {@const endRow = getEntryRowEndWithSlots(entry.end_time, $timeSlots)}
             {@const visibility = getEntryContentVisibility(startRow, endRow)}
-            <div
-              class="schedule-event"
-              role="button"
-              tabindex="0"
-              style="
-                grid-row-start: {startRow};
-                grid-row-end: {endRow + 1};
-                grid-column-start: {mapping.colIndex};
-                grid-column-end: span {mapping.colSpan};
-              "
-              on:click={(e) => handleEntryInteraction(e, entry)}
-              on:keydown={(e) => handleEntryInteraction(e, entry)}
-            >
+            <div use:moveHandle={{ ui_id: entry.ui_id, totalColumns, activeFields: $activeFields, fieldToGridColMap }}
+               class="schedule-event"
+               role="button"
+               tabindex="0"
+               style="grid-row-start: {startRow}; grid-row-end: {endRow + 1}; grid-column-start: {mapping.colIndex}; grid-column-end: span {mapping.colSpan};
+               "
+               on:click={(e) => handleEntryInteraction(e, entry)}
+               on:keydown={(e) => handleEntryInteraction(e, entry)}
+             >
               <div class="resize-handle top" use:resizeHandle={{ ui_id: entry.ui_id, edge: 'top' }}></div>
               <div class="resize-handle bottom" use:resizeHandle={{ ui_id: entry.ui_id, edge: 'bottom' }}></div>
               <div class="horizontal-handle left" use:horizontalDrag={{ ui_id: entry.ui_id, direction: 'left', totalColumns, headerCells, activeFields: $activeFields, fieldToGridColMap }}></div>
