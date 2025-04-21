@@ -1,5 +1,7 @@
 // This file contains utility functions for drag-and-drop functionality.
 import { processedEntries, timeSlots } from '$lib/utils/calendarUtils';
+import { getCandidateStatesForMainField, getMainFieldForEvent } from './fieldUtils';
+import type { Field } from '$lib/schemas/field';
 import { get } from 'svelte/store';
 
 export function resizeHandle(node: HTMLElement, { ui_id, edge }: { ui_id: string; edge: 'top'|'bottom' }) {

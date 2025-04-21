@@ -156,7 +156,7 @@
   tabindex="0"
   on:keydown={(e) => { if(e.key === "Enter" || e.key === " ") e.stopPropagation(); }}
   on:click|stopPropagation
-  class="event-info-card max-w-[280px] relative"
+  class="event-info-card max-w-[300px] relative"
 >
   <div class="event-info-card-header mb-1">
     <Label class="space-y-0">
