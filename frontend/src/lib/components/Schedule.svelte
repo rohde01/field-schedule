@@ -20,6 +20,7 @@
   import { writable } from 'svelte/store';
   import Calendar from '$lib/components/Calendar.svelte';
   import InfoCard from '$lib/components/InfoCard.svelte';
+  import { resizeHandle } from '$lib/utils/dndUtils';
   import { addScheduleEntry } from '$stores/schedules';
   import { get } from 'svelte/store';
 
@@ -181,6 +182,23 @@
   }
 </script>
 
+<style>
+  .resize-handle {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background: transparent;
+    z-index: 2;
+  }
+  .resize-handle.top {
+    top: 0;
+  }
+  .resize-handle.bottom {
+    bottom: 0;
+  }
+</style>
+
 <!-- make container focusable and keyboard-operable -->
 <div class="schedule-container" role="button" tabindex="0" on:click|self={closeInfoCard} on:keydown|self={(e) => (e.key === 'Enter' || e.key === ' ') && (closeInfoCard(), e.preventDefault())}>
   <div class="schedule-controls flex items-center my-2 py-2">
@@ -291,6 +309,8 @@
               on:click={(e) => handleEntryInteraction(e, entry)}
               on:keydown={(e) => handleEntryInteraction(e, entry)}
             >
+              <div class="resize-handle top" use:resizeHandle={{ ui_id: entry.ui_id, edge: 'top' }}></div>
+              <div class="resize-handle bottom" use:resizeHandle={{ ui_id: entry.ui_id, edge: 'bottom' }}></div>
               <div class="event-team font-bold text-[1.15em]">
                 {getEntryTitle(entry)}
               </div>

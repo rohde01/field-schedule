@@ -265,27 +265,32 @@ function getAllEntriesForDate(schedule: {schedule_entries?: ScheduleEntry[]} | n
   return [...oneTimeEntries, ...exceptionEntries, ...recurringEntries];
 }
 
-export const processedEntries = browser ? derived(
-  [dropdownState, currentDate], 
-  ([$dropdownState, $currentDate]) => {
-    const selectedSchedule = $dropdownState.selectedSchedule;
-    if (!selectedSchedule) return [];
-    const entries = getAllEntriesForDate(selectedSchedule, $currentDate);
-    
-    // Generate ui_id for uniqueness
-    const processed = entries.map(entry => {
-      const dtstampStr = entry.dtstart instanceof Date 
-        ? entry.dtstart.toISOString() 
-        : typeof entry.dtstart === 'string' 
-          ? entry.dtstart 
-          : '';
-      return {
-        ...entry,
-        ui_id: `${entry.uid}-${dtstampStr}`
-      };
-    });
+export const processedEntries = writable<ProcessedScheduleEntry[]>([]);
 
-    console.log('Processed Entries:', processed);
-    return processed;
-  }
-) : writable([]);
+// Populate processedEntries on state change
+if (browser) {
+  derived(
+    [dropdownState, currentDate],
+    ([$dropdownState, $currentDate]) => {
+      const selectedSchedule = $dropdownState.selectedSchedule;
+      if (!selectedSchedule) return [];
+      const entries = getAllEntriesForDate(selectedSchedule, $currentDate);
+      const processed = entries.map(entry => {
+        const dtstampStr = entry.dtstart instanceof Date
+          ? entry.dtstart.toISOString()
+          : typeof entry.dtstart === 'string'
+            ? entry.dtstart
+            : '';
+        return {
+          ...entry,
+          ui_id: `${entry.uid}-${dtstampStr}`
+        };
+      });
+      console.log('Processed Entries:', processed);
+      return processed;
+    }
+  ).subscribe(val => processedEntries.set(val));
+} else {
+  // Server-side fallback
+  writable<ProcessedScheduleEntry[]>([]);
+}
