@@ -17,7 +17,6 @@ declare global {
     }
     interface PageData {
       session: Session | null
-      supabase: SupabaseClient<Database>
       user: CustomUser | null
       facilities: Facility[]
       fields: Field[]

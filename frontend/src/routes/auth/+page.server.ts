@@ -4,9 +4,9 @@ import { zod } from 'sveltekit-superforms/adapters';
 import { createUserSchema } from '$lib/schemas/user';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load = (async ({ locals: { supabase } }) => {
+export const load = (async ({}) => {
   const form = await superValidate(zod(createUserSchema));
-  return { form, supabase };
+  return { form };
 }) satisfies PageServerLoad;
 
 export const actions: Actions = {
