@@ -142,3 +142,10 @@ export function formatDateAsYYYYMMDD(date: Date): string {
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
+
+// Compute new Date from base date and HH:mm string
+export function computeDateUTC(baseDate: Date, time: string): Date {
+  const [year, month, day] = formatDateAsYYYYMMDD(baseDate).split('-').map(Number);
+  const [h, m] = time.split(':').map(Number);
+  return new Date(Date.UTC(year, month - 1, day, h, m));
+}

@@ -63,7 +63,10 @@ export function updateScheduleEntry(updatedEntry: Partial<ScheduleEntry> & Pick<
             if (targetRecurrenceId) {
                 // --- Case 1: Updating an existing exception
                 const existingExceptionIndex = entries.findIndex(e =>
-                    e.uid === targetUid && e.recurrence_id
+                    e.uid === targetUid &&
+                    e.recurrence_id instanceof Date &&
+                    targetRecurrenceId instanceof Date &&
+                    e.recurrence_id.getTime() === targetRecurrenceId.getTime()
                 );
 
                 if (existingExceptionIndex !== -1) {

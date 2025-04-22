@@ -1,4 +1,5 @@
 import type { Field } from '$lib/schemas/field';
+import { updateScheduleEntry } from '../../stores/schedules';
 import type { ScheduleEntry } from '$lib/schemas/schedule';
 import { writable } from 'svelte/store';
 import { derived } from 'svelte/store';
@@ -293,4 +294,29 @@ if (browser) {
 } else {
   // Server-side fallback
   writable<ProcessedScheduleEntry[]>([]);
+}
+
+// Determine original recurrence start time for update logic
+export function getOriginalRecurrenceStart(entry: any): string | null {
+  if (entry.isRecurring) {
+    return entry.dtstart instanceof Date ? entry.dtstart.toISOString() : entry.dtstart;
+  } else if (entry.recurrence_id) {
+    return entry.recurrence_id instanceof Date ? entry.recurrence_id.toISOString() : entry.recurrence_id;
+  } else {
+    return null;
+  }
+}
+
+// Commit schedule update using processed entry and original recurrence
+export function commitUpdate(entry: any, originalRecurrence: string | null) {
+  updateScheduleEntry({
+    uid: entry.uid,
+    schedule_id: entry.schedule_id,
+    field_id: entry.field_id,
+    dtstart: entry.dtstart,
+    dtend: entry.dtend,
+    recurrence_id: originalRecurrence
+      ? new Date(originalRecurrence)
+      : (entry.recurrence_id ? new Date(entry.recurrence_id) : null)
+  });
 }

@@ -2,6 +2,8 @@ import { processedEntries, timeSlots } from '$lib/utils/calendarUtils';
 import { getCandidateStatesForMainField, getMainFieldForEvent } from './fieldUtils';
 import type { Field } from '$lib/schemas/field';
 import { get } from 'svelte/store';
+import { commitUpdate, getOriginalRecurrenceStart } from '$lib/utils/calendarUtils';
+import { computeDateUTC } from './dateUtils';
 
 export function resizeHandle(node: HTMLElement, { ui_id, edge }: { ui_id: string; edge: 'top'|'bottom' }) {
   // make handle visible as resizer and prevent text selection
@@ -12,6 +14,7 @@ export function resizeHandle(node: HTMLElement, { ui_id, edge }: { ui_id: string
   let initialIndex: number;
   let slots: string[];
   let rowHeight: number;
+  let originalStartTimeForRecurrence: string | null;
 
   const onMouseMove = (e: MouseEvent) => {
     moved = true;
@@ -26,19 +29,20 @@ export function resizeHandle(node: HTMLElement, { ui_id, edge }: { ui_id: string
     );
     const newTime = slots[newIndex];
     processedEntries.update(entries =>
-      entries.map(entry =>
-        entry.ui_id === ui_id
-          ? {
-              ...entry,
-              [edge === 'top' ? 'start_time' : 'end_time']: newTime
-            }
-          : entry
-      )
+      entries.map(entry => {
+        if (entry.ui_id !== ui_id) return entry;
+        const newDate = computeDateUTC(entry.dtstart as Date, newTime);
+        return edge === 'top'
+          ? { ...entry, start_time: newTime, dtstart: newDate }
+          : { ...entry, end_time: newTime, dtend: newDate };
+      })
     );
   };
 
   const onMouseUp = () => {
     node.dispatchEvent(new CustomEvent('dragend', { detail: moved, bubbles: true }));
+    const finalEntry = get(processedEntries).find(e => e.ui_id === ui_id);
+    if (moved && finalEntry) commitUpdate(finalEntry, originalStartTimeForRecurrence);
     document.removeEventListener('mousemove', onMouseMove);
     document.removeEventListener('mouseup', onMouseUp);
   };
@@ -50,6 +54,8 @@ export function resizeHandle(node: HTMLElement, { ui_id, edge }: { ui_id: string
     startY = e.clientY;
     slots = get(timeSlots);
     const entry = get(processedEntries).find(e => e.ui_id === ui_id);
+    if (!entry) return;
+    originalStartTimeForRecurrence = getOriginalRecurrenceStart(entry);
     const time = edge === 'top' ? entry?.start_time : entry?.end_time;
     initialIndex = time ? slots.indexOf(time) : 0;
     const wrapper = node.closest('.daily-schedule-wrapper') as HTMLElement;
@@ -70,11 +76,14 @@ export function horizontalDrag(node: HTMLElement, { ui_id, direction, totalColum
   node.style.cursor = 'ew-resize';
   node.style.userSelect = 'none';
   let moved = false;
+  let originalStartTimeForRecurrence: string | null;
+  
   const onMouseDown = (ev: MouseEvent) => {
     moved = false;
     ev.preventDefault(); ev.stopPropagation();
     const entry = get(processedEntries).find(e => e.ui_id === ui_id);
     if (!entry) return;
+    originalStartTimeForRecurrence = getOriginalRecurrenceStart(entry);
     const gridEl = node.closest('.schedule-grid') as HTMLElement;
     const { left, width } = gridEl.getBoundingClientRect();
     const columnWidth = width / totalColumns;
@@ -92,6 +101,7 @@ export function horizontalDrag(node: HTMLElement, { ui_id, direction, totalColum
         : b.colIndex - a.colIndex
       );
     let lastUpdate: Partial<any> | null = null;
+
     const onMove = (e2: MouseEvent) => {
       moved = true;
       const currentEntry = get(processedEntries).find(e => e.ui_id === ui_id);
@@ -121,6 +131,9 @@ export function horizontalDrag(node: HTMLElement, { ui_id, direction, totalColum
           ent.ui_id === entry.ui_id ? { ...ent, ...lastUpdate! } : ent
         )
       );
+
+      const finalEntry = get(processedEntries).find(e => e.ui_id === ui_id);
+      if (moved && finalEntry) commitUpdate(finalEntry, originalStartTimeForRecurrence);
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
     };
@@ -133,10 +146,10 @@ export function horizontalDrag(node: HTMLElement, { ui_id, direction, totalColum
       node.removeEventListener('mousedown', onMouseDown);
     }
   };
+
 }
 
 export function moveHandle(node: HTMLElement, { ui_id, totalColumns, activeFields, fieldToGridColMap }: any) {
-  node.style.cursor = 'move';
   node.style.userSelect = 'none';
 
   let startY: number;
@@ -148,6 +161,8 @@ export function moveHandle(node: HTMLElement, { ui_id, totalColumns, activeField
   let originalType: string;
   let mainField: any;
   let moved = false;
+  let originalStartTimeForRecurrence: string | null;
+  let originalDtDate: Date;
 
   const onMouseMove = (e: MouseEvent) => {
     moved = true;
@@ -190,7 +205,14 @@ export function moveHandle(node: HTMLElement, { ui_id, totalColumns, activeField
     processedEntries.update(entries =>
       entries.map(ent =>
         ent.ui_id === ui_id
-          ? { ...ent, start_time: slots[newStartIndex], end_time: slots[newEndIndex], field_id: chosen.field_id }
+          ? {
+              ...ent,
+              start_time: slots[newStartIndex],
+              end_time: slots[newEndIndex],
+              dtstart: computeDateUTC(originalDtDate, slots[newStartIndex]),
+              dtend: computeDateUTC(originalDtDate, slots[newEndIndex]),
+              field_id: chosen.field_id
+            }
           : ent
       )
     );
@@ -200,6 +222,8 @@ export function moveHandle(node: HTMLElement, { ui_id, totalColumns, activeField
     document.removeEventListener('mousemove', onMouseMove);
     document.removeEventListener('mouseup', onMouseUp);
     node.dispatchEvent(new CustomEvent('dragend', { detail: moved }));
+    const finalEntry = get(processedEntries).find(e => e.ui_id === ui_id);
+    if (moved && finalEntry) commitUpdate(finalEntry, originalStartTimeForRecurrence);
   };
 
   const onMouseDown = (e: MouseEvent) => {
@@ -224,6 +248,8 @@ export function moveHandle(node: HTMLElement, { ui_id, totalColumns, activeField
     candidates = getCandidateStatesForMainField(mainField, fieldToGridColMap);
     const original = candidates.find(c => c.field_id === entry.field_id);
     originalType = original?.candidateType || 'main';
+    originalStartTimeForRecurrence = getOriginalRecurrenceStart(entry);
+    originalDtDate = entry.dtstart as Date;
 
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
