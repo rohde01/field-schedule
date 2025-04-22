@@ -1,16 +1,11 @@
 <script lang="ts">
     import { invalidateAll } from '$app/navigation';
     import { superForm } from 'sveltekit-superforms/client';
-    import type { SuperValidated } from 'sveltekit-superforms';
     import { facilities, addFacility } from '$stores/facilities';
     import { dropdownState, toggleDropdown, selectFacility } from '$stores/FacilityDropdownState';
     import type { Facility } from '$lib/schemas/facility';
-    import type { z } from 'zod';
-    import { facilityCreateSchema } from '$lib/schemas/facility';
 
-    type FacilityFormData = SuperValidated<z.infer<typeof facilityCreateSchema>>;
-    
-    let { form: facilityFormData } = $props<{ form: FacilityFormData }>();
+    let { form: facilityFormData } = $props();
 
     let errorMessage = $state('');
 

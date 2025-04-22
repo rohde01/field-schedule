@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store';
 import type { Team } from '$lib/schemas/team';
-import type { Constraint } from '$lib/schemas/schedule';
+import type { Constraint } from '$lib/schemas/constraint';
 import { dropdownState } from './ScheduleDropdownState';
 
 interface SidebarState {

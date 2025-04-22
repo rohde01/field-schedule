@@ -1,6 +1,6 @@
 // a store for fetched constraints
 import { writable } from 'svelte/store';
-import type { Constraint } from '$lib/schemas/schedule';
+import type { Constraint } from '$lib/schemas/constraint';
 
 export const constraints = writable([] as Constraint[]);
 

@@ -16,7 +16,8 @@ export const load = (async ({ locals: { supabase, user } }) => {
     return { 
         nameForm,
         clubForm,
-        user 
+        user,
+        supabase
     };
 }) satisfies PageServerLoad;
 
@@ -39,7 +40,7 @@ export const actions: Actions = {
 
         const { first_name, last_name } = form.data;
 
-        const { error, data } = await supabase
+        const { error } = await supabase
             .from('users')
             .update({ first_name, last_name })
             .eq('user_id', user.user_id)

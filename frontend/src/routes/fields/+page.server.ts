@@ -1,9 +1,9 @@
-import type { PageServerLoad, Actions } from './$types';
-import { error, fail } from '@sveltejs/kit';
+import type { Actions } from './$types';
+import { fail } from '@sveltejs/kit';
 import { superValidate } from 'sveltekit-superforms/server';
 import { zod } from 'sveltekit-superforms/adapters';
 import { facilityCreateSchema } from '$lib/schemas/facility';
-import { deleteFieldSchema, fieldCreateSchema, type DeleteFieldResponse } from '$lib/schemas/field';
+import { deleteFieldSchema, fieldCreateSchema } from '$lib/schemas/field';
 
 export const load = async ({ locals }) => {
     const [facilityForm, deleteForm, createFieldForm] = await Promise.all([

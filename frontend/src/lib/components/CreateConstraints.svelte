@@ -1,7 +1,8 @@
 <script lang="ts">
     import type { ValidationErrors } from 'sveltekit-superforms';
     import EditableField from './EditableField.svelte';
-    import type { GenerateScheduleRequest, Constraint } from '$lib/schemas/schedule';
+    import type { Constraint } from '$lib/schemas/constraint';
+    import type { GenerateScheduleRequest } from '$lib/schemas/schedule';
     import { SidebarDropdownState } from '../../stores/ScheduleSidebarState';
     import type { Writable } from 'svelte/store';
     import { writable } from 'svelte/store';

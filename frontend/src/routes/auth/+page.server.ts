@@ -6,7 +6,7 @@ import type { Actions, PageServerLoad } from './$types';
 
 export const load = (async ({ locals: { supabase } }) => {
   const form = await superValidate(zod(createUserSchema));
-  return { form };
+  return { form, supabase };
 }) satisfies PageServerLoad;
 
 export const actions: Actions = {

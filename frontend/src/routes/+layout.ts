@@ -1,6 +1,7 @@
 import { createBrowserClient, createServerClient, isBrowser } from '@supabase/ssr'
 import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public'
 import type { LayoutLoad } from './$types'
+import type { User as CustomUser } from '$lib/schemas/user'
 
 export const load: LayoutLoad = async (event) => {
   // Declare a dependency so the layout can be invalidated, for example, on
@@ -32,8 +33,9 @@ export const load: LayoutLoad = async (event) => {
   } = await supabase.auth.getSession()
 
   const {
-    data: { user },
+    data: { user: supaUser },
   } = await supabase.auth.getUser()
+  const user: CustomUser | null = supaUser ? (supaUser as CustomUser) : null
 
   return { 
     session, 
@@ -43,7 +45,6 @@ export const load: LayoutLoad = async (event) => {
     teams: event.data.teams || [],
     facilities: event.data.facilities || [],
     fields: event.data.fields || [],
-    schedules: event.data.schedules || [],
-    events: event.data.events || [] 
+    schedules: event.data.schedules || []
   }
 }

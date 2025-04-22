@@ -5,7 +5,6 @@
     import DayGrid from '@event-calendar/day-grid';
     import Interaction from '@event-calendar/interaction';
     import '@event-calendar/core/index.css';
-    import { activeSchedules } from '../../stores/activeSchedules';
     import { schedules } from '../../stores/schedules';
 
     let plugins = [TimeGrid, DayGrid, Interaction];
@@ -39,26 +38,7 @@
         }
         return '';
     }
-    
-    // Convert active schedules to calendar events
-    $: activeScheduleEvents = $activeSchedules
-        .map(schedule => {
-            const scheduleName = $schedules.find(s => s.schedule_id === schedule.schedule_id)?.name ?? `Schedule ${schedule.schedule_id}`;
 
-            if (!schedule.start_date || !schedule.end_date) return null;
-            
-            return {
-                id: `active_${schedule.active_schedule_id}`,
-                title: `Active: ${scheduleName}`,
-                start: new Date(schedule.start_date).toISOString(),
-                end: new Date(schedule.end_date).toISOString(),
-                allDay: true,
-                color: '#4CAF50'
-            };
-        })
-        .filter((event): event is { id: string; title: string; start: string; end: string; allDay: boolean; color: string; } => 
-            event !== null
-        ); 
 
     // Convert schedules to calendar events using active_from and active_until
     $: scheduleEvents = $schedules
@@ -74,12 +54,9 @@
             };
         });
 
-    // Combine both event types
-    $: calendarEvents = [...activeScheduleEvents, ...scheduleEvents];
-
     $: options = {
         view: 'dayGridMonth',
-        events: calendarEvents,
+        events: scheduleEvents,
         height: '800px',
         headerToolbar: {
             start: '',

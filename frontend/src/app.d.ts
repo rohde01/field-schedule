@@ -23,7 +23,6 @@ declare global {
       fields: Field[]
       teams: Team[]
       schedules: Schedule[]
-      events: EventSchedule[]
       cookies: Record<string, string>
     }
   }
