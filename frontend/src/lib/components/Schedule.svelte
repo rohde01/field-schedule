@@ -168,7 +168,7 @@
     event.stopPropagation();
     const startDateTime = combineDateAndTime(get(currentDate), time);
     addScheduleEntry({
-      schedule_entry_id: -Date.now(),
+      schedule_entry_id: null,
       schedule_id: get(dropdownState).selectedSchedule!.schedule_id,
       uid: crypto.randomUUID(),
       dtstart: startDateTime,

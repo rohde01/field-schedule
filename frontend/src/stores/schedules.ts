@@ -1,8 +1,11 @@
 import { writable, get } from 'svelte/store';
 import type { Schedule, ScheduleEntry } from '$lib/schemas/schedule';
 import { selectSchedule, dropdownState } from './ScheduleDropdownState';
+import { scheduleSchema } from '$lib/schemas/schedule';
 
 export const schedules = writable<Schedule[]>([]);
+export const deletedEntryIds = writable<number[]>([]);
+export const unsavedChanges = writable<boolean>(false);
 
 schedules.subscribe((schedulesList) => {
     if (schedulesList.length === 0) return;
@@ -22,10 +25,11 @@ schedules.subscribe((schedulesList) => {
 });
 
 export function setSchedules(newSchedules: Schedule[]) {
+    const coercedSchedules = newSchedules.map(s => scheduleSchema.parse(s));
     schedules.update(() => {
-        console.log('Setting schedules to:', newSchedules);
-        return [...newSchedules];
+        return [...coercedSchedules];
     });
+    unsavedChanges.set(false);
 }
 
 export function addSchedule(schedule: Schedule) {
@@ -48,6 +52,7 @@ export function addScheduleEntry(entry: ScheduleEntry) {
         });
         return updatedSchedules;
     });
+    unsavedChanges.set(true);
 }
 
 export function updateScheduleEntry(updatedEntry: Partial<ScheduleEntry> & Pick<ScheduleEntry, 'uid' | 'schedule_id'>) {
@@ -81,10 +86,10 @@ export function updateScheduleEntry(updatedEntry: Partial<ScheduleEntry> & Pick<
                         const newExceptionData = {
                             ...masterEntry,
                             ...updatedEntry,
-                            schedule_entry_id: null,
                             recurrence_id: targetRecurrenceId,
                             recurrence_rule: null,
                             exdate: null,
+                            schedule_entry_id: null
                         };
                         updatedEntries.push(newExceptionData as ScheduleEntry);
                         console.log(`Created new exception entry for ${targetUid} instance ${targetRecurrenceId}:`, newExceptionData);
@@ -111,6 +116,7 @@ export function updateScheduleEntry(updatedEntry: Partial<ScheduleEntry> & Pick<
             return { ...schedule, schedule_entries: updatedEntries };
         });
     });
+    unsavedChanges.set(true);
 }
 
 export function deleteScheduleEntry(uid: string, schedule_id: number, recurrence_id: Date | null) {
@@ -123,6 +129,8 @@ export function deleteScheduleEntry(uid: string, schedule_id: number, recurrence
             const masterEntry = masterIndex !== -1 ? updatedEntries[masterIndex] : undefined;
 
             if (recurrence_id === null && masterEntry && !masterEntry.recurrence_rule) {
+                const id = masterEntry.schedule_entry_id;
+                if (id != null) deletedEntryIds.update(ids => [...ids, id]);
                 // Remove standalone master entry
                 updatedEntries = updatedEntries.filter(e => !(e.uid === uid && !e.recurrence_id));
                 console.log(`Deleted standalone entry ${uid}`);
@@ -130,6 +138,9 @@ export function deleteScheduleEntry(uid: string, schedule_id: number, recurrence
                 // Remove existing exception if found
                 const exceptionIndex = updatedEntries.findIndex(e => e.uid === uid && e.recurrence_id instanceof Date && e.recurrence_id.getTime() === recurrence_id.getTime());
                 if (exceptionIndex !== -1) {
+                    const removed = updatedEntries[exceptionIndex];
+                    const id2 = removed.schedule_entry_id;
+                    if (id2 != null) deletedEntryIds.update(ids => [...ids, id2]);
                     updatedEntries.splice(exceptionIndex, 1);
                     console.log(`Removed exception for ${uid} at ${recurrence_id}`);
                 }
@@ -146,4 +157,5 @@ export function deleteScheduleEntry(uid: string, schedule_id: number, recurrence
             return { ...schedule, schedule_entries: updatedEntries };
         });
     });
+    unsavedChanges.set(true);
 }

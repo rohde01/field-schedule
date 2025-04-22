@@ -75,35 +75,3 @@ export type DeleteScheduleResponse = {
 };
 
 export type GenerateScheduleRequest = z.infer<typeof generateScheduleRequestSchema>;
-
-export const activeScheduleCreateSchema = z.object({
-    club_id: z.number(),
-    schedule_id: z.number(),
-    start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/)  
-});
-
-export const activeScheduleUpdateSchema = z.object({
-    schedule_id: z.number(),
-    start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) 
-});
-
-export type ActiveSchedule = {
-    active_schedule_id: number;
-    schedule_id: number;
-    start_date: string;
-    end_date: string;
-    is_active?: boolean;
-};
-
-export type CalendarDate = {
-    date: Date;
-    weekDay: number;
-    formattedDate: string;
-    isWithinActiveSchedule: boolean;
-    activeScheduleId?: number;
-};
-
-export type ActiveScheduleCreate = z.infer<typeof activeScheduleCreateSchema>;
-export type ActiveScheduleUpdate = z.infer<typeof activeScheduleUpdateSchema>;

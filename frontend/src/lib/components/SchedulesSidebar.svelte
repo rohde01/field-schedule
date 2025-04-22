@@ -6,6 +6,8 @@
     import type { SuperForm } from 'sveltekit-superforms';
     import type { GenerateScheduleRequest } from '$lib/schemas/schedule';
     import { page } from '$app/stores';
+    import SaveScheduleButton from './saveScheduleButton.svelte';
+    import { unsavedChanges } from '../../stores/schedules';
 
     let { teams: propTeams, form } = $props<{ 
         teams: Team[], 
@@ -165,12 +167,18 @@
                     </svg>
                 </button>
             </div>
-            <button 
-                class="btn-primary text-sm py-1.5 m-2"
-                onclick={handleCreateScheduleClick}
-            >
-                {$teamDropdownState.showCreateSchedule ? 'Cancel' : 'Create Schedule'}
-            </button>
+            {#if $unsavedChanges}
+                <div class="m-2">
+                    <SaveScheduleButton />
+                </div>
+            {:else}
+                <button 
+                    class="btn-primary text-sm py-1.5 m-2"
+                    onclick={handleCreateScheduleClick}
+                >
+                    {$teamDropdownState.showCreateSchedule ? 'Cancel' : 'Create Schedule'}
+                </button>
+            {/if}
         </div>
 
         {#if $teamDropdownState.teamsOpen}
