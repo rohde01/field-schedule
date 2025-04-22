@@ -50,7 +50,7 @@ export const actions: Actions = {
         }
       });
     }
-    throw redirect(303, '/dashboard');
+    throw redirect(303, '/schedules');
   },
 
   logout: async ({ cookies, locals: { supabase } }) => {

@@ -20,7 +20,7 @@
                     userEmail = $form.email;
                     showConfirmation = true;
                 } else {
-                    goto('/dashboard');
+                    goto('/schedules');
                 }
             }
             return result;

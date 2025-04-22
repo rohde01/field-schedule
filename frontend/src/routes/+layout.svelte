@@ -69,14 +69,12 @@
                 <div class="bg-white shadow-lg rounded-2xl">
                     <div class="flex justify-between h-14 px-6">
                         <div class="flex items-center space-x-4">
-                            <a href="/" class="nav-link">Home</a>
                             {#if data.user}
-                                <a href="/dashboard" class="nav-link">Dashboard</a>
                                 <a href="/schedules" class="nav-link">Schedules</a>
                                 <a href="/teams" class="nav-link">Teams</a>
                                 <a href="/fields" class="nav-link">Fields</a>
                             {:else}
-                                <a href="/dashboard" class="nav-link">Dashboard</a>
+                                <a href="/" class="nav-link">Home</a>
                             {/if}
                         </div>
                         <div class="flex items-center space-x-4">

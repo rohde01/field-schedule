@@ -7,7 +7,7 @@ import type { Actions, PageServerLoad } from './$types';
 
 export const load = (async ({ locals: { supabase, user } }) => {
     if (user?.first_name && user?.last_name && user?.club_id) {
-        throw redirect(303, '/dashboard');
+        throw redirect(303, '/schedules');
     }
 
     const nameForm = await superValidate(zod(updateNameSchema));
@@ -56,7 +56,7 @@ export const actions: Actions = {
             });
         }
 
-        throw redirect(303, '/dashboard');
+        throw redirect(303, '/schedules');
     },
 
     createClub: async ({ request, locals: { supabase, user } }) => {
@@ -109,6 +109,6 @@ export const actions: Actions = {
             });
         }
 
-        throw redirect(303, '/dashboard');
+        throw redirect(303, '/schedules');
     }
 };
