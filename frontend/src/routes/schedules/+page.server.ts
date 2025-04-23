@@ -7,6 +7,8 @@ import type { RequestEvent } from '@sveltejs/kit';
 import { generateScheduleRequestSchema, deleteScheduleSchema, scheduleEntrySchema } from '$lib/schemas/schedule';
 import { fail } from '@sveltejs/kit';
 
+export const ssr = false;
+
 export const load = (async ({ locals }: RequestEvent) => {
     const createScheduleForm = await superValidate(zod(generateScheduleRequestSchema), {
         id: 'schedule-form',

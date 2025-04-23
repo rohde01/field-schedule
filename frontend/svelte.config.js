@@ -10,15 +10,6 @@ const config = {
     alias: {
       $stores: 'src/stores'
     }
-  },
-
-  vite: {
-    optimizeDeps: {
-      include: ['flowbite-svelte']
-    },
-    ssr: {
-      noExternal: ['flowbite-svelte']
-    }
   }
 };
 
