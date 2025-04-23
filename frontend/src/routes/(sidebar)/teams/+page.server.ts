@@ -7,7 +7,7 @@ import type { Actions } from './$types';
 const ssr = false;
 
 export const load = (async ({ locals }) => {
-    const deleteForm = await superValidate(zod(deleteTeamSchema));
+    const deleteForm = await superValidate(zod(deleteTeamSchema), { id: 'delete-team-form' });
     const createForm = await superValidate(zod(teamSchema), {
         id: 'team-form',
         defaults: {

@@ -1,22 +1,41 @@
 <script lang="ts">
-    import { teams, setTeams } from '$stores/teams';
-    import TeamsDropdown from '$lib/components/TeamsDropdown.svelte';
-    import DisplayCard from '$lib/components/DisplayCard.svelte';
-    import CreateTeam from '$lib/components/CreateTeam.svelte';
-    import { dropdownState } from '$stores/teamDropdownState';
-    import type { Column } from '$lib/components/DisplayCard.svelte';
+    import { superForm } from 'sveltekit-superforms/client';
+    export let data: { createForm: any; deleteForm: any };
+    import { Breadcrumb, BreadcrumbItem, Button, Checkbox, Heading, Indicator } from 'flowbite-svelte';
+    import { Input, Table, TableBody, TableBodyCell, TableBodyRow, TableHead } from 'flowbite-svelte';
+    import { TableHeadCell, Toolbar, ToolbarButton } from 'flowbite-svelte';
+    import { CogSolid, DotsVerticalOutline, DownloadSolid } from 'flowbite-svelte-icons';
+    import { EditOutline, ExclamationCircleSolid, PlusOutline, TrashBinSolid } from 'flowbite-svelte-icons';
+    import { teams } from '$lib/stores/teams';
+    import type { Team } from '$lib/schemas/team';
+    import DeleteModal from '$lib/components/DeleteModal.svelte';
+    import TeamModal from '$lib/components/TeamModal.svelte';
+    
+    // Initialize superForms with client-side options
+    const createForm = superForm(data.createForm, {
+      resetForm: true,
+      onResult: ({ result }) => {
+        if (result.type === 'success') {
+          // Close the modal after successful submission
+          openUser = false;
+        }
+      }
+    });
+    
+    const deleteForm = superForm(data.deleteForm, {
+      resetForm: true,
+      onResult: ({ result }) => {
+        if (result.type === 'success') {
+          // Close the modal after successful deletion
+          openDelete = false;
+          // You might want to refresh the teams data here
+        }
+      }
+    });
 
-    export let data;
-
-    if (data.teams) {
-        setTeams(data.teams);
-    }
-
-    let displayColumns: Column[] = [];
-
-    const handleTeamDelete = (teamId: number) => {
-        teams.update(t => t.filter(item => item.team_id !== teamId));
-        dropdownState.update(state => ({ ...state, selectedTeam: null }));
+    // Define imagesPath function if it doesn't exist elsewhere
+    const imagesPath = (path: string, folder: string) => {
+      return `/images/${folder}/${path}`;
     };
 
     function formatFieldSize(size: number): string {
@@ -34,57 +53,96 @@
         }
     }
 
-    $: if ($dropdownState.selectedTeam) {
-        const team = $dropdownState.selectedTeam;
-        displayColumns = [
-            {
-                fields: [
-                    { label: 'Year', value: team.year },
-                    { label: 'Gender', value: team.gender },
-                    { label: 'Level', value: team.level },
-                    { label: 'Academy Team', value: team.is_academy ? 'Yes' : 'No' }
-                ]
-            },
-            {
-                fields: [
-                    { label: 'Weekly Trainings', value: team.weekly_trainings },
-                    { label: 'Minimum Field Size', value: formatFieldSize(team.minimum_field_size), style: 'pill' },
-                    { label: 'Preferred Size', value: team.preferred_field_size ? formatFieldSize(team.preferred_field_size) : 'Not set', style: 'pill' }
-                ]
-            }
-        ];
+    let openUser: boolean = false; // modal control
+    let openDelete: boolean = false; // modal control
+    let current_team: Team | any = {};
+
+
+    // Function to prepare form for adding a new team
+    function addNewTeam() {
+      current_team = {};
+      // Reset the form to defaults
+      createForm.reset();
+      openUser = true;
     }
 </script>
-
-<div class="page-container">
-    <div class="sidebar">
-        <div class="sidebar-content">
-            <TeamsDropdown teams={$teams} />
+  
+  <main class="relative h-full w-full overflow-y-auto bg-white dark:bg-gray-800">
+    <h1 class="hidden">CRUD: Teams</h1>
+    <div class="p-4">
+      <Breadcrumb class="mb-5">
+        <BreadcrumbItem home>Home</BreadcrumbItem>
+        <BreadcrumbItem href="/crud/teams">Teams</BreadcrumbItem>
+      </Breadcrumb>
+      <Heading tag="h1" class="text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white">Teams</Heading>
+  
+      <Toolbar embedded class="w-full py-4 text-gray-500  dark:text-gray-300">
+        <Input placeholder="Search for teams" class="me-4 w-80 border xl:w-96" />
+        <div class="border-l border-gray-100 pl-2 dark:border-gray-700">
+          <ToolbarButton color="dark" class="m-0 rounded p-1 hover:bg-gray-100 focus:ring-0 dark:hover:bg-gray-700">
+            <CogSolid size="lg" />
+          </ToolbarButton>
+          <ToolbarButton color="dark" class="m-0 rounded p-1 hover:bg-gray-100 focus:ring-0 dark:hover:bg-gray-700">
+            <TrashBinSolid size="lg" />
+          </ToolbarButton>
+          <ToolbarButton color="dark" class="m-0 rounded p-1 hover:bg-gray-100 focus:ring-0 dark:hover:bg-gray-700">
+            <ExclamationCircleSolid size="lg" />
+          </ToolbarButton>
+          <ToolbarButton color="dark" class="m-0 rounded p-1 hover:bg-gray-100 focus:ring-0 dark:hover:bg-gray-700">
+            <DotsVerticalOutline size="lg" />
+          </ToolbarButton>
         </div>
+        {#snippet end()}
+          <div class="flex items-center space-x-2">
+            <Button size="sm" class="gap-2 px-3 whitespace-nowrap" onclick={() => addNewTeam()}>
+              <PlusOutline size="sm" />Add team
+            </Button>
+            <Button size="sm" color="alternative" class="gap-2 px-3">
+              <DownloadSolid size="md" class="-ml-1" />Export
+            </Button>
+          </div>
+        {/snippet}
+      </Toolbar>
     </div>
-
-    {#if $dropdownState.selectedTeam || $dropdownState.showCreateTeam}
-        <div class="main-content">
-            {#if $dropdownState.showCreateTeam}
-                <CreateTeam form={data.createForm} />
-            {:else if $dropdownState.selectedTeam}
-                <DisplayCard 
-                    title={$dropdownState.selectedTeam?.name}
-                    columns={displayColumns}
-                    deleteConfig={{
-                        enabled: true,
-                        itemId: $dropdownState.selectedTeam?.team_id || 0,
-                        itemName: $dropdownState.selectedTeam?.name || '',
-                        onDelete: handleTeamDelete,
-                        actionPath: "?/deleteTeam",
-                        formField: "team_id"
-                    }}
-                />
-            {/if}
-        </div>
-    {:else}
-        <div class="main-content text-center p-8 text-sage-500">
-            Please select a team to view details
-        </div>
-    {/if}
-</div>
+    <Table>
+      <TableHead class="border-y border-gray-200 bg-gray-100 dark:border-gray-700">
+        <TableHeadCell class="w-4 p-4"><Checkbox /></TableHeadCell>
+        {#each ['Name','Year','Gender','Academy','Level','Min Field Size','Preferred Field Size','Weekly Trainings','Status','Actions'] as title}
+          <TableHeadCell class="p-4 font-medium">{title}</TableHeadCell>
+        {/each}
+      </TableHead>
+      <TableBody>
+        {#each $teams as team}
+          <TableBodyRow class="text-base">
+            <TableBodyCell class="w-4 p-4"><Checkbox /></TableBodyCell>
+            <TableBodyCell class="p-4 font-medium">{team.name}</TableBodyCell>
+            <TableBodyCell class="p-4">{team.year}</TableBodyCell>
+            <TableBodyCell class="p-4">{team.gender}</TableBodyCell>
+            <TableBodyCell class="p-4"><Checkbox checked={team.is_academy} disabled /></TableBodyCell>
+            <TableBodyCell class="p-4">{team.level}</TableBodyCell>
+            <TableBodyCell class="p-4">{formatFieldSize(team.minimum_field_size)}</TableBodyCell>
+            <TableBodyCell class="p-4">{team.preferred_field_size ? formatFieldSize(team.preferred_field_size) : '–'}</TableBodyCell>
+            <TableBodyCell class="p-4">{team.weekly_trainings}</TableBodyCell>
+            <TableBodyCell class="p-4">
+              <div class="flex items-center gap-2">
+                <Indicator color={team.is_active ? 'green' : 'red'} />
+                {team.is_active ? 'Active' : 'Inactive'}
+              </div>
+            </TableBodyCell>
+            <TableBodyCell class="space-x-2 p-4">
+              <Button size="sm" class="gap-2 px-3" onclick={() => editTeam(team)}>
+                <EditOutline size="sm" /> Edit team
+              </Button>
+              <Button color="red" size="sm" class="gap-2 px-3" onclick={() => prepareDeleteTeam(team)}>
+                <TrashBinSolid size="sm" /> Delete team
+              </Button>
+            </TableBodyCell>
+          </TableBodyRow>
+        {/each}
+      </TableBody>
+    </Table>
+  </main>
+  
+  <!-- Modals -->
+  <TeamModal bind:open={openUser} data={current_team} form={createForm} />
+  <DeleteModal bind:open={openDelete} form={deleteForm} />
