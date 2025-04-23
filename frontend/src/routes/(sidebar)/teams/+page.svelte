@@ -28,7 +28,12 @@
         if (result.type === 'success') {
           // Close the modal after successful deletion
           openDelete = false;
-          // You might want to refresh the teams data here
+          // Remove the deleted team from the store
+          if (result.data?.action === 'delete' && teamToDelete) {
+            teams.update(currentTeams => 
+              currentTeams.filter(team => team.team_id !== teamToDelete.team_id)
+            );
+          }
         }
       }
     });
@@ -56,7 +61,8 @@
     let openUser: boolean = false; // modal control
     let openDelete: boolean = false; // modal control
     let current_team: Team | any = {};
-
+    let teamToDelete: Team | null = null;
+    let teamIdToDelete: number | null = null;
 
     // Function to prepare form for adding a new team
     function addNewTeam() {
@@ -64,6 +70,21 @@
       // Reset the form to defaults
       createForm.reset();
       openUser = true;
+    }
+
+    // Function to edit an existing team
+    function editTeam(team: Team) {
+      current_team = team;
+      createForm.reset(team);
+      openUser = true;
+    }
+
+    // Function to prepare for team deletion
+    function prepareDeleteTeam(team: Team) {
+      teamToDelete = team;
+      teamIdToDelete = team.team_id;
+      openDelete = true;
+      console.log('Opening delete modal for team:', team.name, 'Modal state:', openDelete);
     }
 </script>
   
@@ -143,6 +164,13 @@
     </Table>
   </main>
   
-  <!-- Modals -->
-  <TeamModal bind:open={openUser} data={current_team} form={createForm} />
-  <DeleteModal bind:open={openDelete} form={deleteForm} />
+<!-- Modals -->
+<TeamModal bind:open={openUser} data={current_team} form={createForm} />
+<DeleteModal 
+  bind:open={openDelete} 
+  form={deleteForm} 
+  title={`Are you sure you want to delete the team "${teamToDelete?.name ?? ''}"?`}
+  yes="Yes, delete team"
+  no="No, cancel">
+  <input type="hidden" name="team_id" value={teamIdToDelete ?? ''} />
+</DeleteModal>
