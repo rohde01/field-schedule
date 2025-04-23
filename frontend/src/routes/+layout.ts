@@ -8,6 +8,7 @@ export const load: LayoutLoad = async (event) => {
   // session refresh.
   event.depends('supabase:auth')
 
+  const parentData = await event.parent();
   const supabase = isBrowser()
     ? createBrowserClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
         global: {
@@ -20,7 +21,7 @@ export const load: LayoutLoad = async (event) => {
         },
         cookies: {
           getAll() {
-            return event.data.cookies
+            return parentData.cookies || [];
           },
         },
       })
@@ -41,10 +42,6 @@ export const load: LayoutLoad = async (event) => {
     session, 
     supabase, 
     user,
-    cookies: {},
-    teams: event.data.teams || [],
-    facilities: event.data.facilities || [],
-    fields: event.data.fields || [],
-    schedules: event.data.schedules || []
+    cookies: parentData.cookies || []
   }
 }
