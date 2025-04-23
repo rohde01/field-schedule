@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { schedules } from '$stores/schedules';
-    import { dropdownState, toggleDropdown, selectSchedule } from '$stores/ScheduleDropdownState';
+    import { schedules } from '$lib/stores/schedules';
+    import { dropdownState, toggleDropdown, selectSchedule } from '$lib/stores/ScheduleDropdownState';
     import type { Schedule } from '$lib/schemas/schedule';
     import type { SubmitFunction } from '@sveltejs/kit';
     import { invalidateAll } from '$app/navigation';

@@ -1,9 +1,9 @@
-<script lang="ts">
-    import { fields } from '$stores/fields';
+    <script lang="ts">
+    import { fields } from '$lib/stores/fields.js';
     import FacilitiesDropdown from '$lib/components/FacilityDropdown.svelte';
     import FieldsDropdown from '$lib/components/FieldsDropdown.svelte';
     import DisplayCard, { type Column } from '$lib/components/DisplayCard.svelte';
-    import { dropdownState } from '$stores/fieldDropdownState';
+    import { dropdownState } from '$lib/stores/fieldDropdownState.js';
     import { superForm } from 'sveltekit-superforms/client';
 	import CreateField from '$lib/components/CreateField.svelte';
 

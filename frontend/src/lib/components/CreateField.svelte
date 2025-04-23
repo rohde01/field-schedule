@@ -5,10 +5,10 @@
     import { page } from '$app/stores';
     import EditableField from './EditableField.svelte';
     import { z } from 'zod';
-    import { dropdownState } from '$stores/FacilityDropdownState';
-    import {dropdownState as fieldDropdownState} from '$stores/fieldDropdownState';
+    import { dropdownState } from '$lib/stores/FacilityDropdownState';
+    import {dropdownState as fieldDropdownState} from '$lib/stores/fieldDropdownState';
 	import SuperDebug from 'sveltekit-superforms';
-	import { addField } from '$stores/fields';
+	import { addField } from '$lib/stores/fields';
 
     type FieldFormData = SuperValidated<z.infer<typeof fieldCreateSchema>>;
 

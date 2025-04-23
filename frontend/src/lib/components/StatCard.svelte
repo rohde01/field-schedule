@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { dropdownState } from '../../stores/ScheduleDropdownState';
+    import { dropdownState } from '../stores/ScheduleDropdownState';
     
     let { team } = $props();
     

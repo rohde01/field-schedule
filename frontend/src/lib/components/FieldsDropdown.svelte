@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { dropdownState as facilityDropdownState } from '../../stores/FacilityDropdownState';
-    import { dropdownState, toggleDropdown, selectField, setDefaultField, toggleCreateField } from '../../stores/fieldDropdownState';
+    import { dropdownState as facilityDropdownState } from '../stores/FacilityDropdownState';
+    import { dropdownState, toggleDropdown, selectField, setDefaultField, toggleCreateField } from '../stores/fieldDropdownState';
     import type { Field } from '$lib/schemas/field';
 
     let { fields } = $props<{ fields: Field[] }>();

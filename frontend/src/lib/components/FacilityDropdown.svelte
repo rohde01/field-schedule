@@ -1,8 +1,8 @@
 <script lang="ts">
     import { invalidateAll } from '$app/navigation';
     import { superForm } from 'sveltekit-superforms/client';
-    import { facilities, addFacility } from '$stores/facilities';
-    import { dropdownState, toggleDropdown, selectFacility } from '$stores/FacilityDropdownState';
+    import { facilities, addFacility } from '$lib/stores/facilities';
+    import { dropdownState, toggleDropdown, selectFacility } from '$lib/stores/FacilityDropdownState';
     import type { Facility } from '$lib/schemas/facility';
 
     let { form: facilityFormData } = $props();

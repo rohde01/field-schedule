@@ -1,13 +1,13 @@
 <script lang="ts">
-    import { SidebarDropdownState as teamDropdownState, toggleDropdown, selectTeam, toggleCreateSchedule } from '../../stores/ScheduleSidebarState';
-    import { dropdownState } from '../../stores/ScheduleDropdownState';
-    import { facilities } from '$stores/facilities';
+    import { SidebarDropdownState as teamDropdownState, toggleDropdown, selectTeam, toggleCreateSchedule } from '../stores/ScheduleSidebarState';
+    import { dropdownState } from '../stores/ScheduleDropdownState';
+    import { facilities } from '$lib/stores/facilities';
     import type { Team } from '$lib/schemas/team';
     import type { SuperForm } from 'sveltekit-superforms';
     import type { GenerateScheduleRequest } from '$lib/schemas/schedule';
     import { page } from '$app/stores';
     import SaveScheduleButton from './saveScheduleButton.svelte';
-    import { unsavedChanges } from '../../stores/schedules';
+    import { unsavedChanges } from '../stores/schedules';
 
     let { teams: propTeams, form } = $props<{ 
         teams: Team[], 

@@ -5,7 +5,7 @@
     import DayGrid from '@event-calendar/day-grid';
     import Interaction from '@event-calendar/interaction';
     import '@event-calendar/core/index.css';
-    import { schedules } from '../../stores/schedules';
+    import { schedules } from '../stores/schedules';
 
     let plugins = [TimeGrid, DayGrid, Interaction];
     

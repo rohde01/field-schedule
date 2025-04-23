@@ -2,11 +2,11 @@
   import { Label, Input, Select, Datepicker, Timepicker } from 'flowbite-svelte';
   import { TrashBinSolid, ClockSolid } from 'flowbite-svelte-icons';
   import { processedEntries } from '$lib/utils/calendarUtils';
-  import { teams } from '../../stores/teams';
+  import { teams } from '../stores/teams';
   import type { Team } from '$lib/schemas/team';
-  import { fields, getFlattenedFields } from '../../stores/fields';
+  import { fields, getFlattenedFields } from '../stores/fields';
   import type { Field } from '$lib/schemas/field';
-  import { deleteScheduleEntry } from '../../stores/schedules';
+  import { deleteScheduleEntry } from '../stores/schedules';
   import { computeDateUTC } from '$lib/utils/dateUtils';
   import { commitUpdate, getOriginalRecurrenceStart } from '$lib/utils/calendarUtils';
 

@@ -4,8 +4,8 @@
     import type { z } from 'zod';
     import { teamSchema } from '$lib/schemas/team';
     import { page } from '$app/stores';
-    import { dropdownState } from '$stores/teamDropdownState';
-    import { addTeam } from '$stores/teams';
+    import { dropdownState } from '$lib/stores/teamDropdownState';
+    import { addTeam } from '$lib/stores/teams';
     import EditableField from './EditableField.svelte';
 
     type TeamFormData = SuperValidated<z.infer<typeof teamSchema>>;

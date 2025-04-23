@@ -1,9 +1,9 @@
 import type { Field } from '$lib/schemas/field';
-import { updateScheduleEntry } from '../../stores/schedules';
+import { updateScheduleEntry } from '../stores/schedules';
 import type { ScheduleEntry } from '$lib/schemas/schedule';
 import { writable } from 'svelte/store';
 import { derived } from 'svelte/store';
-import { dropdownState } from '../../stores/ScheduleDropdownState';
+import { dropdownState } from '../stores/ScheduleDropdownState';
 import { browser } from '$app/environment';
 import * as rrulelib from 'rrule';
 import { createUTCDate, getTimeFromDate, normalizeTime, currentDate, isSameDay } from './dateUtils';

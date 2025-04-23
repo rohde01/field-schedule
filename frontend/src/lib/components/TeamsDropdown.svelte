@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { dropdownState, toggleDropdown, selectTeam, setDefaultTeam, toggleCreateTeam } from '../../stores/teamDropdownState';
+    import { dropdownState, toggleDropdown, selectTeam, setDefaultTeam, toggleCreateTeam } from '../stores/teamDropdownState';
     import type { Team } from '$lib/schemas/team';
     
     let { teams } = $props<{ teams: Team[] }>();

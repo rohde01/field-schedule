@@ -1,10 +1,10 @@
 <script lang="ts">
   import { browser } from '$app/environment';
-  import { dropdownState } from '../../stores/ScheduleDropdownState';
+  import { dropdownState } from '../stores/ScheduleDropdownState';
   import type { Field } from '$lib/schemas/field';
   import type { ProcessedScheduleEntry } from '$lib/utils/calendarUtils';
-  import { fields } from '$stores/fields';
-  import { teams } from '$stores/teams';
+  import { fields } from '$lib/stores/fields';
+  import { teams } from '$lib/stores/teams';
   import { derived } from 'svelte/store';
   import { onMount } from 'svelte';
   import { buildResources, timeSlots, 
@@ -21,7 +21,7 @@
   import Calendar from '$lib/components/Calendar.svelte';
   import InfoCard from '$lib/components/InfoCard.svelte';
   import { resizeHandle, horizontalDrag, moveHandle } from '$lib/utils/dndUtils';
-  import { addScheduleEntry } from '$stores/schedules';
+  import { addScheduleEntry } from '$lib/stores/schedules';
   import { get } from 'svelte/store';
 
   // InfoCard state

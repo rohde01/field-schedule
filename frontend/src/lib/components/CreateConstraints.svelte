@@ -3,10 +3,10 @@
     import EditableField from './EditableField.svelte';
     import type { Constraint } from '$lib/schemas/constraint';
     import type { GenerateScheduleRequest } from '$lib/schemas/schedule';
-    import { SidebarDropdownState } from '../../stores/ScheduleSidebarState';
+    import { SidebarDropdownState } from '../stores/ScheduleSidebarState';
     import type { Writable } from 'svelte/store';
     import { writable } from 'svelte/store';
-    import { fields } from '../../stores/fields';
+    import { fields } from '../stores/fields';
     
     let autoModeAppliedTeams = writable<Set<number>>(new Set());
     let autoConstraintSessions = writable<Record<number, number>>({});

@@ -1,10 +1,10 @@
 <script lang="ts">
     import '../../app.css';
     import type { LayoutData } from './$types';
-    import { setFacilities } from '$stores/facilities';
-    import { setFields } from '$stores/fields';
-    import { setTeams } from '$stores/teams';
-    import { setSchedules } from '$stores/schedules';
+    import { setFacilities } from '$lib/stores/facilities';
+    import { setFields } from '$lib/stores/fields';
+    import { setTeams } from '$lib/stores/teams';
+    import { setSchedules } from '$lib/stores/schedules';
     import Sidebar from './Sidebar.svelte';
     import Navbar from './Navbar.svelte';
     import type { Snippet } from 'svelte';

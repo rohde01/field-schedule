@@ -1,12 +1,12 @@
 <script lang="ts">
     import type { PageData } from './$types';
-    import { setSchedules, schedules } from '$stores/schedules';
+    import { setSchedules, schedules } from '$lib/stores/schedules';
     import SchedulesDropdown from '$lib/components/SchedulesDropdown.svelte';
     import SchedulesSidebar from '$lib/components/SchedulesSidebar.svelte';
-    import { SidebarDropdownState } from '$stores/ScheduleSidebarState';
-    import { dropdownState, selectSchedule } from '$stores/ScheduleDropdownState';
+    import { SidebarDropdownState } from '$lib/stores/ScheduleSidebarState';
+    import { dropdownState, selectSchedule } from '$lib/stores/ScheduleDropdownState';
     import CreateConstraints from '$lib/components/CreateConstraints.svelte';
-    import { teams, setTeams } from '$stores/teams';
+    import { teams, setTeams } from '$lib/stores/teams';
     import { superForm } from 'sveltekit-superforms/client';
     import CreateSchedule from '$lib/components/CreateSchedule.svelte';
     import Schedule from '$lib/components/Schedule.svelte'
