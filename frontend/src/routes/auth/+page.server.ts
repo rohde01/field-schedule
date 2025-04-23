@@ -3,11 +3,12 @@ import { superValidate } from 'sveltekit-superforms/server';
 import { zod } from 'sveltekit-superforms/adapters';
 import { createUserSchema } from '$lib/schemas/user';
 import type { Actions, PageServerLoad } from './$types';
+import { dev } from '$app/environment';
 
 export const load = (async ({}) => {
   const form = await superValidate(zod(createUserSchema));
   return { form };
-}) satisfies PageServerLoad;
+})
 
 export const actions: Actions = {
   signup: async ({ request, locals: { supabase }, url }) => {
@@ -54,7 +55,6 @@ export const actions: Actions = {
   },
 
   logout: async ({ cookies, locals: { supabase } }) => {
-    
     const { error } = await supabase.auth.signOut({
       scope: 'global'
     });
@@ -62,14 +62,9 @@ export const actions: Actions = {
     if (error) {
       return fail(500, { message: 'Logout failed' });
     }
-    
-    // Clear auth cookies
-    const authCookies = ['sb-access-token', 'sb-refresh-token', 'sb-auth-token'];
-    authCookies.forEach(name => {
-      const cookie = cookies.get(name);
-      if (cookie) {
-        cookies.delete(name, { path: '/' });
-      }
+    // Clear supabase auth cookies
+    ['sb-access-token', 'sb-refresh-token', 'sb-auth-token'].forEach(name => {
+      cookies.delete(name, { path: '/', httpOnly: true, secure: !dev, sameSite: 'lax' });
     });
     
     throw redirect(303, '/');

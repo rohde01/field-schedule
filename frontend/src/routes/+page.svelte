@@ -14,10 +14,10 @@
                     En tidlig prototype udviklet i samarbejde med og for <span class="font-bold bg-linear-to-r from-[#C8102E] to-blue-800 text-transparent bg-clip-text">Boldklubben af 1893</span>
                 </p>
                 <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                    <a href="/register" class="btn-primary text-lg px-8 py-3 bg-white text-mint-600 hover:bg-mint-50">
+                    <a href="/auth" class="btn-primary text-lg px-8 py-3 bg-white text-mint-600 hover:bg-mint-50">
                         Get Started
                     </a>
-                    <a href="/login" class="btn-secondary text-lg px-8 py-3 bg-transparent border-2 border-white text-white hover:bg-white/10">
+                    <a href="/auth" class="btn-secondary text-lg px-8 py-3 bg-transparent border-2 border-white text-white hover:bg-white/10">
                         Sign In
                     </a>
                 </div>

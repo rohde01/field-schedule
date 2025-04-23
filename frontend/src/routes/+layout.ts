@@ -1,47 +1,42 @@
 import { createBrowserClient, createServerClient, isBrowser } from '@supabase/ssr'
 import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public'
-import type { LayoutLoad } from './$types'
-import type { User as CustomUser } from '$lib/schemas/user'
 
-export const load: LayoutLoad = async (event) => {
-  // Declare a dependency so the layout can be invalidated, for example, on
-  // session refresh.
-  event.depends('supabase:auth')
+export const load = async ({ data, depends, fetch }) => {
+  /**
+   * Declare a dependency so the layout can be invalidated, for example, on
+   * session refresh.
+   */
+  depends('supabase:auth')
 
-  const parentData = await event.parent();
   const supabase = isBrowser()
     ? createBrowserClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
         global: {
-          fetch: event.fetch,
+          fetch,
         },
       })
     : createServerClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
         global: {
-          fetch: event.fetch,
+          fetch,
         },
         cookies: {
           getAll() {
-            return parentData.cookies || [];
+            return data.cookies
           },
         },
       })
 
-  // It's fine to use `getSession` here, because on the client, `getSession` is
-  // safe, and on the server, it reads `session` from the `LayoutData`, which
-  // safely checked the session using `safeGetSession`.
+  /**
+   * It's fine to use `getSession` here, because on the client, `getSession` is
+   * safe, and on the server, it reads `session` from the `LayoutData`, which
+   * safely checked the session using `safeGetSession`.
+   */
   const {
     data: { session },
   } = await supabase.auth.getSession()
 
   const {
-    data: { user: supaUser },
+    data: { user },
   } = await supabase.auth.getUser()
-  const user: CustomUser | null = supaUser ? (supaUser as CustomUser) : null
 
-  return { 
-    session, 
-    supabase, 
-    user,
-    cookies: parentData.cookies || []
-  }
+  return { session, supabase, user }
 }

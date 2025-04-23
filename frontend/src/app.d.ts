@@ -6,6 +6,7 @@ import type { Facility } from '$lib/schemas/facility'
 import type { Field } from '$lib/schemas/field'
 import type { Schedule } from '$lib/schemas/schedule'
 import type { EventSchedule } from '$lib/schemas/event'
+import type { LayoutServerLoad } from './$types'
 
 declare global {
   namespace App {
@@ -32,3 +33,11 @@ declare module '@supabase/supabase-js' {
 }
 
 export {}
+
+export const load: LayoutServerLoad = async ({ locals: { safeGetSession }, cookies }) => {
+  const { session } = await safeGetSession()
+  return {
+    session,
+    cookies: cookies.getAll(),
+  }
+}

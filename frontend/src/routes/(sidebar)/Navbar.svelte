@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { DarkMode, NavBrand, Navbar, DropdownDivider, DropdownItem } from 'flowbite-svelte';
+  import { DarkMode, NavBrand, Navbar, DropdownDivider, DropdownItem, Button } from 'flowbite-svelte';
   import UserMenu from './UserMenu.svelte';
+  import { ArrowUpRightFromSquareSolid } from 'flowbite-svelte-icons';
   const menuItems = ['Dashboard', 'Settings'];
 </script>
 
@@ -14,7 +15,14 @@
     <DarkMode />
     <UserMenu name="Carl-Emil" avatar="" email="dev@rohdee.dk" {menuItems}>
       <DropdownDivider />
-      <DropdownItem>Sign out</DropdownItem>
+      <DropdownItem>
+        <form action="/auth?/logout" method="post">
+          <Button size="xs" type="submit">
+            <ArrowUpRightFromSquareSolid class="w-4 h-4 me-2" />
+            Sign out
+          </Button>
+        </form>
+      </DropdownItem>
     </UserMenu>
   </div>
 </Navbar>

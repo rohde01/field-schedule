@@ -52,22 +52,22 @@ const authGuard: Handle = async ({ event, resolve }) => {
     const { session, user } = await event.locals.safeGetSession()
     event.locals.session = session
     event.locals.user = user
-    
-    const isPublicRoute = event.url.pathname === '/' || 
-        event.url.pathname.startsWith('/auth')
-        
-    if (!event.locals.session && !isPublicRoute) {
+
+    const isProtected = event.route.id?.startsWith('/(sidebar)')
+    if (!isProtected) {
+        return resolve(event)
+    }
+
+    if (!session) {
         throw redirect(303, '/auth')
     }
 
-    if (event.locals.session && event.url.pathname === '/auth') {
+    if (event.url.pathname === '/auth') {
         throw redirect(303, '/')
     }
 
     // Redirect to onboarding if name or club is missing
-    if (event.locals.session && 
-        !event.url.pathname.startsWith('/onboarding') && 
-        (!user?.first_name || !user?.last_name || !user?.club_id)) {
+    if (!event.url.pathname.startsWith('/onboarding') && (!user?.first_name || !user?.last_name || !user?.club_id)) {
         throw redirect(303, '/onboarding')
     }
 
