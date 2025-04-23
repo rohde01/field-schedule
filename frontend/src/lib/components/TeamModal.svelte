@@ -9,7 +9,7 @@
     form: SuperForm<any, any>
   } = $props();
 
-  const { form: formData, enhance, constraints, errors, message } = form;
+  const { form: formData, enhance, errors, message } = form;
 </script>
 
 <Modal bind:open title={Object.keys(data).length ? 'Edit team' : 'Add new team'} size="md" class="m-4">

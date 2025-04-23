@@ -4,7 +4,8 @@ import { zod } from 'sveltekit-superforms/adapters';
 import { teamSchema, deleteTeamSchema, type DeleteTeamResponse } from '$lib/schemas/team';
 import type { Actions } from './$types';
 
-const ssr = false;
+// Disable SSR for this route to prevent circular dependency issues
+export const ssr = false;
 
 export const load = (async ({ locals }) => {
     const deleteForm = await superValidate(zod(deleteTeamSchema), { id: 'delete-team-form' });
