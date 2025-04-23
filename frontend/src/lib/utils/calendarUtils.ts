@@ -315,6 +315,8 @@ export function commitUpdate(entry: any, originalRecurrence: string | null) {
     field_id: entry.field_id,
     dtstart: entry.dtstart,
     dtend: entry.dtend,
+    team_id: entry.team_id,
+    summary: entry.summary,
     recurrence_id: originalRecurrence
       ? new Date(originalRecurrence)
       : (entry.recurrence_id ? new Date(entry.recurrence_id) : null)
