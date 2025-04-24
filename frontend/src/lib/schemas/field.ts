@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 // Base schemas for common fields
-const fieldSizeEnum = z.enum(['11v11', '8v8', '5v5', '3v3']);
+export const fieldSizeEnum = z.enum(['11v11', '8v8', '5v5', '3v3']);
 const fieldTypeEnum = z.enum(['full', 'half', 'quarter']);
 const dayOfWeekEnum = z.enum(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
 

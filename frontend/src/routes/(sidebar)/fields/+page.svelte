@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { getFlattenedFields, deleteField } from '$lib/stores/fields.js';
+    import { fields, getFlattenedFields, deleteField } from '$lib/stores/fields.js';
     import { superForm } from 'sveltekit-superforms/client';
     import { zodClient } from 'sveltekit-superforms/adapters';
     import { facilitySchema } from '$lib/schemas/facility';
@@ -8,6 +8,8 @@
     import { Drawer } from 'flowbite-svelte';
     import DeleteModal from '$lib/components/DeleteModal.svelte';
     import type { Field } from '$lib/schemas/field';
+    import { fieldCreateSchema } from '$lib/schemas/field';
+    import FieldModal from '$lib/components/FieldModal.svelte';
 
     import { Breadcrumb, BreadcrumbItem, Button, Checkbox, Heading, Indicator } from 'flowbite-svelte';
     import { Input, Table, TableBody, TableBodyCell, TableBodyRow, TableHead } from 'flowbite-svelte';
@@ -41,10 +43,22 @@
         }
     });
 
+    const createForm = superForm(data.createFieldForm, {
+        validators: zodClient(fieldCreateSchema),
+        resetForm: true,
+        onResult: ({ result }) => {
+            if (result.type === 'success') {
+                openFieldModal = false;
+            }
+        }
+    });
+
     let hiddenDrawer = $state(true);
     let openDelete: boolean = $state(false);
     let fieldToDelete: Field | null = $state(null);
     let fieldIdToDelete: number | undefined = $state(undefined);
+    let openFieldModal: boolean = $state(false);
+    let currentField: Field | any = $state({});
 
     $effect(() => {
         hiddenDrawer = !$showCreateFacility;
@@ -59,11 +73,15 @@
     });
 
     function addNewField() {
-        // Implementation will be added later
+        currentField = {};
+        createForm.reset();
+        openFieldModal = true;
     }
 
-    function editField(field) {
-        // Implementation will be added later
+    function editField(field: Field) {
+        currentField = field;
+        createForm.reset(field);
+        openFieldModal = true;
     }
 
     function prepareDeleteField(field: Field) {
@@ -119,7 +137,7 @@
         {/each}
       </TableHead>
       <TableBody>
-        {#each getFlattenedFields() as field}
+        {#each $fields as field}
           <TableBodyRow class="text-base">
             <TableBodyCell class="w-4 p-4"><Checkbox /></TableBodyCell>
             <TableBodyCell class="p-4 font-medium">{field.name}</TableBodyCell>
@@ -159,3 +177,5 @@
   no="No, cancel">
   <input type="hidden" name="field_id" value={fieldIdToDelete ?? ''} />
 </DeleteModal>
+
+<FieldModal bind:open={openFieldModal} data={currentField} form={createForm} />
