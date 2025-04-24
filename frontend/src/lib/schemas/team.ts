@@ -25,6 +25,8 @@ export const teamSchema = z.object({
 
 export type Team = z.infer<typeof teamSchema>;
 
+export const createTeamSchema = teamSchema;
+
 export const deleteTeamSchema = z.object({
     team_id: z.number().int().positive()
 });

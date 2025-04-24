@@ -1,5 +1,7 @@
 <script lang="ts">
     import { superForm } from 'sveltekit-superforms/client';
+    import { zodClient } from 'sveltekit-superforms/adapters';
+    import { createTeamSchema } from '$lib/schemas/team';
     export let data: { createForm: any; deleteForm: any };
     import { Breadcrumb, BreadcrumbItem, Button, Checkbox, Heading, Indicator } from 'flowbite-svelte';
     import { Input, Table, TableBody, TableBodyCell, TableBodyRow, TableHead } from 'flowbite-svelte';
@@ -13,6 +15,7 @@
     
     // Initialize superForms with client-side options
     const createForm = superForm(data.createForm, {
+      validators: zodClient(createTeamSchema),
       resetForm: true,
       onResult: ({ result }) => {
         if (result.type === 'success') {
@@ -31,17 +34,12 @@
           // Remove the deleted team from the store
           if (result.data?.action === 'delete' && teamToDelete) {
             teams.update(currentTeams => 
-              currentTeams.filter(team => team.team_id !== teamToDelete.team_id)
+              currentTeams.filter(team => team.team_id !== teamToDelete!.team_id)
             );
           }
         }
       }
     });
-
-    // Define imagesPath function if it doesn't exist elsewhere
-    const imagesPath = (path: string, folder: string) => {
-      return `/images/${folder}/${path}`;
-    };
 
     function formatFieldSize(size: number): string {
         switch (size) {
@@ -62,7 +60,7 @@
     let openDelete: boolean = false; // modal control
     let current_team: Team | any = {};
     let teamToDelete: Team | null = null;
-    let teamIdToDelete: number | null = null;
+    let teamIdToDelete: number | undefined;
 
     // Function to prepare form for adding a new team
     function addNewTeam() {
@@ -72,7 +70,7 @@
       openUser = true;
     }
 
-    // Function to edit an existing team
+    // Function to prepare form for editing a team
     function editTeam(team: Team) {
       current_team = team;
       createForm.reset(team);
@@ -113,16 +111,14 @@
             <DotsVerticalOutline size="lg" />
           </ToolbarButton>
         </div>
-        {#snippet end()}
-          <div class="flex items-center space-x-2">
-            <Button size="sm" class="gap-2 px-3 whitespace-nowrap" onclick={() => addNewTeam()}>
-              <PlusOutline size="sm" />Add team
-            </Button>
-            <Button size="sm" color="alternative" class="gap-2 px-3">
-              <DownloadSolid size="md" class="-ml-1" />Export
-            </Button>
-          </div>
-        {/snippet}
+        <div class="flex items-center space-x-2">
+          <Button size="sm" class="gap-2 px-3 whitespace-nowrap" onclick={() => addNewTeam()}>
+            <PlusOutline size="sm" />Add team
+          </Button>
+          <Button size="sm" color="alternative" class="gap-2 px-3">
+            <DownloadSolid size="md" class="-ml-1" />Export
+          </Button>
+        </div>
       </Toolbar>
     </div>
     <Table>
