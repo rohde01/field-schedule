@@ -1,9 +1,9 @@
 <script lang="ts">
-    import { fields, getFlattenedFields, deleteField } from '$lib/stores/fields.js';
+    import { fields, deleteField, addField } from '$lib/stores/fields.js';
     import { superForm } from 'sveltekit-superforms/client';
     import { zodClient } from 'sveltekit-superforms/adapters';
     import { facilitySchema } from '$lib/schemas/facility';
-    import { showCreateFacility, toggleCreateFacility } from '$lib/stores/facilities';
+    import { showCreateFacility, toggleCreateFacility, selectedFacility } from '$lib/stores/facilities';
     import FacilityDrawer from '$lib/components/FacilityDrawer.svelte';
     import { Drawer } from 'flowbite-svelte';
     import DeleteModal from '$lib/components/DeleteModal.svelte';
@@ -44,12 +44,22 @@
     });
 
     const createForm = superForm(data.createFieldForm, {
+        taintedMessage: null,
+        dataType: 'json',
         validators: zodClient(fieldCreateSchema),
         resetForm: true,
+        onUpdate: ({ form }) => {
+            console.log('Form data being submitted:', form.data);
+        },
         onResult: ({ result }) => {
-            if (result.type === 'success') {
+            console.log('Form submission result:', result);
+            if (result.type === 'success' && result.data?.field) {
+                addField(result.data.field);
                 openFieldModal = false;
             }
+        },
+        onError: (err) => {
+            console.error('Form submission error:', err);
         }
     });
 
@@ -75,6 +85,15 @@
     function addNewField() {
         currentField = {};
         createForm.reset();
+        createForm.form.update(data => ({
+            ...data,
+            facility_id: $selectedFacility?.facility_id ?? 0,
+            name: '',
+            size: '11v11',
+            field_type: 'full',
+            half_fields: [],
+            availabilities: []
+        }));
         openFieldModal = true;
     }
 

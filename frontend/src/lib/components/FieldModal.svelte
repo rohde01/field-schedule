@@ -1,17 +1,28 @@
 <script lang="ts">
     import { Button, Input, Label, Modal, Select, Helper, Timepicker } from 'flowbite-svelte';
-    import type { FieldCreate } from '$lib/schemas/field';
-    import type { SuperForm } from 'sveltekit-superforms';
     import { PlusOutline, MinusOutline, ClockOutline } from 'flowbite-svelte-icons';      
     import { selectedFacility } from '$lib/stores/facilities';
+    import type { FieldCreate } from '$lib/schemas/field';
+    import type { SuperForm } from 'sveltekit-superforms';
     
-    let { open = $bindable(true), data = {} as FieldCreate, form }: { 
+    let { open = $bindable(true), data = {} as FieldCreate, form: serverForm }: { 
       open: boolean; 
       data: FieldCreate; 
-      form: SuperForm<any, any>
+      form: SuperForm<FieldCreate, any>
     } = $props();
   
-    const { form: formData, enhance, errors, message } = form;
+    const { form: formData, enhance, errors, message } = serverForm;
+
+    let previousOpen = $state(false);
+    $effect(() => {
+      if (open && !previousOpen && Object.keys(data).length === 0) {
+        formData.update(fd => ({
+          ...fd,
+          facility_id: $selectedFacility?.facility_id ?? fd.facility_id
+        }));
+      }
+      previousOpen = open;
+    });
 
     // Toggle half fields
     function toggleHalfFields() {
@@ -130,13 +141,13 @@
                   <Timepicker
                   icon={ClockOutline as any}
                     type="range"
-                    bind:value={$formData.availabilities[index].start_time}
-                    bind:endValue={$formData.availabilities[index].end_time}
+                    bind:value={$formData.availabilities[index].start_time!}
+                    bind:endValue={$formData.availabilities[index].end_time!}
                     on:select={(e) => {
                       const { time, endTime } = e.detail;
                       formData.update(fd => {
                         const av = [...fd.availabilities];
-                        av[index] = { ...av[index], start_time: time, end_time: endTime };
+                        av[index] = { ...av[index], start_time: time, end_time: endTime! };
                         return { ...fd, availabilities: av };
                       });
                     }}
