@@ -3,6 +3,8 @@
     import DisplayCard, { type Column } from '$lib/components/DisplayCard.svelte';
     import { dropdownState } from '$lib/stores/fieldDropdownState.js';
     import { superForm } from 'sveltekit-superforms/client';
+    import { zodClient } from 'sveltekit-superforms/adapters';
+    import { facilitySchema } from '$lib/schemas/facility';
     import CreateField from '$lib/components/CreateField.svelte';
     import { showCreateFacility, toggleCreateFacility } from '$lib/stores/facilities';
     import FacilityDrawer from '$lib/components/FacilityDrawer.svelte';
@@ -14,6 +16,16 @@
         onResult: ({ result }) => {
             if (result.type === 'success' && result.data?.field_id) {
                 handleFieldDelete(result.data.field_id);
+            }
+        }
+    });
+
+    const facilityForm = superForm(data.facilityForm, {
+        validators: zodClient(facilitySchema),
+        resetForm: true,
+        onResult: ({ result }) => {
+            if (result.type === 'success') {
+                hiddenDrawer = true;
             }
         }
     });
@@ -111,5 +123,5 @@
 </div>
 
 <Drawer placement="right" bind:hidden={hiddenDrawer}>
-    <FacilityDrawer title="Add New Facility" bind:hidden={hiddenDrawer} />
+    <FacilityDrawer title="Add New Facility" bind:hidden={hiddenDrawer} form={facilityForm} />
 </Drawer>

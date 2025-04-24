@@ -12,6 +12,8 @@ export const load = async ({ locals }) => {
             id: 'facility-form',
             defaults: {
                 name: '',
+                description: '',
+                address: '',
                 is_primary: false,
                 club_id: locals.user?.club_id ?? 0
             }

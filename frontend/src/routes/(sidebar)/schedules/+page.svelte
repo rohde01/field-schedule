@@ -192,14 +192,6 @@
 {/if}
 
 <div class="page-container">
-    <div class="sidebar">
-        <div class="sidebar-content">
-            <SchedulesSidebar teams={$teams} {form} />
-        </div>
-        <div class="sidebar-footer">
-            <SchedulesDropdown deleteForm={deleteForm} />
-        </div>
-    </div>
 
     <div class="main-content">
         {#if $SidebarDropdownState.showCreateSchedule}

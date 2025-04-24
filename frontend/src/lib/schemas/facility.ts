@@ -5,6 +5,7 @@ export const facilitySchema = z.object({
     club_id: z.number().int().positive(),
     name: z.string().min(1).max(255),
     description: z.string().max(1000).optional(),
+    address: z.string().max(255).optional(),
     is_primary: z.boolean().default(false)
 });
 
