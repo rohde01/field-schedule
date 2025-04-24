@@ -207,7 +207,7 @@ export const actions: Actions = {
         }
     },
 
-    deleteField: async ({ request, locals: { supabase, user } }) => {
+    deleteField: async ({ request, locals: { supabase } }) => {
         const form = await superValidate(request, zod(deleteFieldSchema));
 
         if (!form.valid) {

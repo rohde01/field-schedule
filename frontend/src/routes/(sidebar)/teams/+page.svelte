@@ -164,7 +164,8 @@
 <TeamModal bind:open={openUser} data={current_team} form={createForm} />
 <DeleteModal 
   bind:open={openDelete} 
-  form={deleteForm} 
+  form={deleteForm}
+  actionName="deleteTeam"
   title={`Are you sure you want to delete the team "${teamToDelete?.name ?? ''}"?`}
   yes="Yes, delete team"
   no="No, cancel">

@@ -8,6 +8,7 @@ export interface TeamModalProps {
     title?: string;
     yes?: string;
     no?: string;
+    actionName?: string;
   }
 
   export interface FacilityDrawerProps {

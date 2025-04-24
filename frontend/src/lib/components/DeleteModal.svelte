@@ -4,7 +4,7 @@
     import type { DeleteModalProps } from '$lib/types/types';
     import type { SuperForm } from 'sveltekit-superforms';
   
-    let { open = $bindable(true), title = 'Are you sure you want to delete this?', yes = "Yes, I'm sure", no = 'No, cancel', form }: DeleteModalProps & { form: SuperForm<any, any> } = $props();
+    let { open = $bindable(true), title = 'Are you sure you want to delete this?', yes = "Yes, I'm sure", no = 'No, cancel', form, actionName = '' }: DeleteModalProps & { form: SuperForm<any, any> } = $props();
   
     const { enhance } = form;
 </script>
@@ -14,7 +14,7 @@
   
     <h3 class="mb-6 text-center text-lg text-gray-500 dark:text-gray-300">{title}</h3>
   
-    <form method="POST" action="?/deleteTeam" id="delete-form" use:enhance>
+    <form method="POST" action={actionName ? `?/${actionName}` : undefined} use:enhance>
         <slot></slot>
         <div class="flex items-center justify-center">
             <Button type="submit" color="red" class="mr-2">{yes}</Button>
@@ -22,4 +22,4 @@
         </div>
     </form>
 </Modal>
-  
+

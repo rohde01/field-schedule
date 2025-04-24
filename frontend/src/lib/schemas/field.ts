@@ -66,6 +66,7 @@ const subFieldSchema = z.object({
   field_id: z.number().int().positive(),
   facility_id: z.number().int().positive(),
   club_id: z.number().int().positive(),
+  field_type: fieldTypeEnum,
   name: z.string(),
   is_active: z.boolean(),
   parent_field_id: z.number().int().positive()
@@ -95,9 +96,7 @@ const flattenedFieldSchema: z.ZodType<any> = z.object({
   size: fieldSizeEnum,
   field_type: fieldTypeEnum,
   parent_field_id: z.number().int().positive().nullable(),
-  availability: z.record(dayOfWeekEnum, fieldAvailabilitySchema).optional().default({}),
-  quarter_subfields: z.array(z.lazy(() => fieldSchema)).optional().default([]),
-  half_subfields: z.array(z.lazy(() => fieldSchema)).optional().default([])
+  availability: z.record(dayOfWeekEnum, fieldAvailabilitySchema).optional().default({})
 });
 
 // Field availability creation schema
