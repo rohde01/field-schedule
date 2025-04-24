@@ -9,3 +9,8 @@ export interface TeamModalProps {
     yes?: string;
     no?: string;
   }
+
+  export interface FacilityDrawerProps {
+    hidden?: boolean;
+    title?: string;
+  }

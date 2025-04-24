@@ -1,11 +1,12 @@
-    <script lang="ts">
+<script lang="ts">
     import { fields } from '$lib/stores/fields.js';
-    import FacilitiesDropdown from '$lib/components/FacilityDropdown.svelte';
-    import FieldsDropdown from '$lib/components/FieldsDropdown.svelte';
     import DisplayCard, { type Column } from '$lib/components/DisplayCard.svelte';
     import { dropdownState } from '$lib/stores/fieldDropdownState.js';
     import { superForm } from 'sveltekit-superforms/client';
-	import CreateField from '$lib/components/CreateField.svelte';
+    import CreateField from '$lib/components/CreateField.svelte';
+    import { showCreateFacility, toggleCreateFacility } from '$lib/stores/facilities';
+    import FacilityDrawer from '$lib/components/FacilityDrawer.svelte';
+    import { Drawer } from 'flowbite-svelte';
 
     let { data } = $props();
     
@@ -17,6 +18,19 @@
         }
     });
 
+    let hiddenDrawer = $state(true);
+
+    $effect(() => {
+        hiddenDrawer = !$showCreateFacility;
+    });
+
+    $effect(() => {
+        if (!hiddenDrawer) {
+            toggleCreateFacility(true);
+        } else {
+            toggleCreateFacility(false);
+        }
+    });
 
     let displayColumns: Column[] = $state([]);
 
@@ -69,15 +83,6 @@
 </script>
 
 <div class="page-container">
-    <div class="sidebar">
-        <div class="sidebar-content">
-            <FieldsDropdown fields={$fields}/>
-        </div>
-        <div class="sidebar-footer">
-            <FacilitiesDropdown form={data.facilityForm}/>
-        </div>
-    </div>
-
     {#if $dropdownState.selectedField || $dropdownState.showCreateField}
         <div class="main-content">
             {#if $dropdownState.showCreateField}
@@ -104,3 +109,7 @@
         </div>
     {/if}
 </div>
+
+<Drawer placement="right" bind:hidden={hiddenDrawer}>
+    <FacilityDrawer title="Add New Facility" bind:hidden={hiddenDrawer} />
+</Drawer>
