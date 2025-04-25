@@ -6,7 +6,7 @@
     import type { SuperForm } from 'sveltekit-superforms';
     import type { GenerateScheduleRequest } from '$lib/schemas/schedule';
     import { page } from '$app/stores';
-    import SaveScheduleButton from './saveScheduleButton.svelte';
+    import SaveScheduleButton from './SaveScheduleButton.svelte';
     import { unsavedChanges } from '../stores/schedules';
 
     let { teams: propTeams, form } = $props<{ 

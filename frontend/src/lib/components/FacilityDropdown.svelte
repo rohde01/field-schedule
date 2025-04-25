@@ -151,7 +151,6 @@
                                             bind:this={nameInput}
                                             type="text"
                                             name="name"
-                                            class="form-input text-sm"
                                             placeholder="Facility name"
                                             required
                                             class:border-red-300={!!errorMessage}

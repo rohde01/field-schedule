@@ -5,12 +5,13 @@
   const menuItems = ['Dashboard', 'Settings'];
 </script>
 
-<Navbar class="text-black" color="default">
+<Navbar fluid class="w-full px-6 py-3.75 text-black justify-between" color="default">
   <NavBrand href="/">
     <img src="/favicon.png" 
-         class="me-2.5 h-6 sm:h-8" 
+         class="me-3 h-8 sm:h-10" 
          alt="My Logo" />
   </NavBrand>
+
   <div class="ms-auto flex items-center text-gray-500 sm:order-2 dark:text-gray-300">
     <DarkMode />
     <UserMenu name="Carl-Emil" avatar="" email="dev@rohdee.dk" {menuItems}>

@@ -19,7 +19,7 @@ export function resizeHandle(node: HTMLElement, { ui_id, edge }: { ui_id: string
   const onMouseMove = (e: MouseEvent) => {
     moved = true;
     const deltaY = e.clientY - startY;
-    const sensitivityFactor = 2.5;
+    const sensitivityFactor = 1;
     const deltaSlots = deltaY >= 0
       ? Math.floor(deltaY / (rowHeight * sensitivityFactor))
       : Math.ceil(deltaY / (rowHeight * sensitivityFactor));
@@ -167,7 +167,7 @@ export function moveHandle(node: HTMLElement, { ui_id, totalColumns, activeField
   const onMouseMove = (e: MouseEvent) => {
     moved = true;
     const deltaY = e.clientY - startY;
-    const sensitivityFactor = 2.5;
+    const sensitivityFactor = 1;
     const deltaSlots = deltaY >= 0
       ? Math.floor(deltaY / (rowHeight * sensitivityFactor))
       : Math.ceil(deltaY / (rowHeight * sensitivityFactor));
