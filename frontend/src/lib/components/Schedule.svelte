@@ -18,11 +18,11 @@
           combineDateAndTime } from '$lib/utils/dateUtils';
   import { getFieldColumns, buildFieldToGridColumnMap, generateHeaderCells, getFieldName } from '$lib/utils/fieldUtils';
   import { writable } from 'svelte/store';
-  import Calendar from '$lib/components/Calendar.svelte';
   import InfoCard from '$lib/components/InfoCard.svelte';
   import { resizeHandle, horizontalDrag, moveHandle } from '$lib/utils/dndUtils';
   import { addScheduleEntry } from '$lib/stores/schedules';
   import { get } from 'svelte/store';
+  import { Card } from 'flowbite-svelte';
 
   // InfoCard state
   let showInfoCard = false;
@@ -119,47 +119,6 @@
     return "Untitled Event";
   }
 
-  const viewMode = writable('day');
-  
-  // Month view title
-  const currentMonthDate = writable(new Date());
-  
-  $: monthViewTitle = $currentMonthDate.toLocaleDateString('en-US', { 
-    month: 'long', 
-    year: 'numeric' 
-  });
-  
-  // Reference to the Calendar component for navigation
-  let calendarComponent: Calendar;
-  
-  // Update navigation functions for week/month view
-  function previousPeriod() {
-    if ($viewMode === 'day') {
-      previousDay();
-    } else {
-      calendarComponent?.navigatePrev();
-      const newDate = new Date($currentMonthDate);
-      newDate.setMonth(newDate.getMonth() - 1);
-      $currentMonthDate = newDate;
-    }
-  }
-  
-  function nextPeriod() {
-    if ($viewMode === 'day') {
-      nextDay();
-    } else {
-      calendarComponent?.navigateNext();
-      const newDate = new Date($currentMonthDate);
-      newDate.setMonth(newDate.getMonth() + 1);
-      $currentMonthDate = newDate;
-    }
-  }
-  
-  // Reset to current month when switching to month view
-  $: if ($viewMode === 'week') {
-    $currentMonthDate = new Date();
-  }
-
   // Check if the current schedule is a draft
   $: isDraft = isDraftSchedule($dropdownState.selectedSchedule);
 
@@ -190,138 +149,110 @@
   <div class="schedule-controls flex items-center my-2 py-2">
     <div class="current-date flex-1">
       <span class="text-xl font-semibold text-black">
-        {#if $viewMode === 'day'}
-          {isDraft ? formatWeekdayOnly($currentDate) : formatDate($currentDate)}
-        {:else}
-          {monthViewTitle}
-        {/if}
+        {isDraft ? formatWeekdayOnly($currentDate) : formatDate($currentDate)}
       </span>
     </div>
 
-    <div class="view-toggle-container shrink-0">
-      <div class="view-toggle">
-        <button
-          class="view-toggle-btn { $viewMode === 'day' ? 'active' : '' }"
-          on:click={() => $viewMode = 'day'}
-        >
-          Day
-        </button>
-        <button
-          class="view-toggle-btn { $viewMode === 'week' ? 'active' : '' }"
-          on:click={() => $viewMode = 'week'}
-        >
-          Month
-        </button>
-      </div>
-    </div>
-
     <div class="navigation-controls flex-1 flex items-center gap-2 justify-end">
-      <button on:click={previousPeriod} class="nav-button">‹</button>
-      <button on:click={nextPeriod} class="nav-button">›</button>
+      <button on:click={previousDay} class="nav-button">‹</button>
+      <button on:click={nextDay} class="nav-button">›</button>
     </div>
   </div>
 
-  {#if $viewMode === 'day'}
-    <!-- HEADER ROW OUTSIDE SCROLLABLE CONTAINER -->
-    <div class="schedule-grid" style="--total-columns: {totalColumns};">
-      <div class="schedule-header schedule-header-time">
-      </div>
-      {#each headerCells as cell}
-        <div
-          class="schedule-header"
-          style="grid-column: {cell.colIndex} / span {cell.colSpan};"
-        >
-          {cell.label}
-        </div>
-      {/each}
+  <!-- HEADER ROW OUTSIDE SCROLLABLE CONTAINER -->
+  <div class="schedule-grid" style="--total-columns: {totalColumns};">
+    <div class="schedule-header schedule-header-time">
     </div>
-    <div class="daily-schedule-wrapper" 
-         style="height: calc(80vh); overflow-y: auto; overscroll-behavior: contain;">
-      <div 
-        class="schedule-grid"
-        style="--total-columns: {totalColumns}; --total-rows: {$timeSlots.length + 1};">
-        <!-- TIMESLOT ROWS -->
-        {#each $timeSlots as time, rowIndex}
+    {#each headerCells as cell}
+      <div
+        class="schedule-header"
+        style="grid-column: {cell.colIndex} / span {cell.colSpan};"
+      >
+        {cell.label}
+      </div>
+    {/each}
+  </div>
+  <div class="daily-schedule-wrapper">
+    <div 
+      class="schedule-grid"
+      style="--total-columns: {totalColumns}; --total-rows: {$timeSlots.length + 1};">
+      <!-- TIMESLOT ROWS -->
+      {#each $timeSlots as time, rowIndex}
+        <div
+          class="schedule-time"
+          style="grid-column: 1; grid-row: {rowIndex + 2}; justify-content: flex-end;"
+        >
+          {#if isHourMark(time) && !shouldHideHourLabel(time)}
+            <span style="transform: translateY(-50%);">{time}</span>
+          {/if}
+        </div>
+
+        {#each headerCells as cell}
           <div
-            class="schedule-time"
-            style="grid-column: 1; grid-row: {rowIndex + 2}; justify-content: flex-end;"
-          >
-            {#if isHourMark(time) && !shouldHideHourLabel(time)}
-              <span style="transform: translateY(-50%);">{time}</span>
+            class={`schedule-cell ${isHourMark(time) ? 'schedule-hour-mark' : ''}`}
+            role="button"
+            tabindex="0"
+            style="grid-column: {cell.colIndex} / span {cell.colSpan}; grid-row: {rowIndex + 2};"
+            on:dblclick={(e) => handleSlotDoubleClick(e, cell, time)}
+          ></div>
+        {/each}
+      {/each}
+
+      <!-- CURRENT TIME INDICATOR -->
+      {#if timeTrackingEnabled}
+        <div 
+          class="current-time-indicator" 
+          style="grid-column: 1 / span {totalColumns}; top: calc({currentTimePosition}% - 1px);"
+        >
+          <div class="current-time-bubble">
+            {formatTimeForDisplay($currentTime)}
+          </div>
+          <div class="current-time-line"></div>
+        </div>
+      {/if}
+
+      <!-- ENTRIES -->
+      {#each $processedEntries as entry (entry.ui_id)}
+        {#if entry.field_id != null && fieldToGridColMap.has(entry.field_id)}
+          {@const mapping = fieldToGridColMap.get(entry.field_id)!}
+          {@const startRow = getRowForTimeWithSlots(entry.start_time, $timeSlots)}
+          {@const endRow = getEntryRowEndWithSlots(entry.end_time, $timeSlots)}
+          {@const visibility = getEntryContentVisibility(startRow, endRow)}
+          <div use:moveHandle={{ ui_id: entry.ui_id, totalColumns, activeFields: $activeFields, fieldToGridColMap }}
+             on:dragend={(e) => recentDrag = !!e.detail}
+             class="schedule-event"
+             role="button"
+             tabindex="0"
+             style="grid-row-start: {startRow}; grid-row-end: {endRow + 1}; grid-column-start: {mapping.colIndex}; grid-column-end: span {mapping.colSpan};
+             "
+             on:click={(e) => handleEntryInteraction(e, entry)}
+             on:keydown={(e) => handleEntryInteraction(e, entry)}
+           >
+            <div class="resize-handle top" use:resizeHandle={{ ui_id: entry.ui_id, edge: 'top' }}></div>
+            <div class="resize-handle bottom" use:resizeHandle={{ ui_id: entry.ui_id, edge: 'bottom' }}></div>
+            <div class="horizontal-handle left" use:horizontalDrag={{ ui_id: entry.ui_id, direction: 'left', totalColumns, headerCells, activeFields: $activeFields, fieldToGridColMap }}></div>
+            <div class="horizontal-handle right" use:horizontalDrag={{ ui_id: entry.ui_id, direction: 'right', totalColumns, headerCells, activeFields: $activeFields, fieldToGridColMap }}></div>
+            <div class="event-team font-bold text-[1.15em]">
+              {getEntryTitle(entry)}
+            </div>
+            {#if visibility.showField}
+              <div class="event-field flex items-center gap-1 text-[1.12em] text-gray-600">
+                📍 {getFieldName(entry.field_id!, $activeFields)}
+              </div>
+            {/if}
+            {#if visibility.showTime}
+              <div class="event-time flex items-center gap-1 text-[1.12em] text-gray-600">
+                🕐 {entry.start_time} - {entry.end_time}
+              </div>
+            {/if}
+            {#if showInfoCard && selectedEntryUiId === entry.ui_id}
+              <div class="info-card-container">
+                <InfoCard entryUiId={entry.ui_id} />
+              </div>
             {/if}
           </div>
-
-          {#each headerCells as cell}
-            <div
-              class={`schedule-cell ${isHourMark(time) ? 'schedule-hour-mark' : ''}`}
-              role="button"
-              tabindex="0"
-              style="grid-column: {cell.colIndex} / span {cell.colSpan}; grid-row: {rowIndex + 2};"
-              on:dblclick={(e) => handleSlotDoubleClick(e, cell, time)}
-            ></div>
-          {/each}
-        {/each}
-
-        <!-- CURRENT TIME INDICATOR -->
-        {#if timeTrackingEnabled && $viewMode === 'day'}
-          <div 
-            class="current-time-indicator" 
-            style="grid-column: 1 / span {totalColumns}; top: calc({currentTimePosition}% - 1px);"
-          >
-            <div class="current-time-bubble">
-              {formatTimeForDisplay($currentTime)}
-            </div>
-            <div class="current-time-line"></div>
-          </div>
         {/if}
-
-        <!-- ENTRIES -->
-        {#each $processedEntries as entry (entry.ui_id)}
-          {#if entry.field_id != null && fieldToGridColMap.has(entry.field_id)}
-            {@const mapping = fieldToGridColMap.get(entry.field_id)!}
-            {@const startRow = getRowForTimeWithSlots(entry.start_time, $timeSlots)}
-            {@const endRow = getEntryRowEndWithSlots(entry.end_time, $timeSlots)}
-            {@const visibility = getEntryContentVisibility(startRow, endRow)}
-            <div use:moveHandle={{ ui_id: entry.ui_id, totalColumns, activeFields: $activeFields, fieldToGridColMap }}
-               on:dragend={(e) => recentDrag = !!e.detail}
-               class="schedule-event"
-               role="button"
-               tabindex="0"
-               style="grid-row-start: {startRow}; grid-row-end: {endRow + 1}; grid-column-start: {mapping.colIndex}; grid-column-end: span {mapping.colSpan};
-               "
-               on:click={(e) => handleEntryInteraction(e, entry)}
-               on:keydown={(e) => handleEntryInteraction(e, entry)}
-             >
-              <div class="resize-handle top" use:resizeHandle={{ ui_id: entry.ui_id, edge: 'top' }}></div>
-              <div class="resize-handle bottom" use:resizeHandle={{ ui_id: entry.ui_id, edge: 'bottom' }}></div>
-              <div class="horizontal-handle left" use:horizontalDrag={{ ui_id: entry.ui_id, direction: 'left', totalColumns, headerCells, activeFields: $activeFields, fieldToGridColMap }}></div>
-              <div class="horizontal-handle right" use:horizontalDrag={{ ui_id: entry.ui_id, direction: 'right', totalColumns, headerCells, activeFields: $activeFields, fieldToGridColMap }}></div>
-              <div class="event-team font-bold text-[1.15em]">
-                {getEntryTitle(entry)}
-              </div>
-              {#if visibility.showField}
-                <div class="event-field flex items-center gap-1 text-[1.12em] text-gray-600">
-                  📍 {getFieldName(entry.field_id!, $activeFields)}
-                </div>
-              {/if}
-              {#if visibility.showTime}
-                <div class="event-time flex items-center gap-1 text-[1.12em] text-gray-600">
-                  🕐 {entry.start_time} - {entry.end_time}
-                </div>
-              {/if}
-              {#if showInfoCard && selectedEntryUiId === entry.ui_id}
-                <div class="info-card-container">
-                  <InfoCard entryUiId={entry.ui_id} />
-                </div>
-              {/if}
-            </div>
-          {/if}
-        {/each}
-      </div>
+      {/each}
     </div>
-  {:else if $viewMode === 'week'}
-    <div class="month-view">
-      <Calendar bind:this={calendarComponent} />
-    </div>
-  {/if}
+  </div>
 </div>
