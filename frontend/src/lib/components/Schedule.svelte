@@ -144,117 +144,6 @@
   }
 </script>
 
-<style>
-  .schedule-cell {
-    background: transparent;
-    padding: 0.5rem 1rem;
-    position: relative;
-    height: 1.5rem;
-    border-bottom: 0;
-  }
-  
-  .schedule-hour-mark {
-    border-top: 1px solid #e5e5e5;
-  }
-  
-  .schedule-grid {
-    width: 100%;
-    border-radius: 0.5rem;
-    overflow: hidden;
-    position: relative;
-    display: grid !important;
-    grid-template-columns: 50px repeat(auto-fit, minmax(0, 1fr)) !important;
-    grid-template-rows: auto repeat(var(--total-rows) - 1, minmax(2.5rem, auto));
-  }
-
-  .border-grid {
-    border-right: 1px solid #e5e5e5;
-  }
-
-  .schedule-time {
-    position: relative;
-  }
-  
-  .schedule-event {
-    background-color: #edfcf5;
-    color: #065f46;
-    padding: 0.375rem;
-    border-radius: 0.125rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    position: absolute;
-    inset: 0;
-    margin: 2px;
-    transition:
-      transform 0.15s ease-out,
-      box-shadow 0.15s ease-out,
-      border-left 0.15s ease-out;
-  }
-
-  
-  .current-time-indicator {
-    position: absolute;
-    display: flex;
-    align-items: center;
-    z-index: 100;
-    pointer-events: none;
-    width: 100%;
-    left: 0;
-  }
-
-  .current-time-bubble {
-    background-color: #ff3b30;
-    color: white;
-    font-size: 14px;
-    font-weight: 500;
-    border-radius: 6px;
-    padding: 2px 6px;
-    line-height: 1.2;
-    margin-left: 0;
-    min-width: 50px;
-    text-align: center;
-  }
-
-  .current-time-line {
-    flex: 1;
-    height: 2.5px;
-    background-color: #ff3b30;
-  }
-
-  .resize-handle {
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 6px;
-    background: transparent;
-    z-index: 2;
-  }
-  .resize-handle.top {
-    top: 0;
-  }
-  .resize-handle.bottom {
-    bottom: 0;
-  }
-  .horizontal-handle {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 6px;
-    background: transparent;
-    z-index: 2;
-    cursor: ew-resize;
-  }
-  .horizontal-handle.left {
-    left: 0;
-  }
-  .horizontal-handle.right {
-    right: 0;
-  }
-
-</style>
 
 <!-- make container focusable and keyboard-operable -->
 <div class="schedule-container" role="button" tabindex="0" on:click|self={closeInfoCard} on:keydown|self={(e) => (e.key === 'Enter' || e.key === ' ') && (closeInfoCard(), e.preventDefault())}>
@@ -378,3 +267,115 @@
     </div>
   </div>
 </div>
+
+<style>
+  .schedule-cell {
+    background: transparent;
+    padding: 0.5rem 1rem;
+    position: relative;
+    height: 1.5rem;
+    border-bottom: 0;
+  }
+  
+  .schedule-hour-mark {
+    border-top: 1px solid #e5e5e5;
+  }
+  
+  .schedule-grid {
+    width: 100%;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    position: relative;
+    display: grid !important;
+    grid-template-columns: 50px repeat(auto-fit, minmax(0, 1fr)) !important;
+    grid-template-rows: auto repeat(var(--total-rows) - 1, minmax(2.5rem, auto));
+  }
+
+  .border-grid {
+    border-right: 1px solid #e5e5e5;
+  }
+
+  .schedule-time {
+    position: relative;
+  }
+  
+  .schedule-event {
+    background-color: #edfcf5;
+    color: #065f46;
+    padding: 0.375rem;
+    border-radius: 0.125rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    position: absolute;
+    inset: 0;
+    margin: 2px;
+    transition:
+      transform 0.15s ease-out,
+      box-shadow 0.15s ease-out,
+      border-left 0.15s ease-out;
+  }
+
+  
+  .current-time-indicator {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    z-index: 100;
+    pointer-events: none;
+    width: 100%;
+    left: 0;
+  }
+
+  .current-time-bubble {
+    background-color: #ff3b30;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 6px;
+    padding: 2px 6px;
+    line-height: 1.2;
+    margin-left: 0;
+    min-width: 50px;
+    text-align: center;
+  }
+
+  .current-time-line {
+    flex: 1;
+    height: 2.5px;
+    background-color: #ff3b30;
+  }
+
+  .resize-handle {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background: transparent;
+    z-index: 2;
+  }
+  .resize-handle.top {
+    top: 0;
+  }
+  .resize-handle.bottom {
+    bottom: 0;
+  }
+  .horizontal-handle {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    background: transparent;
+    z-index: 2;
+    cursor: ew-resize;
+  }
+  .horizontal-handle.left {
+    left: 0;
+  }
+  .horizontal-handle.right {
+    right: 0;
+  }
+
+</style>
