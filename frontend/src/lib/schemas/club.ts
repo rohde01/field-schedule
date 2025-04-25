@@ -1,19 +1,16 @@
 import { z } from "zod";
 
 export const clubSchema = z.object({
-    club_id: z.string(),
-    name: z.string().nullable(),
-    owner_id: z.string().uuid()
+    club_id: z.number().int().positive(),
+    name: z.string(),
+    owner_id: z.string(),
+    created_at: z.string().nullable(),
+    updated_at: z.string().nullable()
 });
 
 export const createClubSchema = z.object({
-    name: z.string().min(2, "Club name must be at least 2 characters")
-});
-
-export const updateNameSchema = z.object({
-    name: z.string().min(2, "Club name must be at least 2 characters")
+    name: z.string().min(3, "Club name must be at least 3 characters"),
 });
 
 export type Club = z.infer<typeof clubSchema>;
 export type CreateClub = z.infer<typeof createClubSchema>;
-export type UpdateName = z.infer<typeof updateNameSchema>;

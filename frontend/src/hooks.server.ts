@@ -53,7 +53,7 @@ const authGuard: Handle = async ({ event, resolve }) => {
     event.locals.session = session
     event.locals.user = user
 
-    const isProtected = event.route.id?.startsWith('/(sidebar)')
+    const isProtected = event.route.id?.startsWith('/(dashboard)')
     if (!isProtected) {
         return resolve(event)
     }
@@ -67,8 +67,8 @@ const authGuard: Handle = async ({ event, resolve }) => {
     }
 
     // Redirect to onboarding if name or club is missing
-    if (!event.url.pathname.startsWith('/onboarding') && (!user?.first_name || !user?.last_name || !user?.club_id)) {
-        throw redirect(303, '/onboarding')
+    if (!event.url.pathname.startsWith('/settings') && (!user?.first_name || !user?.last_name || !user?.club_id)) {
+        throw redirect(303, '/settings')
     }
 
     return resolve(event)

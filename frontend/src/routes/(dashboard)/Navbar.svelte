@@ -2,7 +2,10 @@
   import { DarkMode, NavBrand, Navbar, DropdownDivider, DropdownItem, Button } from 'flowbite-svelte';
   import UserMenu from './UserMenu.svelte';
   import { ArrowUpRightFromSquareSolid } from 'flowbite-svelte-icons';
-  const menuItems = ['Dashboard', 'Settings'];
+  const menuItems = [
+    { text: 'Dashboard', href: '/' },
+    { text: 'Settings', href: '/settings' }
+  ];
 </script>
 
 <Navbar fluid class="w-full px-6 py-3.75 text-black justify-between" color="default">

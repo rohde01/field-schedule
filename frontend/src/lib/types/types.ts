@@ -15,3 +15,9 @@ export interface TeamModalProps {
     hidden?: boolean;
     title?: string;
   }
+
+  export interface InputField {
+    label: string;
+    type: InputType;
+    placeholder: string;
+  }

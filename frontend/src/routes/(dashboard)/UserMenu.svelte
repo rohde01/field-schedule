@@ -4,7 +4,7 @@
     export let name: string;
     export let avatar: string;
     export let email: string;
-    export let menuItems: string[];
+    export let menuItems: { text: string; href: string }[];
 </script>
   
 <button class="ms-3 rounded-full ring-gray-400 focus:ring-4 dark:ring-gray-600">
@@ -16,7 +16,7 @@
       <span class="block truncate text-sm font-medium">{email}</span>
     </DropdownHeader>
     {#each menuItems as menu}
-      <DropdownItem>{menu}</DropdownItem>
+      <DropdownItem href={menu.href}>{menu.text}</DropdownItem>
     {/each}
     <slot />
 </Dropdown>

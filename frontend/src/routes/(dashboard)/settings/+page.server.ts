@@ -1,29 +1,31 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { superValidate } from 'sveltekit-superforms/server';
 import { zod } from 'sveltekit-superforms/adapters';
-import { updateNameSchema } from '$lib/schemas/user';
+import { updateUserSchema } from '$lib/schemas/user';
 import { createClubSchema } from '$lib/schemas/club';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load = (async ({ locals: { supabase, user } }) => {
-    if (user?.first_name && user?.last_name && user?.club_id) {
-        throw redirect(303, '/schedules');
-    }
+export const ssr = false
 
-    const nameForm = await superValidate(zod(updateNameSchema));
+export const load = (async ({ locals: { user } }) => {
+    // Prefill user form with current user details
+    const userForm = await superValidate(
+      { email: user?.email, first_name: user?.first_name, last_name: user?.last_name, role: user?.role },
+      zod(updateUserSchema)
+    );
     const clubForm = await superValidate(zod(createClubSchema));
     
     return { 
-        nameForm,
+        userForm,
         clubForm,
         user,
-        supabase
+        hasClub: Boolean(user?.club_id)
     };
 }) satisfies PageServerLoad;
 
 export const actions: Actions = {
-    updateName: async ({ request, locals: { supabase, user } }) => {
-        const form = await superValidate(request, zod(updateNameSchema));
+    updateUser: async ({ request, locals: { supabase, user } }) => {
+        const form = await superValidate(request, zod(updateUserSchema));
 
         if (!form.valid) {
             return fail(400, { form });
@@ -38,11 +40,9 @@ export const actions: Actions = {
             });
         }
 
-        const { first_name, last_name } = form.data;
-
         const { error } = await supabase
             .from('users')
-            .update({ first_name, last_name })
+            .update({ ...form.data })
             .eq('user_id', user.user_id)
             .select()
             .single();
@@ -56,7 +56,9 @@ export const actions: Actions = {
             });
         }
 
-        throw redirect(303, '/schedules');
+        // Set success message and return form
+        form.message = 'Profile updated successfully';
+        return { form };
     },
 
     createClub: async ({ request, locals: { supabase, user } }) => {

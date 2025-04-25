@@ -22,12 +22,14 @@ export const loginSchema = z.object({
     password: z.string()
 });
 
-export const updateNameSchema = z.object({
+export const updateUserSchema = z.object({
+    email: z.string().email("Please enter a valid email address"),
     first_name: z.string().min(1, "First name is required"),
-    last_name: z.string().min(1, "Last name is required")
-});
+    last_name: z.string().min(1, "Last name is required"),
+    role: z.string()
+}).partial();
 
 export type User = z.infer<typeof userSchema>;
 export type CreateUser = z.infer<typeof createUserSchema>;
 export type LoginCredentials = z.infer<typeof loginSchema>;
-export type UpdateName = z.infer<typeof updateNameSchema>;
+export type UpdateUser = z.infer<typeof updateUserSchema>;

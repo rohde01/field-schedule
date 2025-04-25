@@ -1,28 +1,11 @@
 import { writable, get } from 'svelte/store';
 import type { Schedule, ScheduleEntry } from '$lib/schemas/schedule';
-import { selectSchedule, dropdownState } from './ScheduleDropdownState';
 import { scheduleSchema } from '$lib/schemas/schedule';
 
 export const schedules = writable<Schedule[]>([]);
 export const deletedEntryIds = writable<number[]>([]);
 export const unsavedChanges = writable<boolean>(false);
 
-schedules.subscribe((schedulesList) => {
-    if (schedulesList.length === 0) return;
-
-    const currentDropdown = get(dropdownState);
-    if (currentDropdown.selectedSchedule) {
-        const currentId = currentDropdown.selectedSchedule.schedule_id;
-        const updatedSchedule = schedulesList.find(s => s.schedule_id === currentId);
-        if (updatedSchedule) {
-            selectSchedule(updatedSchedule);
-        } else {
-            selectSchedule(schedulesList[schedulesList.length - 1]);
-        }
-    } else {
-        selectSchedule(schedulesList[schedulesList.length - 1]);
-    }
-});
 
 export function setSchedules(newSchedules: Schedule[]) {
     const coercedSchedules = newSchedules.map(s => scheduleSchema.parse(s));
