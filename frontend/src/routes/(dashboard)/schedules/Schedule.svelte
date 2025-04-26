@@ -1,6 +1,5 @@
 <script lang="ts">
   import { browser } from '$app/environment';
-  import { dropdownState } from '../stores/ScheduleDropdownState';
   import type { Field } from '$lib/schemas/field';
   import type { ProcessedScheduleEntry } from '$lib/utils/calendarUtils';
   import { fields } from '$lib/stores/fields';
@@ -17,7 +16,7 @@
           shouldHideHourLabel, isHourMark, timeTrackingEnabled,
           combineDateAndTime } from '$lib/utils/dateUtils';
   import { getFieldColumns, buildFieldToGridColumnMap, generateHeaderCells, getFieldName } from '$lib/utils/fieldUtils';
-  import InfoCard from '$lib/components/InfoCard.svelte';
+  import InfoCard from './InfoCard.svelte';
   import { resizeHandle, horizontalDrag, moveHandle } from '$lib/utils/dndUtils';
   import { addScheduleEntry } from '$lib/stores/schedules';
   import { get } from 'svelte/store';

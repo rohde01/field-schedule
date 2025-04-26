@@ -1,8 +1,7 @@
 <!-- SaveScheduleButton.svelte -->
 <script lang="ts">
     import { enhance } from '$app/forms';
-    import { dropdownState } from '../stores/ScheduleDropdownState';
-    import { deletedEntryIds, unsavedChanges } from '../stores/schedules';
+    import { deletedEntryIds, unsavedChanges } from '../../../lib/stores/schedules';
     import { get } from 'svelte/store';
     import { Button, Spinner } from 'flowbite-svelte';
     

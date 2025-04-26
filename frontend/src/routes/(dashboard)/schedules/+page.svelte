@@ -1,5 +1,5 @@
 <script lang="ts">
-    import Schedule from '$lib/components/Schedule.svelte'
+    import Schedule from './Schedule.svelte'
     import { Datepicker, P } from 'flowbite-svelte';
     let dateRange = { from: null, to: null };
     import { Card } from 'flowbite-svelte';
