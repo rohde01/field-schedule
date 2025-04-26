@@ -101,8 +101,9 @@ export const actions: Actions = {
 
         // Use superValidate with the request directly to handle JSON data
         const form = await superValidate(request, zod(fieldCreateSchema));
-        
+        // validation errors
         if (!form.valid) {
+            form.message = 'Please fix validation errors and try again.';
             return fail(400, { form });
         }
         
@@ -126,7 +127,12 @@ export const actions: Actions = {
 
             if (mainFieldError) {
                 console.error('Failed to create field:', mainFieldError);
-                return fail(400, { form, error: 'Failed to create field' });
+                if (mainFieldError.code === '23505') {
+                    form.message = 'A field with this name already exists for this facility. Choose a new name and try again.';
+                } else {
+                    form.message = 'Failed to create field, please try again.';
+                }
+                return fail(400, { form });
             }
 
             const mainFieldId = mainField.field_id;
@@ -151,7 +157,12 @@ export const actions: Actions = {
 
                     if (halfFieldError) {
                         console.error('Failed to create field hierarchy:', halfFieldError);
-                        return fail(400, { form, error: 'Failed to create field' });
+                        if (halfFieldError.code === '23505') {
+                            form.message = 'A field with this name already exists for this facility. Choose a new name and try again.';
+                        } else {
+                            form.message = 'Failed to create field, please try again.';
+                        }
+                        return fail(400, { form });
                     }
 
                     halfFieldIds.push(insertedHalfField.field_id);
@@ -173,7 +184,12 @@ export const actions: Actions = {
 
                             if (quarterFieldError) {
                                 console.error('Failed to create field hierarchy:', quarterFieldError);
-                                return fail(400, { form, error: 'Failed to create field' });
+                                if (quarterFieldError.code === '23505') {
+                                    form.message = 'A field with this name already exists for this facility. Choose a new name and try again.';
+                                } else {
+                                    form.message = 'Failed to create field, please try again.';
+                                }
+                                return fail(400, { form });
                             }
                         }
                     }
@@ -196,12 +212,17 @@ export const actions: Actions = {
 
                 if (availabilityError) {
                     console.error('Failed to create field availabilities:', availabilityError);
-                    return fail(400, { form, error: 'Failed to create field' });
+                    if (availabilityError.code === '23505') {
+                        form.message = 'One or more availability slots already exist for this field. Please adjust duplicates and try again.';
+                    } else {
+                        form.message = 'Failed to create field, please try again.';
+                    }
+                    return fail(400, { form });
                 }
             }
 
             // Set success message for toast
-            form.message = 'Field created successfully';
+            form.message = 'Field created successfully.';
             return { 
                 form,
                 success: true,
@@ -209,15 +230,16 @@ export const actions: Actions = {
             };
         } catch (err) {
             console.error('Error creating field:', err);
-            return fail(500, { form, error: 'Failed to create field' });
+            form.message = 'Failed to create field, please try again.';
+            return fail(500, { form });
         }
     },
 
     // action for updating a field
     updateField: async ({ request, locals: { supabase, user } }) => {
         const form = await superValidate(request, zod(updateFieldSchema));
-        
         if (!form.valid) {
+            form.message = 'Please fix validation errors and try again.';
             return fail(400, { form });
         }
 
@@ -235,14 +257,12 @@ export const actions: Actions = {
 
             if (updateError) {
                 console.error('Failed to update field:', updateError);
-                return fail(400, { 
-                    form,
-                    error: updateError.message || 'Failed to update field'
-                });
+                form.message = 'Failed to update field, please try again.';
+                return fail(400, { form });
             }
 
             // Return updated field with message
-            form.message = 'Field updated successfully';
+            form.message = 'Field updated successfully.';
             return { 
                 form,
                 success: true,
@@ -251,17 +271,15 @@ export const actions: Actions = {
             };
         } catch (err) {
             console.error('Error updating field:', err);
-            return fail(500, { 
-                form,
-                error: 'Failed to update field'
-            });
+            form.message = 'Failed to update field, please try again.';
+            return fail(500, { form });
         }
     },
 
     deleteField: async ({ request, locals: { supabase } }) => {
         const form = await superValidate(request, zod(deleteFieldSchema));
-
         if (!form.valid) {
+            form.message = 'Please fix validation errors and try again.';
             return fail(400, { form });
         }
 
@@ -274,14 +292,12 @@ export const actions: Actions = {
 
             if (deleteError) {
                 console.error('Failed to delete field:', deleteError);
-                return fail(400, { 
-                    form,
-                    error: 'Failed to delete the field'
-                });
+                form.message = 'Failed to delete field, please try again.';
+                return fail(400, { form });
             }
 
             // Set success message for toast
-            form.message = 'Field deleted successfully';
+            form.message = 'Field deleted successfully.';
             return { 
                 form,
                 success: true,
@@ -290,10 +306,8 @@ export const actions: Actions = {
             };
         } catch (err) {
             console.error('Error deleting field:', err);
-            return fail(500, { 
-                form,
-                error: 'Failed to delete field' 
-            });
+            form.message = 'Failed to delete field, please try again.';
+            return fail(500, { form });
         }
     }
 } satisfies Actions;

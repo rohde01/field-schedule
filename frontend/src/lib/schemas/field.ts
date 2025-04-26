@@ -40,7 +40,7 @@ const quarterFieldCreateSchema = z.object({
 
 // Sub-field creation schema (for half fields)
 const subFieldCreateSchema = z.object({
-  ...baseFieldProps,
+  name: baseFieldProps.name,
   field_type: z.literal('half'),
   quarter_fields: z.array(quarterFieldCreateSchema)
     .max(2, "A half field can have at most 2 quarter fields")

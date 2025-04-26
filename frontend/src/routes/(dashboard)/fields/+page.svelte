@@ -22,6 +22,7 @@
   
   const deleteForm = superForm(data.deleteForm, {
       resetForm: true,
+      taintedMessage: 'Please fix errors and try again.',
       onResult: ({ result }) => {
           if (result.type === 'success') {
               // Close the modal after successful deletion
@@ -45,7 +46,7 @@
   });
 
   const createForm = superForm(data.createFieldForm, {
-      taintedMessage: null,
+      taintedMessage: 'Please fix errors and try again.',
       dataType: 'json',
       validators: zodClient(fieldCreateSchema),
       resetForm: true,
@@ -63,6 +64,7 @@
 
   const updateForm = superForm(data.updateFieldForm, {
       validators: zodClient(updateFieldSchema),
+      taintedMessage: 'Please fix errors and try again.',
       resetForm: false,
       onResult: ({ result }) => {
           if (result.type === 'success') {
@@ -232,4 +234,3 @@ actionPath={isEditMode ? '?/updateField' : '?/createField'}
 <ToastMessage message={$createMessage} />
 <ToastMessage message={$updateMessage} />
 <ToastMessage message={$deleteMessage} />
-
