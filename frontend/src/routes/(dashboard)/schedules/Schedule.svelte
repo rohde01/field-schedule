@@ -9,7 +9,7 @@
   import { buildResources, timeSlots, 
           getRowForTimeWithSlots, getEntryRowEndWithSlots,
           getEntryContentVisibility, isDraftSchedule, 
-          processedEntries } from '$lib/utils/calendarUtils';
+          processedEntries, showEarlyTimeslots } from '$lib/utils/calendarUtils';
   import { currentDate, formatDate, formatWeekdayOnly,
           nextDay, previousDay, currentTime, updateCurrentTime,
           getCurrentTimePosition, formatTimeForDisplay,
@@ -20,7 +20,7 @@
   import { resizeHandle, horizontalDrag, moveHandle } from '$lib/utils/dndUtils';
   import { addScheduleEntry, selectedSchedule } from '$lib/stores/schedules';
   import { get } from 'svelte/store';
-  import { Heading, Button } from 'flowbite-svelte';
+  import { Heading, Button, Toggle, Tooltip } from 'flowbite-svelte';
   import { AngleLeftOutline, AngleRightOutline } from 'flowbite-svelte-icons';
   
 
@@ -141,6 +141,11 @@
       exdate: null
     });
   }
+
+  // Function to check if time should be hidden when early timeslots are off
+  function shouldHideFirstHourMarkWhenEarlyOff(time: string, earlyTimeslotsOn: boolean): boolean {
+    return time === '12:00' && !earlyTimeslotsOn;
+  }
 </script>
 
 
@@ -157,6 +162,10 @@
     </div>
 
     <div class="navigation-controls flex-1 flex items-center gap-2 justify-end">
+      <div class="toggle-container">
+        <Toggle bind:checked={$showEarlyTimeslots}></Toggle>
+        <Tooltip placement="top">Show entire day</Tooltip>
+      </div>
       <Button outline={true} class="p-2!" on:click={previousDay}>
         <AngleLeftOutline class="w-5 h-5" />
       </Button>
@@ -192,14 +201,14 @@
           class="schedule-time text-gray-900 dark:text-white"
           style="grid-column: 1; grid-row: {rowIndex + 2}; justify-content: flex-end;"
         >
-          {#if isHourMark(time) && !shouldHideHourLabel(time)}
+          {#if isHourMark(time) && !shouldHideHourLabel(time) && !shouldHideFirstHourMarkWhenEarlyOff(time, $showEarlyTimeslots)}
             <span style="position:absolute; bottom:50%; right:5;">{time}</span>
           {/if}
         </div>
 
         {#each headerCells as cell}
           <div
-            class={`schedule-cell ${isHourMark(time) ? 'schedule-hour-mark' : ''} ${cell.colIndex > 1 && cell.colIndex < totalColumns ? 'border-grid' : ''}`}
+            class={`schedule-cell ${isHourMark(time) && !shouldHideFirstHourMarkWhenEarlyOff(time, $showEarlyTimeslots) ? 'schedule-hour-mark' : ''} ${cell.colIndex > 1 && cell.colIndex < totalColumns ? 'border-grid' : ''}`}
             role="button"
             tabindex="0"
             style="grid-column: {cell.colIndex} / span {cell.colSpan}; grid-row: {rowIndex + 2};"

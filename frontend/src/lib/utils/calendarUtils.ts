@@ -15,13 +15,21 @@ export type ProcessedScheduleEntry = ScheduleEntry & {
   isRecurring: boolean;
 };
 
-export const timeSlots = writable((() => {
-  if (!browser) return [];
-  const earliestStart = "00:00";
-  const latestEnd = "23:45";
-  const intervalMinutes = 15;
-  return generateTimeSlots(earliestStart, latestEnd, intervalMinutes);
-})());
+// Store to control whether early time slots should be displayed
+export const showEarlyTimeslots = writable(false);
+export const timeSlots = writable<string[]>([]);
+
+if (browser) {
+  derived(
+    [showEarlyTimeslots],
+    ([$showEarlyTimeslots]) => {
+      const earliestStart = $showEarlyTimeslots ? "00:00" : "12:00";
+      const latestEnd = "23:45";
+      const intervalMinutes = 15;
+      return generateTimeSlots(earliestStart, latestEnd, intervalMinutes);
+    }
+  ).subscribe(val => timeSlots.set(val));
+}
 
 export function isDraftSchedule(schedule: any): boolean {
   return !schedule?.active_from || !schedule?.active_until;
