@@ -57,7 +57,7 @@
         <input type="hidden" name="scheduleId" value={$selectedSchedule!.schedule_id} />
         <input type="hidden" name="entries" value={JSON.stringify($selectedSchedule!.schedule_entries)} />
         
-        <Button type="submit" size="xs" disabled={saving}>
+        <Button outline type="submit" disabled={saving}>
             {#if saving}
                 <Spinner class="me-3" size="4" color="white" />Saving ...
             {:else}

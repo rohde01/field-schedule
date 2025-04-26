@@ -5,7 +5,9 @@
   import { Sidebar, SidebarGroup, SidebarItem, SidebarWrapper, Button, Dropdown, DropdownItem, DropdownDivider } from 'flowbite-svelte';
   import { ChartPieOutline, TableColumnSolid, RectangleListSolid, GithubSolid, ClipboardListSolid, ChevronUpOutline } from 'flowbite-svelte-icons';
   import { facilities, selectedFacility, setSelectedFacility, showCreateFacility, toggleCreateFacility } from '$lib/stores/facilities';
+  import { schedules, selectedSchedule } from '$lib/stores/schedules';
   import type { Facility } from '$lib/schemas/facility';
+  import type { Schedule } from '$lib/schemas/schedule';
 
   let { drawerHidden = $bindable() } = $props();
   const closeDrawer = () => {
@@ -20,6 +22,8 @@
 
   let mainSidebarUrl = $derived(page.url.pathname);
   let activeMainSidebar = '';
+  let isFieldsPage = $derived(mainSidebarUrl.includes('/fields'));
+  let isSchedulesPage = $derived(mainSidebarUrl.includes('/schedules'));
 
   afterNavigate((nav) => {
     document.getElementById('svelte')?.scrollTo({ top: 0 });
@@ -41,6 +45,11 @@
   function selectFacility(facility: Facility) {
     setSelectedFacility(facility);
     document.getElementById('bottom-dropdown')?.click();
+  }
+
+  function selectSchedule(schedule: Schedule) {
+    selectedSchedule.set(schedule);
+    document.getElementById('schedule-dropdown')?.click();
   }
 
   function handleAddFacility() {
@@ -73,7 +82,8 @@
       </SidebarGroup>
     </div>
     
-    <!-- Dropdown button at the bottom -->
+    <!-- Facility Dropdown button at the bottom -->
+    {#if isFieldsPage}
     <div class="absolute bottom-0 left-0 right-0 px-3 pb-4">
       <Button id="bottom-dropdown" class="w-full">{$selectedFacility ? $selectedFacility.name : 'Facilities'}<ChevronUpOutline class="w-6 h-6 ms-2 text-white dark:text-white" /></Button>
       
@@ -87,6 +97,20 @@
         </DropdownItem>
       </Dropdown>
     </div>
+    {/if}
+
+    <!-- Schedule Dropdown button at the bottom -->
+    {#if isSchedulesPage}
+    <div class="absolute bottom-0 left-0 right-0 px-3 pb-4">
+      <Button id="schedule-dropdown" class="w-full">{$selectedSchedule ? $selectedSchedule.name : 'Schedules'}<ChevronUpOutline class="w-6 h-6 ms-2 text-white dark:text-white" /></Button>
+      
+      <Dropdown placement="top" triggeredBy="#schedule-dropdown">
+        {#each $schedules as schedule}
+          <DropdownItem on:click={() => selectSchedule(schedule)} class={schedule === $selectedSchedule ? activeClass : ''}>{schedule.name}</DropdownItem>
+        {/each}
+      </Dropdown>
+    </div>
+    {/if}
   </SidebarWrapper>
 </Sidebar>
 
