@@ -8,13 +8,8 @@
     import NameModal from './NameModal.svelte';
     import ClubModal from './ClubModal.svelte';
     import { Label, Select, Card, Heading, Button, Input, Helper } from 'flowbite-svelte';
-
-    import type { InputField } from '$lib/types/types';
-
-    import { Breadcrumb, BreadcrumbItem, Toast } from 'flowbite-svelte';
-    import { CheckCircleSolid, CloseCircleSolid } from 'flowbite-svelte-icons';
-
-
+    import { Breadcrumb, BreadcrumbItem } from 'flowbite-svelte';
+    import ToastMessage from '$lib/components/Toast.svelte';
 
     let { data } = $props<{ data: PageData }>();
     
@@ -51,6 +46,9 @@
 <NameModal bind:open={openNameModal} form={nameForm} data={{}} />
 <ClubModal bind:open={openClubModal} form={clubForm} data={{}} />
 
+<!-- Toast messages -->
+<ToastMessage message={$userMessage} />
+<ToastMessage message={$clubUpdateMessage} />
 
 <main class="p-4">
   <div class="grid grid-cols-1 space-y-2 xl:grid-cols-2 xl:gap-3.5 dark:bg-gray-900">
@@ -80,20 +78,6 @@
             <Input name="name" id="name" type="text" bind:value={$clubUpdateData.name} class="border font-normal outline-none" />
             {#if $clubUpdateErrors?.name}<Helper class="mt-2" color="red">{$clubUpdateErrors.name}</Helper>{/if}
           </Label>
-          {#if $clubUpdateMessage}
-            <Toast color={$clubUpdateMessage.toLowerCase().includes('success') ? 'green' : 'red'} class="fixed top-20 right-4 z-50">
-                <svelte:fragment slot="icon">
-                    {#if $clubUpdateMessage.toLowerCase().includes('success')}
-                        <CheckCircleSolid class="w-5 h-5" />
-                        <span class="sr-only">Check icon</span>
-                    {:else}
-                        <CloseCircleSolid class="w-5 h-5" />
-                        <span class="sr-only">Error icon</span>
-                    {/if}
-                </svelte:fragment>
-                {$clubUpdateMessage}
-            </Toast>
-          {/if}
           <Button type="submit" form="club-form" class="w-fit whitespace-nowrap">Save all</Button>
         </form>
       </Card>
@@ -130,20 +114,6 @@
             <Input name="role" id="role" type="text" bind:value={$userData.role} class="border font-normal outline-none" />
             {#if $userErrors?.role}<Helper class="mt-2" color="red">{$userErrors.role}</Helper>{/if}
           </Label>
-          {#if $userMessage}
-            <Toast color={$userMessage.toLowerCase().includes('success') ? 'green' : 'red'} class="fixed top-20 right-4 z-50">
-                <svelte:fragment slot="icon">
-                    {#if $userMessage.toLowerCase().includes('success')}
-                        <CheckCircleSolid class="w-5 h-5" />
-                        <span class="sr-only">Check icon</span>
-                    {:else}
-                        <CloseCircleSolid class="w-5 h-5" />
-                        <span class="sr-only">Error icon</span>
-                    {/if}
-                </svelte:fragment>
-                {$userMessage}
-            </Toast>
-          {/if}
           <Button type="submit"  form="user-form" class="w-fit whitespace-nowrap">Save all</Button>
         </form>
       </Card>

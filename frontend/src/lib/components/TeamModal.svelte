@@ -2,20 +2,33 @@
   import { Button, Input, Checkbox, Label, Modal, Select, Helper } from 'flowbite-svelte';
   import type { Team } from '$lib/schemas/team';
   import type { SuperForm } from 'sveltekit-superforms';
+  import { onMount } from 'svelte';
   
-  let { open = $bindable(true), data = {} as Team, form }: { 
+  let { 
+    open = $bindable(true), 
+    data = {} as Team, 
+    form,
+    actionPath = '?/create'
+  }: { 
     open: boolean; 
     data: Team; 
-    form: SuperForm<any, any>
+    form: SuperForm<any, any>;
+    actionPath: string;
   } = $props();
 
   const { form: formData, enhance, errors, message } = form;
+  
+  $effect(() => {
+    if (open && data && Object.keys(data).length > 0) {
+      formData.set(data);
+    }
+  });
 </script>
 
 <Modal bind:open title={Object.keys(data).length ? 'Edit team' : 'Add new team'} size="md" class="m-4">
   <!-- Modal body -->
   <div class="space-y-6 p-0">
-    <form method="POST" action="?/create" use:enhance id="team-form">
+    <form method="POST" action={actionPath} use:enhance id="team-form">
       {#if data.team_id}
         <input type="hidden" name="team_id" bind:value={$formData.team_id} />
       {/if}
