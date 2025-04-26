@@ -1,6 +1,5 @@
 import { writable } from 'svelte/store';
-import type { Field } from '$lib/schemas/field';
-import type { flattenedFieldSchemaType } from '$lib/schemas/field';
+import type { Field, FlattenedField } from '$lib/schemas/field';
 
 export const fields = writable<Field[]>([]);
 
@@ -10,6 +9,12 @@ export function setFields(newFields: Field[]) {
 
 export function addField(field: Field) {
     fields.update(fields => [...fields, field]);
+}
+
+export function updateField(updatedField: Field) {
+    fields.update(fields => 
+        fields.map(field => field.field_id === updatedField.field_id ? updatedField : field)
+    );
 }
 
 export function deleteField(fieldId: number) {
@@ -32,21 +37,21 @@ export function getFieldsByFacility(facilityId: number): Field[] {
     return result;
 }
 
-export function getFlattenedFields(): Field[] {
-    let result: flattenedFieldSchemaType[] = [];
+export function getFlattenedFields(): FlattenedField[] {
+    let result: FlattenedField[] = [];
     fields.subscribe(allFields => {
 
-        result = [...allFields];
+        result = [...allFields] as FlattenedField[];
         
         allFields.forEach(field => {
             if (field.half_subfields && field.half_subfields.length > 0) {
-                result = [...result, ...field.half_subfields];
+                result = [...result, ...field.half_subfields] as FlattenedField[];
             }
         });
         
         allFields.forEach(field => {
             if (field.quarter_subfields && field.quarter_subfields.length > 0) {
-                result = [...result, ...field.quarter_subfields];
+                result = [...result, ...field.quarter_subfields] as FlattenedField[];
             }
         });
     })();

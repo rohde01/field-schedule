@@ -3,11 +3,11 @@ import { fail } from '@sveltejs/kit';
 import { superValidate } from 'sveltekit-superforms/server';
 import { zod } from 'sveltekit-superforms/adapters';
 import { facilityCreateSchema } from '$lib/schemas/facility';
-import { deleteFieldSchema, fieldCreateSchema } from '$lib/schemas/field';
+import { deleteFieldSchema, fieldCreateSchema, updateFieldSchema } from '$lib/schemas/field';
 export const ssr = false
 
 export const load = async ({ locals }) => {
-    const [facilityForm, deleteForm, createFieldForm] = await Promise.all([
+    const [facilityForm, deleteForm, createFieldForm, updateFieldForm] = await Promise.all([
         superValidate(zod(facilityCreateSchema), {
             id: 'facility-form',
             defaults: {
@@ -31,11 +31,15 @@ export const load = async ({ locals }) => {
                 half_fields: [],
                 availabilities: []
             }
+        }),
+        superValidate(zod(updateFieldSchema), {
+            id: 'update-field-form'
         })
     ]);
         return {
             facilityForm,
             createFieldForm,
+            updateFieldForm,
             deleteForm,
         };
  
@@ -204,6 +208,49 @@ export const actions: Actions = {
         } catch (err) {
             console.error('Error creating field:', err);
             return fail(500, { form, error: 'Failed to create field' });
+        }
+    },
+
+    // action for updating a field
+    updateField: async ({ request, locals: { supabase, user } }) => {
+        const form = await superValidate(request, zod(updateFieldSchema));
+        
+        if (!form.valid) {
+            return fail(400, { form });
+        }
+
+        try {
+            const { data: field, error: updateError } = await supabase
+                .from('fields')
+                .update({
+                    name: form.data.name,
+                    size: form.data.size,
+                    is_active: form.data.is_active
+                })
+                .eq('field_id', form.data.field_id)
+                .select()
+                .single();
+
+            if (updateError) {
+                console.error('Failed to update field:', updateError);
+                return fail(400, { 
+                    form,
+                    error: updateError.message || 'Failed to update field'
+                });
+            }
+
+            return { 
+                form,
+                success: true,
+                field,
+                action: 'update'
+            };
+        } catch (err) {
+            console.error('Error updating field:', err);
+            return fail(500, { 
+                form,
+                error: 'Failed to update field'
+            });
         }
     },
 
