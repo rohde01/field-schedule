@@ -1,7 +1,7 @@
 <!-- SaveScheduleButton.svelte -->
 <script lang="ts">
     import { enhance } from '$app/forms';
-    import { deletedEntryIds, unsavedChanges } from '../../../lib/stores/schedules';
+    import { deletedEntryIds, unsavedChanges, selectedSchedule } from '../../../lib/stores/schedules';
     import { get } from 'svelte/store';
     import { Button, Spinner } from 'flowbite-svelte';
     
@@ -9,11 +9,10 @@
     let message = '';
     let result: any;
     
-    // Get the currently selected schedule
-    $: selectedSchedule = $dropdownState.selectedSchedule;
+    // Using selectedSchedule store directly, no dropdownState needed
 </script>
 
-{#if selectedSchedule}
+{#if $selectedSchedule}
     <form 
         method="POST" 
         action="?/insertScheduleEntries" 
@@ -25,8 +24,8 @@
                 // first insert new entries
                 if (result.type === 'success') {
                     const fd = new FormData();
-                    fd.append('scheduleId', String(selectedSchedule.schedule_id));
-                    fd.append('entries', JSON.stringify(selectedSchedule.schedule_entries));
+                    fd.append('scheduleId', String(get(selectedSchedule)!.schedule_id));
+                    fd.append('entries', JSON.stringify(get(selectedSchedule)!.schedule_entries));
                     const resUpdate = await fetch('?/updateScheduleEntries', { method: 'POST', body: fd });
                     const updateData = await resUpdate.json();
                     if (resUpdate.ok) {
@@ -55,8 +54,8 @@
             };
         }}
     >
-        <input type="hidden" name="scheduleId" value={selectedSchedule.schedule_id} />
-        <input type="hidden" name="entries" value={JSON.stringify(selectedSchedule.schedule_entries)} />
+        <input type="hidden" name="scheduleId" value={$selectedSchedule!.schedule_id} />
+        <input type="hidden" name="entries" value={JSON.stringify($selectedSchedule!.schedule_entries)} />
         
         <Button type="submit" size="xs" disabled={saving}>
             {#if saving}

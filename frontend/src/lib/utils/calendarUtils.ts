@@ -1,9 +1,8 @@
 import type { Field } from '$lib/schemas/field';
-import { updateScheduleEntry } from '../stores/schedules';
+import { updateScheduleEntry, selectedSchedule } from '../stores/schedules';
 import type { ScheduleEntry } from '$lib/schemas/schedule';
 import { writable } from 'svelte/store';
 import { derived } from 'svelte/store';
-import { dropdownState } from '../stores/ScheduleDropdownState';
 import { browser } from '$app/environment';
 import * as rrulelib from 'rrule';
 import { createUTCDate, getTimeFromDate, normalizeTime, currentDate, isSameDay } from './dateUtils';
@@ -271,11 +270,10 @@ export const processedEntries = writable<ProcessedScheduleEntry[]>([]);
 // Populate processedEntries on state change
 if (browser) {
   derived(
-    [dropdownState, currentDate],
-    ([$dropdownState, $currentDate]) => {
-      const selectedSchedule = $dropdownState.selectedSchedule;
-      if (!selectedSchedule) return [];
-      const entries = getAllEntriesForDate(selectedSchedule, $currentDate);
+    [selectedSchedule, currentDate],
+    ([$selectedSchedule, $currentDate]) => {
+      if (!$selectedSchedule) return [];
+      const entries = getAllEntriesForDate($selectedSchedule, $currentDate);
       const processed = entries.map(entry => {
         const dtstampStr = entry.dtstart instanceof Date
           ? entry.dtstart.toISOString()

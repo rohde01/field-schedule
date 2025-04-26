@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { Label, Input, Select, Datepicker, Timepicker } from 'flowbite-svelte';
+  import { Input, Select, Datepicker, Timepicker } from 'flowbite-svelte';
   import { TrashBinSolid, ClockSolid } from 'flowbite-svelte-icons';
   import { processedEntries } from '$lib/utils/calendarUtils';
   import { teams } from '../../../lib/stores/teams';
   import type { Team } from '$lib/schemas/team';
   import { fields, getFlattenedFields } from '../../../lib/stores/fields';
-  import type { Field } from '$lib/schemas/field';
+  import type { FlattenedField } from '$lib/schemas/field';
   import { deleteScheduleEntry } from '../../../lib/stores/schedules';
   import { computeDateUTC } from '$lib/utils/dateUtils';
   import { commitUpdate, getOriginalRecurrenceStart } from '$lib/utils/calendarUtils';
@@ -45,7 +45,7 @@
   }
 
   let teamsData: Team[] = [];
-  let fieldsData: Field[] = [];
+  let fieldsData: FlattenedField[] = [];
   let summaryEditing = false;
   let fieldEditing = false;
   let teamEditing = false;

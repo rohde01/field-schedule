@@ -18,7 +18,7 @@
   import { getFieldColumns, buildFieldToGridColumnMap, generateHeaderCells, getFieldName } from '$lib/utils/fieldUtils';
   import InfoCard from './InfoCard.svelte';
   import { resizeHandle, horizontalDrag, moveHandle } from '$lib/utils/dndUtils';
-  import { addScheduleEntry } from '$lib/stores/schedules';
+  import { addScheduleEntry, selectedSchedule } from '$lib/stores/schedules';
   import { get } from 'svelte/store';
   import { Heading, Button } from 'flowbite-svelte';
   import { AngleLeftOutline, AngleRightOutline } from 'flowbite-svelte-icons';
@@ -88,8 +88,8 @@
     }
   }
 
-  const activeFields = browser ? derived([fields, dropdownState], ([$fields, $dropdownState]) => {
-    return buildResources($fields, $dropdownState.selectedSchedule);
+  const activeFields = browser ? derived([fields, selectedSchedule], ([$fields, $selectedSchedule]) => {
+    return buildResources($fields, $selectedSchedule);
   }) : derived(fields, () => []);
 
   $: headerCells = $activeFields.length > 0 
@@ -120,7 +120,7 @@
   }
 
   // Check if the current schedule is a draft
-  $: isDraft = isDraftSchedule($dropdownState.selectedSchedule);
+  $: isDraft = isDraftSchedule($selectedSchedule);
 
   // create new entry on double-click
   function handleSlotDoubleClick(event: MouseEvent, cell: any, time: string) {
@@ -128,7 +128,7 @@
     const startDateTime = combineDateAndTime(get(currentDate), time);
     addScheduleEntry({
       schedule_entry_id: null,
-      schedule_id: get(dropdownState).selectedSchedule!.schedule_id,
+      schedule_id: get(selectedSchedule)!.schedule_id,
       uid: crypto.randomUUID(),
       dtstart: startDateTime,
       dtend: new Date(startDateTime.getTime() + 3600000),

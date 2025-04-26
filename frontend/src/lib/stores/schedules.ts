@@ -1,11 +1,11 @@
-import { writable, get } from 'svelte/store';
+import { writable } from 'svelte/store';
 import type { Schedule, ScheduleEntry } from '$lib/schemas/schedule';
 import { scheduleSchema } from '$lib/schemas/schedule';
 
 export const schedules = writable<Schedule[]>([]);
 export const deletedEntryIds = writable<number[]>([]);
 export const unsavedChanges = writable<boolean>(false);
-
+export const selectedSchedule = writable<Schedule | null>(null);
 
 export function setSchedules(newSchedules: Schedule[]) {
     const coercedSchedules = newSchedules.map(s => scheduleSchema.parse(s));
