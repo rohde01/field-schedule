@@ -4,14 +4,14 @@
     import { createTeamSchema, updateTeamSchema } from '$lib/schemas/team';
     export let data: { createForm: any; updateForm: any; deleteForm: any };
     import { Breadcrumb, BreadcrumbItem, Button, Checkbox, Heading, Indicator } from 'flowbite-svelte';
-    import { Input, Table, TableBody, TableBodyCell, TableBodyRow, TableHead } from 'flowbite-svelte';
+    import { Input, Table, TableBody, TableBodyCell, TableBodyRow, TableHead, Badge } from 'flowbite-svelte';
     import { TableHeadCell, Toolbar, ToolbarButton } from 'flowbite-svelte';
     import { CogSolid, DotsVerticalOutline, DownloadSolid } from 'flowbite-svelte-icons';
     import { EditOutline, ExclamationCircleSolid, PlusOutline, TrashBinSolid } from 'flowbite-svelte-icons';
-    import { teams, updateTeam, addTeam, deleteTeam } from '$lib/stores/teams';
+    import { teams, updateTeam, deleteTeam } from '$lib/stores/teams';
     import type { Team } from '$lib/schemas/team';
     import DeleteModal from '$lib/components/DeleteModal.svelte';
-    import TeamModal from '$lib/components/TeamModal.svelte';
+    import TeamModal from './TeamModal.svelte';
     import ToastMessage from '$lib/components/Toast.svelte';
     
     // Initialize superForms with client-side options
@@ -160,8 +160,20 @@
           <TableBodyCell class="p-4">{team.gender}</TableBodyCell>
           <TableBodyCell class="p-4"><Checkbox checked={team.is_academy} disabled /></TableBodyCell>
           <TableBodyCell class="p-4">{team.level}</TableBodyCell>
-          <TableBodyCell class="p-4">{formatFieldSize(team.minimum_field_size)}</TableBodyCell>
-          <TableBodyCell class="p-4">{team.preferred_field_size ? formatFieldSize(team.preferred_field_size) : '–'}</TableBodyCell>
+          <TableBodyCell class="p-4">
+            {#each formatFieldSize(team.minimum_field_size).split(', ') as size}
+              <Badge border color="green" class="mr-2">{size}</Badge>
+            {/each}
+          </TableBodyCell>
+          <TableBodyCell class="p-4">
+            {#if team.preferred_field_size}
+              {#each formatFieldSize(team.preferred_field_size).split(', ') as size}
+                <Badge border color="green" class="mr-2">{size}</Badge>
+              {/each}
+            {:else}
+              –
+            {/if}
+          </TableBodyCell>
           <TableBodyCell class="p-4">{team.weekly_trainings}</TableBodyCell>
           <TableBodyCell class="p-4">
             <div class="flex items-center gap-2">

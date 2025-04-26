@@ -9,14 +9,15 @@
   import DeleteModal from '$lib/components/DeleteModal.svelte';
   import type { Field } from '$lib/schemas/field';
   import { fieldCreateSchema, updateFieldSchema } from '$lib/schemas/field';
-  import FieldModal from '$lib/components/FieldModal.svelte';
+  import FieldModal from './FieldModal.svelte';
   import ToastMessage from '$lib/components/Toast.svelte';
 
   import { Breadcrumb, BreadcrumbItem, Button, Checkbox, Heading, Indicator } from 'flowbite-svelte';
-  import { Input, Table, TableBody, TableBodyCell, TableBodyRow, TableHead } from 'flowbite-svelte';
+  import { Input, Table, TableBody, TableBodyCell, TableBodyRow, TableHead, Badge } from 'flowbite-svelte';
   import { TableHeadCell, Toolbar, ToolbarButton } from 'flowbite-svelte';
   import { CogSolid, DotsVerticalOutline, DownloadSolid } from 'flowbite-svelte-icons';
   import { EditOutline, ExclamationCircleSolid, PlusOutline, TrashBinSolid } from 'flowbite-svelte-icons';
+  import { derived } from 'svelte/store';
 
   let { data } = $props();
   
@@ -135,6 +136,16 @@
       openDelete = true;
   }
 
+  const showHalfFields = derived(fields, $fields => 
+    $fields.some(f => (f.half_subfields?.length ?? 0) > 0)
+  );
+  const showQuarterFields = derived(fields, $fields => 
+    $fields.some(f => 
+      ((f.quarter_subfields?.length ?? 0) > 0) ||
+      ((f.half_subfields?.some(h => (h.quarter_subfields?.length ?? 0) > 0)) ?? false)
+    )
+  );
+
 </script>
 
 
@@ -176,9 +187,17 @@
   <Table>
     <TableHead class="border-y border-gray-200 bg-gray-100 dark:border-gray-700">
       <TableHeadCell class="w-4 p-4"><Checkbox /></TableHeadCell>
-      {#each ['Name', 'Size', 'Field Type', 'Status', 'Actions'] as title}
-        <TableHeadCell class="p-4 font-medium">{title}</TableHeadCell>
-      {/each}
+      <TableHeadCell class="p-4 font-medium">Name</TableHeadCell>
+      <TableHeadCell class="p-4">Size</TableHeadCell>
+      <TableHeadCell class="p-4">Field Type</TableHeadCell>
+      {#if $showHalfFields}
+        <TableHeadCell class="p-4">Half Fields</TableHeadCell>
+      {/if}
+      {#if $showQuarterFields}
+        <TableHeadCell class="p-4">Quarter Fields</TableHeadCell>
+      {/if}
+      <TableHeadCell class="p-4">Status</TableHeadCell>
+      <TableHeadCell class="p-4">Actions</TableHeadCell>
     </TableHead>
     <TableBody>
       {#each $fields as field}
@@ -187,12 +206,25 @@
           <TableBodyCell class="p-4 font-medium">{field.name}</TableBodyCell>
           <TableBodyCell class="p-4">{field.size}</TableBodyCell>
           <TableBodyCell class="p-4">{field.field_type}</TableBodyCell>
+          {#if $showHalfFields}
+            <TableBodyCell class="p-4">
+              {#each field.half_subfields ?? [] as h (h.field_id)}
+                <Badge border color="green" class="mr-2">{h.name}</Badge>
+              {/each}
+            </TableBodyCell>
+          {/if}
+          {#if $showQuarterFields}
+            <TableBodyCell class="p-4">
+              {#each [...(field.quarter_subfields ?? []), ...((field.half_subfields?.flatMap(h => h.quarter_subfields ?? [])) ?? [])] as q (q.field_id)}
+                <Badge border color="green" class="mr-2">{q.name}</Badge>
+              {/each}
+            </TableBodyCell>
+          {/if}
           <TableBodyCell class="p-4">
             <div class="flex items-center gap-2">
               <Indicator color={field.is_active ? 'green' : 'red'} />
               {field.is_active ? 'Active' : 'Inactive'}
-            </div>
-          </TableBodyCell>
+            </TableBodyCell>
           <TableBodyCell class="space-x-2 p-4">
             <Button size="sm" class="gap-2 px-3" onclick={() => editField(field)}>
               <EditOutline size="sm" /> Edit
