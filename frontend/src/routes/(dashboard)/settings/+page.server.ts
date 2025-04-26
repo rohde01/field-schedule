@@ -2,42 +2,50 @@ import { fail, redirect } from '@sveltejs/kit';
 import { superValidate } from 'sveltekit-superforms/server';
 import { zod } from 'sveltekit-superforms/adapters';
 import { updateUserSchema } from '$lib/schemas/user';
-import { createClubSchema } from '$lib/schemas/club';
+import { createClubSchema, updateClubSchema } from '$lib/schemas/club';
 import type { Actions, PageServerLoad } from './$types';
 
 export const ssr = false
 
-export const load = (async ({ locals: { user } }) => {
-    // Prefill user form with current user details
-    const userForm = await superValidate(
-      { email: user?.email, first_name: user?.first_name, last_name: user?.last_name, role: user?.role },
-      zod(updateUserSchema)
-    );
-    const clubForm = await superValidate(zod(createClubSchema));
-    
-    return { 
-        userForm,
-        clubForm,
-        user,
-        hasClub: Boolean(user?.club_id)
-    };
-}) satisfies PageServerLoad;
+export const load: PageServerLoad = async (event) => {
+    const { locals: { user, supabase } } = event;
+    if (!user) throw redirect(303, '/auth/login');
+
+    const userForm = await superValidate(event, zod(updateUserSchema), {
+        defaults: { email: user.email, first_name: user.first_name ?? undefined, last_name: user.last_name ?? undefined, role: user.role }
+    });
+    const clubForm = await superValidate(event, zod(createClubSchema));
+    let clubData = null;
+    let updateClubForm = await superValidate(event, zod(updateClubSchema));
+
+    if (user.club_id) {
+        const { data: club, error } = await supabase
+            .from('clubs')
+            .select('*')
+            .eq('club_id', user.club_id)
+            .single();
+        if (!error && club) {
+            clubData = club;
+            updateClubForm = await superValidate(event, zod(updateClubSchema), {
+                defaults: { name: club.name }
+            });
+        }
+    }
+
+    return { userForm, clubForm, updateClubForm, user, clubData, hasClub: Boolean(user.club_id) };
+};
 
 export const actions: Actions = {
     updateUser: async ({ request, locals: { supabase, user } }) => {
+
+        if (!user) {
+            throw redirect(303, '/auth/login');
+        }
+
         const form = await superValidate(request, zod(updateUserSchema));
 
         if (!form.valid) {
             return fail(400, { form });
-        }
-
-        if (!user) {
-            return fail(401, {
-                form: {
-                    ...form,
-                    message: 'User not authenticated'
-                }
-            });
         }
 
         const { error } = await supabase
@@ -61,20 +69,49 @@ export const actions: Actions = {
         return { form };
     },
 
-    createClub: async ({ request, locals: { supabase, user } }) => {
-        const form = await superValidate(request, zod(createClubSchema));
+    updateClub: async ({ request, locals: { supabase, user } }) => {
+            // Ensure user is authenticated
+        if (!user) {
+        throw redirect(303, '/auth/login');
+        }
+
+        const form = await superValidate(request, zod(updateClubSchema));
 
         if (!form.valid) {
             return fail(400, { form });
         }
 
-        if (!user) {
-            return fail(401, {
+        const { error } = await supabase
+            .from('clubs')
+            .update({ ...form.data })
+            .eq('club_id', user.club_id)
+            .select()
+            .single();
+
+        if (error) {
+            return fail(400, {
                 form: {
                     ...form,
-                    message: 'User not authenticated'
+                    message: 'Failed to update club'
                 }
             });
+        }
+
+        // Set success message and return form
+        form.message = 'Club updated successfully';
+        return { form };
+    },
+
+    createClub: async ({ request, locals: { supabase, user } }) => {
+        // Ensure user is authenticated
+        if (!user) {
+            throw redirect(303, '/auth/login');
+        }
+
+        const form = await superValidate(request, zod(createClubSchema));
+
+        if (!form.valid) {
+            return fail(400, { form });
         }
 
         // Create the club with owner_id

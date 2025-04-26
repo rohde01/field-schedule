@@ -2,7 +2,7 @@
     import { superForm } from 'sveltekit-superforms/client';
     import { zodClient } from 'sveltekit-superforms/adapters';
     import { updateUserSchema } from '$lib/schemas/user';
-    import { createClubSchema } from '$lib/schemas/club';
+    import { createClubSchema, updateClubSchema } from '$lib/schemas/club';
     import type { PageData } from './$types';
 
     import NameModal from './NameModal.svelte';
@@ -21,24 +21,30 @@
     const nameForm = superForm(data.userForm, {
         validators: zodClient(updateUserSchema),
         resetForm: false,
-        taintedMessage: null
+        taintedMessage: null,
+        id: 'user-update-form'
     });
 
     const clubForm = superForm(data.clubForm, {
         validators: zodClient(createClubSchema),
         resetForm: false,
-        taintedMessage: null
+        taintedMessage: null,
+        id: 'club-create-form'
+    });
+
+    const updateClubForm = superForm(data.updateClubForm, {
+        validators: zodClient(updateClubSchema),
+        resetForm: false,
+        taintedMessage: null,
+        id: 'club-update-form'
     });
 
     let openNameModal = $state(!data.user?.first_name || !data.user?.last_name);
     let openClubModal = $state(data.user?.first_name && data.user?.last_name && !data.hasClub);
   
-    const clubInputs: InputField[] = [
-      { label: 'Club Name', type: 'text', placeholder: 'My Club Name' }
-    ];
-
-    // Destructure the form object and explicitly type the errors
+    // Destructure the form objects and explicitly type the errors
     const { form: userData, enhance: userEnhance, errors: userErrors, message: userMessage } = nameForm;
+    const { form: clubUpdateData, enhance: clubUpdateEnhance, errors: clubUpdateErrors, message: clubUpdateMessage } = updateClubForm;
 </script>
 
 <!-- Modals -->
@@ -68,14 +74,27 @@
             General Information
           </Heading>
         </div>
-        <form class="grid grid-cols-6 gap-6">
-          {#each clubInputs as { label, type, placeholder }}
-            <Label class="col-span-6 space-y-2 sm:col-span-3">
-              <span>{label}</span>
-              <Input {type} {placeholder} class="border font-normal outline-none" />
-            </Label>
-          {/each}
-          <Button class="w-fit whitespace-nowrap">Save all</Button>
+        <form method="POST" action="?/updateClub" use:clubUpdateEnhance id="club-form" class="grid grid-cols-6 gap-6">
+          <Label class="col-span-6 space-y-2 sm:col-span-3">
+            <span>Club Name</span>
+            <Input name="name" id="name" type="text" bind:value={$clubUpdateData.name} class="border font-normal outline-none" />
+            {#if $clubUpdateErrors?.name}<Helper class="mt-2" color="red">{$clubUpdateErrors.name}</Helper>{/if}
+          </Label>
+          {#if $clubUpdateMessage}
+            <Toast color={$clubUpdateMessage.toLowerCase().includes('success') ? 'green' : 'red'} class="fixed top-20 right-4 z-50">
+                <svelte:fragment slot="icon">
+                    {#if $clubUpdateMessage.toLowerCase().includes('success')}
+                        <CheckCircleSolid class="w-5 h-5" />
+                        <span class="sr-only">Check icon</span>
+                    {:else}
+                        <CloseCircleSolid class="w-5 h-5" />
+                        <span class="sr-only">Error icon</span>
+                    {/if}
+                </svelte:fragment>
+                {$clubUpdateMessage}
+            </Toast>
+          {/if}
+          <Button type="submit" form="club-form" class="w-fit whitespace-nowrap">Save all</Button>
         </form>
       </Card>
     </div>

@@ -12,5 +12,10 @@ export const createClubSchema = z.object({
     name: z.string().min(3, "Club name must be at least 3 characters"),
 });
 
+export const updateClubSchema = z.object({
+    name: z.string().min(3, "Club name must be at least 3 characters"),
+});
+
 export type Club = z.infer<typeof clubSchema>;
 export type CreateClub = z.infer<typeof createClubSchema>;
+export type UpdateClub = z.infer<typeof updateClubSchema>;

@@ -9,6 +9,7 @@ export const load: LayoutServerLoad = async ({ locals, locals: { safeGetSession,
     if (!locals.user?.club_id) {
         return {
             user: locals.user || null,
+            clubs: [],
             facilities: [],
             fields: [],
             teams: [],
@@ -19,6 +20,17 @@ export const load: LayoutServerLoad = async ({ locals, locals: { safeGetSession,
     }
 
     try {
+        // Fetch club information from Supabase
+        const { data: clubs, error: clubsError } = await supabase
+            .from('clubs')
+            .select('*')
+            .eq('club_id', locals.user.club_id);
+
+        if (clubsError) {
+            console.error('Failed to fetch club information:', clubsError);
+            throw error(500, 'Failed to fetch club information');
+        }
+
         // Fetch teams from Supabase
         const { data: teams, error: teamsError } = await supabase
             .from('teams')
@@ -102,6 +114,7 @@ export const load: LayoutServerLoad = async ({ locals, locals: { safeGetSession,
         
         return {
             user: locals.user,
+            clubs: clubs || [],
             facilities: facilities || [],
             fields,
             teams: teams || [],

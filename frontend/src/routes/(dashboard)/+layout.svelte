@@ -5,6 +5,7 @@
     import { setFields } from '$lib/stores/fields';
     import { setTeams } from '$lib/stores/teams';
     import { setSchedules } from '$lib/stores/schedules';
+    import { setClubs } from '$lib/stores/clubs';
     import Sidebar from './Sidebar.svelte';
     import Navbar from './Navbar.svelte';
     import type { Snippet } from 'svelte';
@@ -33,6 +34,12 @@
     $effect(() => {
         if (data.schedules) {
             setSchedules(data.schedules);
+        }
+    });
+
+    $effect(() => {
+        if (data.clubs) {
+            setClubs(data.clubs);
         }
     });
 
