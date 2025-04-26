@@ -200,6 +200,8 @@ export const actions: Actions = {
                 }
             }
 
+            // Set success message for toast
+            form.message = 'Field created successfully';
             return { 
                 form,
                 success: true,
@@ -239,6 +241,8 @@ export const actions: Actions = {
                 });
             }
 
+            // Return updated field with message
+            form.message = 'Field updated successfully';
             return { 
                 form,
                 success: true,
@@ -276,11 +280,13 @@ export const actions: Actions = {
                 });
             }
 
+            // Set success message for toast
+            form.message = 'Field deleted successfully';
             return { 
                 form,
                 success: true,
                 message: 'Field successfully deleted.',
-                action: 'deleted field'
+                action: 'delete'
             };
         } catch (err) {
             console.error('Error deleting field:', err);
