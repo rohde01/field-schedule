@@ -1,10 +1,12 @@
 <script lang="ts">
   import { afterNavigate } from '$app/navigation';
   import { page } from '$app/state';
+  import { onMount } from 'svelte';
+  import { get } from 'svelte/store';
 
   import { Sidebar, SidebarGroup, SidebarItem, SidebarWrapper, Button, Dropdown, DropdownItem, DropdownDivider } from 'flowbite-svelte';
   import { ChartPieOutline, TableColumnSolid, RectangleListSolid, GithubSolid, ClipboardListSolid, ChevronUpOutline } from 'flowbite-svelte-icons';
-  import { facilities, selectedFacility, setSelectedFacility, showCreateFacility, toggleCreateFacility } from '$lib/stores/facilities';
+  import { facilities, selectedFacility, setSelectedFacility, toggleCreateFacility } from '$lib/stores/facilities';
   import { schedules, selectedSchedule } from '$lib/stores/schedules';
   import type { Facility } from '$lib/schemas/facility';
   import type { Schedule } from '$lib/schemas/schedule';
@@ -15,7 +17,6 @@
   };
 
   let iconClass = 'flex-shrink-0 w-6 h-6 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-300 dark:group-hover:text-white';
-  let itemClass = 'flex items-center p-2 text-base text-gray-900 transition duration-75 rounded-lg hover:bg-gray-100 group dark:text-gray-200 dark:hover:bg-gray-700 w-full';
   let itemLinkClass = 'flex items-center p-0 py-2 text-base text-gray-900 transition duration-75 rounded-lg hover:bg-gray-100 group dark:text-gray-200 dark:hover:bg-gray-700 w-full';
   let activeClass = 'text-green-500 dark:text-green-300 hover:text-green-700 dark:hover:text-green-500';
   let groupClass = 'pt-2 space-y-2 mb-3';
@@ -24,6 +25,17 @@
   let activeMainSidebar = '';
   let isFieldsPage = $derived(mainSidebarUrl.includes('/fields'));
   let isSchedulesPage = $derived(mainSidebarUrl.includes('/schedules'));
+
+  let sortedSchedules = $derived($schedules.sort((a, b) => {
+    const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+    return dateA - dateB;
+  }));
+
+  let sortedFacilities = $derived([
+    ...$facilities.filter(f => !f.is_primary),
+    ...$facilities.filter(f => f.is_primary)
+  ]);
 
   afterNavigate((nav) => {
     document.getElementById('svelte')?.scrollTo({ top: 0 });
@@ -49,13 +61,27 @@
 
   function selectSchedule(schedule: Schedule) {
     selectedSchedule.set(schedule);
-    document.getElementById('schedule-dropdown')?.click();
   }
 
   function handleAddFacility() {
     toggleCreateFacility(true);
     document.getElementById('bottom-dropdown')?.click();
   }
+
+  onMount(() => {
+    if (sortedSchedules.length > 0 && !$selectedSchedule) {
+      selectSchedule(sortedSchedules[0]);
+    }
+    // Autoselect facility when facilities load
+    const unsubFacilities = facilities.subscribe($facilities => {
+      if ($facilities.length > 0 && !get(selectedFacility)) {
+        const primary = $facilities.find(f => f.is_primary);
+        setSelectedFacility(primary ?? $facilities[$facilities.length - 1]);
+      }
+    });
+    return unsubFacilities;
+  });
+
 </script>
 
 <Sidebar
@@ -88,7 +114,7 @@
       <Button id="bottom-dropdown" class="w-full">{$selectedFacility ? $selectedFacility.name : 'Facilities'}<ChevronUpOutline class="w-6 h-6 ms-2 text-white dark:text-white" /></Button>
       
       <Dropdown placement="top" triggeredBy="#bottom-dropdown">
-        {#each $facilities as facility}
+        {#each sortedFacilities as facility}
           <DropdownItem on:click={() => selectFacility(facility)} class={facility === $selectedFacility ? activeClass : ''}>{facility.name}</DropdownItem>
         {/each}
         <DropdownDivider />
@@ -105,7 +131,7 @@
       <Button id="schedule-dropdown" class="w-full">{$selectedSchedule ? $selectedSchedule.name : 'Schedules'}<ChevronUpOutline class="w-6 h-6 ms-2 text-white dark:text-white" /></Button>
       
       <Dropdown placement="top" triggeredBy="#schedule-dropdown">
-        {#each $schedules as schedule}
+        {#each sortedSchedules as schedule} <!-- Use sortedSchedules -->
           <DropdownItem on:click={() => selectSchedule(schedule)} class={schedule === $selectedSchedule ? activeClass : ''}>{schedule.name}</DropdownItem>
         {/each}
       </Dropdown>

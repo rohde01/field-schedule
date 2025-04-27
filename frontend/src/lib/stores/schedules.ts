@@ -9,9 +9,16 @@ export const selectedSchedule = writable<Schedule | null>(null);
 
 export function setSchedules(newSchedules: Schedule[]) {
     const coercedSchedules = newSchedules.map(s => scheduleSchema.parse(s));
-    schedules.update(() => {
-        return [...coercedSchedules];
+    const sortedSchedules = [...coercedSchedules].sort((a, b) => {
+        const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return dateB - dateA;
     });
+    schedules.set(sortedSchedules);
+
+    if (sortedSchedules.length > 0 && get(selectedSchedule) === null) {
+        selectedSchedule.set(sortedSchedules[0]);
+    }
     unsavedChanges.set(false);
 }
 

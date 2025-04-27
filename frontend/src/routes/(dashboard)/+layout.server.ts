@@ -85,6 +85,7 @@ export const load: LayoutServerLoad = async ({ locals, locals: { safeGetSession,
                 club_id,
                 facility_id,
                 name,
+                created_at,
                 active_from,
                 active_until,
                 schedule_entries (
