@@ -7,7 +7,7 @@
   import { fields, getFlattenedFields } from '../../../lib/stores/fields';
   import type { FlattenedField } from '$lib/schemas/field';
   import { deleteScheduleEntry } from '../../../lib/stores/schedules';
-  import { computeDateUTC } from '$lib/utils/dateUtils';
+  import { computeDateUTC, currentDate } from '$lib/utils/dateUtils';
   import { commitUpdate, getOriginalRecurrenceStart } from '$lib/utils/calendarUtils';
   import { Card } from 'flowbite-svelte';
   import { onMount } from 'svelte';
@@ -70,6 +70,7 @@
     const newEnd = computeDateUTC(date, end);
     processedEntries.update(es => es.map(e => e.ui_id === entryUiId ? { ...e, dtstart: newStart, dtend: newEnd } : e));
     commitUpdate({ ...entry, dtstart: newStart, dtend: newEnd }, getOriginalRecurrenceStart(entry));
+    currentDate.set(newStart);
   }
 
   function handleTimeChange(event: CustomEvent<{ time: string; endTime?: string }>) {

@@ -1,4 +1,4 @@
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
 import type { Schedule, ScheduleEntry } from '$lib/schemas/schedule';
 import { scheduleSchema } from '$lib/schemas/schedule';
 
@@ -99,6 +99,9 @@ export function updateScheduleEntry(updatedEntry: Partial<ScheduleEntry> & Pick<
             return { ...schedule, schedule_entries: updatedEntries };
         });
     });
+    // Update selectedSchedule to reflect the changed entry date
+    const updatedSchedule = get(schedules).find(s => s.schedule_id === updatedEntry.schedule_id) ?? null;
+    selectedSchedule.set(updatedSchedule);
     unsavedChanges.set(true);
 }
 
