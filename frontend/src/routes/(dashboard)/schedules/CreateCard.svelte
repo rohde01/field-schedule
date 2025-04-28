@@ -1,25 +1,50 @@
 <script lang="ts">
-    import { Heading } from 'flowbite-svelte';
+    import { Heading, Button } from 'flowbite-svelte';
     import { Card } from 'flowbite-svelte';
     import type { PlaygroundProps } from '$lib/types/types';
     import { facilities } from '$lib/stores/facilities';
-    import { schedules, selectedSchedule } from '$lib/stores/schedules';
-    import { Label, Select, Textarea, Input } from 'flowbite-svelte';
+    import { schedules, selectedSchedule, IsCreating } from '$lib/stores/schedules';
+    import { Label, Select, Textarea, Input, Helper } from 'flowbite-svelte';
     import { get } from 'svelte/store';
+    import { superForm } from 'sveltekit-superforms/client';
+    import { zodClient } from 'sveltekit-superforms/adapters';
+    import { createScheduleSchema } from '$lib/schemas/schedule';
+    import { page } from '$app/stores';
   
-    let { breadcrumb, title = 'Create something awesome here' }: PlaygroundProps = $props();
+    let { breadcrumb, title = 'Creating new schedule' }: PlaygroundProps = $props();
 
-    function updateField(field: string) {
-      return (event: any) => {
-        const raw = event.target.value;
-        const value = field === 'facility_id' ? (raw ? parseInt(raw) : null) : raw;
+    // Initialize superForm
+    const { form, errors, enhance, submitting, message } = superForm($page.data.createForm, {
+      validators: zodClient(createScheduleSchema),
+      resetForm: false,
+      onUpdate: ({ form }) => {
+        // Update selectedSchedule when form values change
         const current = get(selectedSchedule);
         if (!current) return;
-        const updated = { ...current, [field]: value };
+        
+        const updated = { ...current, ...form };
         schedules.update(list => list.map(s => s === current ? updated : s));
         selectedSchedule.set(updated);
-      };
-    }
+      },
+      onResult: ({ result }) => {
+        if (result.type === 'success') {
+          IsCreating.set(false);
+        }
+      }
+    });
+
+    // Update form when selectedSchedule changes
+    $effect(() => {
+      if ($selectedSchedule) {
+        form.update((formData) => ({
+          ...formData,
+          name: $selectedSchedule.name || '',
+          facility_id: $selectedSchedule.facility_id || null,
+          description: $selectedSchedule.description || null,
+          club_id: $selectedSchedule.club_id || $page.data.user?.club_id || 0
+        }));
+      }
+    });
   </script>
   
   <main>
@@ -32,27 +57,50 @@
       </div>
       <div class="col-span-full xl:col-auto">
         <Card size="xl" class="mb-4 min-h-[20rem] w-full space-y-6 p-4 2xl:col-span-2">
-          <div class="space-y-4">
-            <Label class="space-y-2">
-              <span>Name</span>
-              <Input id="name" name="name" type="text" value={$selectedSchedule?.name} on:input={updateField('name')} />
-            </Label>
+          <form method="POST" action="?/createSchedule" use:enhance>
+            <div class="space-y-4">
+              <input type="hidden" name="club_id" bind:value={$form.club_id}>
+              
+              <Label class="space-y-2">
+                <span>Name</span>
+                <Input id="name" name="name" type="text" bind:value={$form.name} required />
+                {#if $errors.name}
+                  <Helper class="mt-2" color="red">{$errors.name}</Helper>
+                {/if}
+              </Label>
 
-            <Label class="space-y-2">
-              <span>Facility</span>
-              <Select id="facility" name="facility_id" value={$selectedSchedule?.facility_id} on:change={updateField('facility_id')}>
-                <option value="">Select facility</option>
-                {#each $facilities as f}
-                  <option value={f.facility_id} selected={f.facility_id === $selectedSchedule?.facility_id}>{f.name}</option>
-                {/each}
-              </Select>
-            </Label>
+              <Label class="space-y-2">
+                <span>Facility</span>
+                <Select id="facility" name="facility_id" bind:value={$form.facility_id} required>
+                  <option value="">Select facility</option>
+                  {#each $facilities as f}
+                    <option value={f.facility_id}>{f.name}</option>
+                  {/each}
+                </Select>
+                {#if $errors.facility_id}
+                  <Helper class="mt-2" color="red">{$errors.facility_id}</Helper>
+                {/if}
+              </Label>
 
-            <Label class="space-y-2">
-              <span>Description</span>
-              <Textarea id="description" name="description" rows={4} placeholder="Description" on:input={updateField('description')}>{$selectedSchedule?.description}</Textarea>
-            </Label>
-          </div>
+              <Label class="space-y-2">
+                <span>Description</span>
+                <Textarea id="description" name="description" rows={4} placeholder="Description" bind:value={$form.description}></Textarea>
+                {#if $errors.description}
+                  <Helper class="mt-2" color="red">{$errors.description}</Helper>
+                {/if}
+              </Label>
+
+              <div class="flex justify-end pt-4">
+                <Button type="submit" disabled={$submitting}>
+                  {$submitting ? 'Saving...' : 'Save Schedule'}
+                </Button>
+              </div>
+              
+              {#if $message}
+                <div class="mt-4 text-sm text-red-600">{$message}</div>
+              {/if}
+            </div>
+          </form>
         </Card>
       </div>
       <div class="col-span-2">
