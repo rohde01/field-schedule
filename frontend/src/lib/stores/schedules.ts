@@ -2,11 +2,14 @@ import { writable, get } from 'svelte/store';
 import type { Schedule, ScheduleEntry } from '$lib/schemas/schedule';
 import { scheduleSchema } from '$lib/schemas/schedule';
 
-export const schedules = writable<Schedule[]>([]);
+// Local draft schedule before server save
+export type LocalSchedule = Partial<Schedule> & { schedule_entries: ScheduleEntry[]; schedule_id: number | null };
+
+export const schedules = writable<Array<Schedule | LocalSchedule>>([]);
 export const deletedEntryIds = writable<number[]>([]);
 export const unsavedChanges = writable<boolean>(false);
 export const IsCreating = writable<boolean>(false);
-export const selectedSchedule = writable<Schedule | null>(null);
+export const selectedSchedule = writable<Schedule | LocalSchedule | null>(null);
 
 export function setSchedules(newSchedules: Schedule[]) {
     const coercedSchedules = newSchedules.map(s => scheduleSchema.parse(s));
@@ -23,11 +26,11 @@ export function setSchedules(newSchedules: Schedule[]) {
     unsavedChanges.set(false);
 }
 
-export function addSchedule(schedule: Schedule) {
-    schedules.update(schedules => {
-        const updatedSchedules = [...schedules, schedule];
-        console.log('Updated schedules after adding:', updatedSchedules);
-        return updatedSchedules;
+export function addSchedule(schedule: LocalSchedule) {
+    schedules.update(list => {
+        const updated = [...list, schedule];
+        console.log('Added local schedule:', schedule);
+        return updated;
     });
 }
 
@@ -160,7 +163,7 @@ export function deleteScheduleEntry(uid: string, schedule_id: number, recurrence
     selectedSchedule.set(refreshedSchedule);
 }
 
-export function removeSchedule(schedule: Schedule) {
+export function removeSchedule(schedule: Schedule | LocalSchedule) {
     schedules.update(list => list.filter(s => s !== schedule));
     const remaining = get(schedules);
     selectedSchedule.set(remaining.length > 0 ? remaining[0] : null);

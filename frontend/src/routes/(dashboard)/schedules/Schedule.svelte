@@ -8,7 +8,7 @@
   import { onMount } from 'svelte';
   import { buildResources, timeSlots, 
           getRowForTimeWithSlots, getEntryRowEndWithSlots,
-          getEntryContentVisibility, isDraftSchedule, 
+          getEntryContentVisibility, 
           processedEntries, showEarlyTimeslots } from '$lib/utils/calendarUtils';
   import { currentDate, formatDate, formatWeekdayOnly,
           nextDay, previousDay, currentTime, updateCurrentTime,
@@ -118,9 +118,6 @@
     }
     return "Untitled Event";
   }
-
-  // Check if the current schedule is a draft
-  $: isDraft = isDraftSchedule($selectedSchedule);
 
   // create new entry on double-click
   function handleSlotDoubleClick(event: MouseEvent, cell: any, time: string) {

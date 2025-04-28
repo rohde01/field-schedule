@@ -1,16 +1,19 @@
 import { writable } from 'svelte/store';
 import type { Facility } from '$lib/schemas/facility';
+import { facilitySchema } from '$lib/schemas/facility';
 
 export const facilities = writable([] as Facility[]);
 export const selectedFacility = writable<Facility | null>(null);
 export const showCreateFacility = writable(false);
 
 export function setFacilities(newFacilities: Facility[]) {
-    facilities.update(() => [...newFacilities]);
+    const parsed = newFacilities.map(f => facilitySchema.parse(f));
+    facilities.set(parsed);
 }
 
 export function addFacility(facility: Facility) {
-    facilities.update(facilities => [...facilities, facility]);
+    const parsed = facilitySchema.parse(facility);
+    facilities.update(list => [...list, parsed]);
 }
 
 export function setSelectedFacility(facility: Facility | null) {

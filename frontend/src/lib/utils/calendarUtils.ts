@@ -31,10 +31,6 @@ if (browser) {
   ).subscribe(val => timeSlots.set(val));
 }
 
-export function isDraftSchedule(schedule: any): boolean {
-  return !schedule?.active_from || !schedule?.active_until;
-}
-
 export function buildResources(allFields: Field[], selectedSchedule: any | null): Field[] {
     if (!selectedSchedule || !selectedSchedule.facility_id) return [];
     return allFields.filter(field => field.facility_id === selectedSchedule.facility_id);
@@ -155,32 +151,8 @@ function createRecurringEvents(entry: ScheduleEntry, schedule: any): ProcessedSc
 
 function getAllEntriesForDate(schedule: {schedule_entries?: ScheduleEntry[]} | null, date: Date): ProcessedScheduleEntry[] {
   if (!schedule) return [];
-
   const entries = schedule.schedule_entries || [];
 
-  // --- Draft Schedule Handling ---
-  if (isDraftSchedule(schedule)) {
-    return entries
-      .filter(entry => entry.recurrence_rule)
-      .filter(entry => {
-        const entryDate = createUTCDate(entry.dtstart);
-        return entryDate.getUTCDay() === date.getUTCDay();
-      })
-      .map(entry => {
-        const dtstart = createUTCDate(entry.dtstart);
-        const dtend = createUTCDate(entry.dtend);
-        return {
-          ...entry,
-          dtstart,
-          dtend,
-          start_time: getTimeFromDate(dtstart),
-          end_time: getTimeFromDate(dtend),
-          ui_id: `${entry.uid}-${dtstart.toISOString()}`,
-          isRecurring: false 
-        };
-      });
-  }
-  
   // Categorize all entries
   const regularEntries: ScheduleEntry[] = [];
   const recurringMasters: ScheduleEntry[] = [];

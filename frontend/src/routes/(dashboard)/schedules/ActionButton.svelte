@@ -1,15 +1,17 @@
 <script lang="ts">
     import { enhance } from '$app/forms';
     import { deletedEntryIds, unsavedChanges, selectedSchedule, addSchedule, IsCreating, removeSchedule } from '../../../lib/stores/schedules';
+    import type { LocalSchedule } from '$lib/stores/schedules';
     import { get } from 'svelte/store';
     import { Button, Spinner } from 'flowbite-svelte';
+    import { scheduleEntrySchema } from '$lib/schemas/schedule';
     
     let saving = false;
     let message = '';
     let result: any;
 
     function createLocalSchedule() {
-        const newSchedule: any = {
+        const newSchedule: LocalSchedule = {
             schedule_id: null,
             name: 'New schedule',
             schedule_entries: []
@@ -41,9 +43,12 @@
                 return async ({ result }) => {
                     // first insert new entries
                     if (result.type === 'success') {
+                        // enforce entry types
+                        const sched = get(selectedSchedule)!;
+                        const entries = scheduleEntrySchema.array().parse(sched.schedule_entries);
                         const fd = new FormData();
                         fd.append('scheduleId', String(get(selectedSchedule)!.schedule_id));
-                        fd.append('entries', JSON.stringify(get(selectedSchedule)!.schedule_entries));
+                        fd.append('entries', JSON.stringify(entries));
                         const resUpdate = await fetch('?/updateScheduleEntries', { method: 'POST', body: fd });
                         const updateData = await resUpdate.json();
                         if (resUpdate.ok) {
