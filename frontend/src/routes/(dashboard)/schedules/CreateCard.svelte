@@ -17,15 +17,6 @@
     const { form, errors, enhance, submitting, message } = superForm($page.data.createForm, {
       validators: zodClient(createScheduleSchema),
       resetForm: false,
-      onUpdate: ({ form }) => {
-        // Update selectedSchedule when form values change
-        const current = get(selectedSchedule);
-        if (!current) return;
-        
-        const updated = { ...current, ...form };
-        schedules.update(list => list.map(s => s === current ? updated : s));
-        selectedSchedule.set(updated);
-      },
       onResult: ({ result }) => {
         if (result.type === 'success') {
           IsCreating.set(false);
@@ -33,7 +24,7 @@
       }
     });
 
-    // Update form when selectedSchedule changes
+    // Update form data from selectedSchedule whenever it changes
     $effect(() => {
       if ($selectedSchedule) {
         form.update((formData) => ({
@@ -45,6 +36,22 @@
         }));
       }
     });
+
+    // Update handlers for form fields
+    function updateSelectedSchedule(fieldName: string, value: any) {
+      if (!$selectedSchedule) return;
+      
+      const updatedSchedule = { 
+        ...$selectedSchedule, 
+        [fieldName]: value 
+      };
+      
+      schedules.update(list => 
+        list.map(s => s.schedule_id === updatedSchedule.schedule_id ? updatedSchedule : s)
+      );
+      
+      selectedSchedule.set(updatedSchedule);
+    }
   </script>
   
   <main>
@@ -63,7 +70,17 @@
               
               <Label class="space-y-2">
                 <span>Name</span>
-                <Input id="name" name="name" type="text" bind:value={$form.name} required />
+                <Input 
+                  id="name" 
+                  name="name" 
+                  type="text" 
+                  value={$selectedSchedule?.name || ''} 
+                  on:input={(e) => {
+                    const target = e.target as HTMLInputElement;
+                    updateSelectedSchedule('name', target.value);
+                  }}
+                  required 
+                />
                 {#if $errors.name}
                   <Helper class="mt-2" color="red">{$errors.name}</Helper>
                 {/if}
@@ -71,7 +88,16 @@
 
               <Label class="space-y-2">
                 <span>Facility</span>
-                <Select id="facility" name="facility_id" bind:value={$form.facility_id} required>
+                <Select 
+                  id="facility" 
+                  name="facility_id" 
+                  value={$selectedSchedule?.facility_id || ''} 
+                  on:change={(e) => {
+                    const target = e.target as HTMLSelectElement;
+                    updateSelectedSchedule('facility_id', target.value ? parseInt(target.value) : null);
+                  }}
+                  required
+                >
                   <option value="">Select facility</option>
                   {#each $facilities as f}
                     <option value={f.facility_id}>{f.name}</option>
@@ -84,7 +110,17 @@
 
               <Label class="space-y-2">
                 <span>Description</span>
-                <Textarea id="description" name="description" rows={4} placeholder="Description" bind:value={$form.description}></Textarea>
+                <Textarea 
+                  id="description" 
+                  name="description" 
+                  rows={4} 
+                  placeholder="Description" 
+                  value={$selectedSchedule?.description || ''}
+                  on:input={(e) => {
+                    const target = e.target as HTMLTextAreaElement;
+                    updateSelectedSchedule('description', target.value);
+                  }}
+                ></Textarea>
                 {#if $errors.description}
                   <Helper class="mt-2" color="red">{$errors.description}</Helper>
                 {/if}

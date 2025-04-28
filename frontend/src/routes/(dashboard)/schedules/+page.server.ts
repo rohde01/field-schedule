@@ -80,15 +80,19 @@ export const actions = {
     },
     createSchedule: async ({ request, locals }) => {
         if (!locals.user) throw error(401, 'Unauthorized');
+        
         const form = await superValidate(request, zod(createScheduleSchema));
         if (!form.valid) return fail(400, { form });
+
         const data: CreateScheduleInput = form.data;
         const { data: newSchedule, error: insertError } = await locals.supabase
             .from('schedules')
             .insert(data)
             .select()
             .single();
-        if (insertError) return fail(500, { message: 'Schedule creation failed', error: insertError.message });
-        return { success: true, schedule: newSchedule };
+            
+        if (insertError) return fail(500, { form, message: 'Schedule creation failed', error: insertError.message });
+        
+        return { form, success: true, schedule: newSchedule };
     }
 } satisfies Actions;
