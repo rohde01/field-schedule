@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { constraintSchema } from './constraint';
 
 const dateCoercer = (message: string = "Must be a valid date/time") => 
   z.coerce.date({
@@ -54,26 +53,24 @@ export const scheduleSchema = z.object({
     
 });
 
-export type ScheduleEntry = z.infer<typeof scheduleEntrySchema>;
-export type Schedule = z.infer<typeof scheduleSchema>;
-
-export const generateScheduleRequestSchema = z.object({
-    facility_id: z.number().int().positive(),
-    team_ids: z.array(z.number().int().positive()).min(1, {
-        message: "You must tick off at least one team from the sidebar to go in the schedule"
-    }),
-    constraints: z.array(constraintSchema).optional(),
-    club_id: z.number().int().positive(),
-    schedule_name: z.string()
+export const createScheduleSchema = z.object({
+  club_id: z.number().int().positive(),
+  facility_id: z.number().int().positive(),
+  name: z.string().min(1),
+  active_from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: "active_from must be in the format YYYY-MM-DD" }).nullable().optional(),
+  active_until: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: "active_until must be in the format YYYY-MM-DD" }).nullable().optional(),
+  description: z.string().nullable().optional(),
 });
+export type CreateScheduleInput = z.infer<typeof createScheduleSchema>;
 
 export const deleteScheduleSchema = z.object({
     schedule_id: z.number().int().positive()
 });
 
+export type ScheduleEntry = z.infer<typeof scheduleEntrySchema>;
+export type Schedule = z.infer<typeof scheduleSchema>;
 export type DeleteScheduleResponse = {
     message: string;
     action: string;
 };
 
-export type GenerateScheduleRequest = z.infer<typeof generateScheduleRequestSchema>;

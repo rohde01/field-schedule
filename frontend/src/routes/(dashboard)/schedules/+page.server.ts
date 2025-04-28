@@ -4,25 +4,18 @@ import { error } from '@sveltejs/kit';
 import { superValidate } from 'sveltekit-superforms/server';
 import { zod } from 'sveltekit-superforms/adapters';
 import type { RequestEvent } from '@sveltejs/kit';
-import { generateScheduleRequestSchema, deleteScheduleSchema, scheduleEntrySchema } from '$lib/schemas/schedule';
+import { deleteScheduleSchema, createScheduleSchema, type CreateScheduleInput } from '$lib/schemas/schedule';
 import { fail } from '@sveltejs/kit';
 
 export const ssr = false;
 
 export const load = (async ({ locals }: RequestEvent) => {
-    const createScheduleForm = await superValidate(zod(generateScheduleRequestSchema), {
-        id: 'schedule-form',
-        defaults: {
-            facility_id: 0,
-            team_ids: [],
-            constraints: [],
-            club_id: locals.user?.club_id ?? 0,
-            schedule_name: ''
-        }
-    });
 
     const deleteScheduleForm = await superValidate(zod(deleteScheduleSchema), {
         id: 'delete-schedule-form'
+    });
+    const createScheduleForm = await superValidate(zod(createScheduleSchema), {
+        id: 'create-schedule-form'
     });
 
     if (!locals.user) {
@@ -30,8 +23,8 @@ export const load = (async ({ locals }: RequestEvent) => {
     }
 
     return {
-        form: createScheduleForm,
-        deleteForm: deleteScheduleForm
+        deleteForm: deleteScheduleForm,
+        createForm: createScheduleForm
     };
 }) 
 
@@ -84,5 +77,18 @@ export const actions = {
             if (deleteError) return fail(500, { message: 'Delete failed', error: deleteError.message });
         }
         return { success: true };
+    },
+    createSchedule: async ({ request, locals }) => {
+        if (!locals.user) throw error(401, 'Unauthorized');
+        const form = await superValidate(request, zod(createScheduleSchema));
+        if (!form.valid) return fail(400, { form });
+        const data: CreateScheduleInput = form.data;
+        const { data: newSchedule, error: insertError } = await locals.supabase
+            .from('schedules')
+            .insert(data)
+            .select()
+            .single();
+        if (insertError) return fail(500, { message: 'Schedule creation failed', error: insertError.message });
+        return { success: true, schedule: newSchedule };
     }
 } satisfies Actions;
