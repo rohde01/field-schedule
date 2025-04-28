@@ -3,7 +3,7 @@
     import { Card } from 'flowbite-svelte';
     import type { PlaygroundProps } from '$lib/types/types';
     import { facilities } from '$lib/stores/facilities';
-    import { schedules, selectedSchedule, unsavedChanges } from '$lib/stores/schedules';
+    import { schedules, selectedSchedule } from '$lib/stores/schedules';
     import { Label, Select, Textarea, Input } from 'flowbite-svelte';
     import { get } from 'svelte/store';
   
@@ -18,7 +18,6 @@
         const updated = { ...current, [field]: value };
         schedules.update(list => list.map(s => s === current ? updated : s));
         selectedSchedule.set(updated);
-        unsavedChanges.set(true);
       };
     }
   </script>

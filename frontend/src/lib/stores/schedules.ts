@@ -46,7 +46,7 @@ export function addScheduleEntry(entry: ScheduleEntry) {
         });
         return updatedSchedules;
     });
-    unsavedChanges.set(true);
+    if (!get(IsCreating)) unsavedChanges.set(true);
 
     const updatedSchedule = get(schedules).find(s => s.schedule_id === entry.schedule_id) ?? null;
     selectedSchedule.set(updatedSchedule);
@@ -116,7 +116,7 @@ export function updateScheduleEntry(updatedEntry: Partial<ScheduleEntry> & Pick<
     // Update selectedSchedule to reflect the changed entry date
     const updatedSchedule = get(schedules).find(s => s.schedule_id === updatedEntry.schedule_id) ?? null;
     selectedSchedule.set(updatedSchedule);
-    unsavedChanges.set(true);
+    if (!get(IsCreating)) unsavedChanges.set(true);
 }
 
 export function deleteScheduleEntry(uid: string, schedule_id: number, recurrence_id: Date | null) {
@@ -157,7 +157,7 @@ export function deleteScheduleEntry(uid: string, schedule_id: number, recurrence
             return { ...schedule, schedule_entries: updatedEntries };
         });
     });
-    unsavedChanges.set(true);
+    if (!get(IsCreating)) unsavedChanges.set(true);
 
     const refreshedSchedule = get(schedules).find(s => s.schedule_id === schedule_id) ?? null;
     selectedSchedule.set(refreshedSchedule);
