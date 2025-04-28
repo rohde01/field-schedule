@@ -5,6 +5,7 @@ import { scheduleSchema } from '$lib/schemas/schedule';
 export const schedules = writable<Schedule[]>([]);
 export const deletedEntryIds = writable<number[]>([]);
 export const unsavedChanges = writable<boolean>(false);
+export const IsCreating = writable<boolean>(false);
 export const selectedSchedule = writable<Schedule | null>(null);
 
 export function setSchedules(newSchedules: Schedule[]) {

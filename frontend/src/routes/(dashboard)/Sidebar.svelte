@@ -10,6 +10,7 @@
   import { schedules, selectedSchedule } from '$lib/stores/schedules';
   import type { Facility } from '$lib/schemas/facility';
   import type { Schedule } from '$lib/schemas/schedule';
+  import ActionButton from './schedules/ActionButton.svelte';
 
   let { drawerHidden = $bindable() } = $props();
   const closeDrawer = () => {
@@ -91,6 +92,9 @@
 >
   <h4 class="sr-only">Main menu</h4>
   <SidebarWrapper divClass="overflow-y-auto px-3 pt-20 lg:pt-5 h-full bg-white scrolling-touch max-w-2xs lg:h-[calc(100vh-4rem)] lg:block dark:bg-gray-800 lg:me-0 lg:sticky top-2">
+    <div class="flex justify-end">
+      <ActionButton />
+    </div>
     <div>
       <SidebarGroup class={groupClass}>
         {#each posts as { name, Icon, href }}
@@ -111,7 +115,7 @@
     <!-- Facility Dropdown button at the bottom -->
     {#if isFieldsPage}
     <div class="absolute bottom-0 left-0 right-0 px-3 pb-4">
-      <Button id="bottom-dropdown" class="w-full">{$selectedFacility ? $selectedFacility.name : 'Facilities'}<ChevronUpOutline class="w-6 h-6 ms-2 text-white dark:text-white" /></Button>
+      <Button outline id="bottom-dropdown" class="w-full">{$selectedFacility ? $selectedFacility.name : 'Facilities'}<ChevronUpOutline class="w-6 h-6 ms-2 text-white dark:text-white" /></Button>
       
       <Dropdown placement="top" triggeredBy="#bottom-dropdown">
         {#each sortedFacilities as facility}
@@ -128,7 +132,7 @@
     <!-- Schedule Dropdown button at the bottom -->
     {#if isSchedulesPage}
     <div class="absolute bottom-0 left-0 right-0 px-3 pb-4">
-      <Button id="schedule-dropdown" class="w-full">{$selectedSchedule ? $selectedSchedule.name : 'Schedules'}<ChevronUpOutline class="w-6 h-6 ms-2 text-white dark:text-white" /></Button>
+      <Button outline id="schedule-dropdown" class="w-full">{$selectedSchedule ? $selectedSchedule.name : 'Schedules'}<ChevronUpOutline class="w-6 h-6 ms-2 text-white dark:text-white" /></Button>
       
       <Dropdown placement="top" triggeredBy="#schedule-dropdown">
         {#each sortedSchedules as schedule} <!-- Use sortedSchedules -->
