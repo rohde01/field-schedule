@@ -1,16 +1,19 @@
 <script lang="ts">
     import Schedule from './Schedule.svelte'
-    import { Datepicker, P } from 'flowbite-svelte';
+    import CreateCard from './CreateCard.svelte'
+    import { Datepicker, P, Card } from 'flowbite-svelte';
+    import { IsCreating } from '$lib/stores/schedules';
     let dateRange = { from: null, to: null };
-    import { Card } from 'flowbite-svelte';
-
 </script>
 
-<main class="relative w-full bg-white dark:bg-gray-800 p-6">
-    <div class="mt-6 w-full">
+
+    <div id="main-content" class="relative mx-auto h-full w-full overflow-y-auto bg-gray-50 p-4 dark:bg-gray-900">
+        {#if $IsCreating}
+            <CreateCard />
+        {/if}
         <Schedule />
     </div>
-</main>
+
 <!-- <div class="mt-8">
     <div class="debug-container">
         <SuperDebug data={$form} collapsible={true} />
