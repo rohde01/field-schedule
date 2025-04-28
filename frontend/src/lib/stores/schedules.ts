@@ -44,6 +44,9 @@ export function addScheduleEntry(entry: ScheduleEntry) {
         return updatedSchedules;
     });
     unsavedChanges.set(true);
+
+    const updatedSchedule = get(schedules).find(s => s.schedule_id === entry.schedule_id) ?? null;
+    selectedSchedule.set(updatedSchedule);
 }
 
 export function updateScheduleEntry(updatedEntry: Partial<ScheduleEntry> & Pick<ScheduleEntry, 'uid' | 'schedule_id'>) {
@@ -152,4 +155,14 @@ export function deleteScheduleEntry(uid: string, schedule_id: number, recurrence
         });
     });
     unsavedChanges.set(true);
+
+    const refreshedSchedule = get(schedules).find(s => s.schedule_id === schedule_id) ?? null;
+    selectedSchedule.set(refreshedSchedule);
+}
+
+export function removeSchedule(schedule: Schedule) {
+    schedules.update(list => list.filter(s => s !== schedule));
+    const remaining = get(schedules);
+    selectedSchedule.set(remaining.length > 0 ? remaining[0] : null);
+    console.log('Removed schedule:', schedule);
 }

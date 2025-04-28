@@ -1,6 +1,6 @@
 <script lang="ts">
     import { enhance } from '$app/forms';
-    import { deletedEntryIds, unsavedChanges, selectedSchedule, IsCreating } from '../../../lib/stores/schedules';
+    import { deletedEntryIds, unsavedChanges, selectedSchedule, addSchedule, IsCreating, removeSchedule } from '../../../lib/stores/schedules';
     import { get } from 'svelte/store';
     import { Button, Spinner } from 'flowbite-svelte';
     
@@ -8,8 +8,24 @@
     let message = '';
     let result: any;
 
+    function createLocalSchedule() {
+        const newSchedule: any = {
+            schedule_id: null,
+            name: 'New schedule',
+            schedule_entries: []
+        };
+        addSchedule(newSchedule);
+        selectedSchedule.set(newSchedule);
+    }
+
     function toggleCreate() {
         IsCreating.update(v => !v);
+    }
+
+    function handleCancel() {
+        const sched = get(selectedSchedule);
+        if (sched) removeSchedule(sched);
+        toggleCreate();
     }
 </script>
 
@@ -74,8 +90,14 @@
             {/if}
         </form>
     {:else}
-        <Button size=sm on:click={toggleCreate}>
-            {#if $IsCreating}Cancel{:else}Create Schedule{/if}
-        </Button>
+        {#if $IsCreating}
+            <Button size=sm on:click={handleCancel}>
+                Cancel
+            </Button>
+        {:else}
+            <Button size=sm on:click={() => { createLocalSchedule(); toggleCreate(); }}>
+                Create Schedule
+            </Button>
+        {/if}
     {/if}
 {/if}

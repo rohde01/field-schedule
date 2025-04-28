@@ -38,10 +38,10 @@ export const scheduleEntrySchema = z.object({
   
 
 export const scheduleSchema = z.object({
-    schedule_id: z.number().int(),
+    schedule_id: z.number().int().nullable().optional(),
     club_id: z.number().int().positive(),
     name: z.string().min(1),
-    facility_id: z.number().int().positive(),
+    facility_id: z.number().int().positive().nullable().optional(),
     schedule_entries: z.array(scheduleEntrySchema),
     active_from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, {
         message: "active_from must be in the format YYYY-MM-DD"
