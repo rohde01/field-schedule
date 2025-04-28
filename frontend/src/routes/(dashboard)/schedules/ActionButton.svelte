@@ -94,8 +94,11 @@
         </form>
     {:else}
         {#if $IsCreating}
-            <Button size=sm on:click={handleCancel}>
+            <Button outline size="sm" on:click={handleCancel}>
                 Cancel
+            </Button>
+            <Button size="sm" type="submit" form="create-schedule-form">
+                Save Draft
             </Button>
         {:else}
             <Button size=sm on:click={() => { createLocalSchedule(); toggleCreate(); }}>

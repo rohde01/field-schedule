@@ -7,7 +7,7 @@
   import { Sidebar, SidebarGroup, SidebarItem, SidebarWrapper, Button, Dropdown, DropdownItem, DropdownDivider } from 'flowbite-svelte';
   import { ChartPieOutline, TableColumnSolid, RectangleListSolid, GithubSolid, ClipboardListSolid, ChevronUpOutline } from 'flowbite-svelte-icons';
   import { facilities, selectedFacility, setSelectedFacility, toggleCreateFacility } from '$lib/stores/facilities';
-  import { schedules, selectedSchedule } from '$lib/stores/schedules';
+  import { schedules, selectedSchedule, IsCreating, type LocalSchedule } from '$lib/stores/schedules';
   import type { Facility } from '$lib/schemas/facility';
   import type { Schedule } from '$lib/schemas/schedule';
   import ActionButton from './schedules/ActionButton.svelte';
@@ -60,7 +60,7 @@
     document.getElementById('bottom-dropdown')?.click();
   }
 
-  function selectSchedule(schedule: Schedule) {
+  function selectSchedule(schedule: Schedule | LocalSchedule) {
     selectedSchedule.set(schedule);
   }
 
@@ -92,7 +92,7 @@
 >
   <h4 class="sr-only">Main menu</h4>
   <SidebarWrapper divClass="overflow-y-auto px-3 pt-20 lg:pt-5 h-full bg-white scrolling-touch max-w-2xs lg:h-[calc(100vh-4rem)] lg:block dark:bg-gray-800 lg:me-0 lg:sticky top-2">
-    <div class="flex justify-end">
+    <div class="flex justify-end space-x-2">
       <ActionButton />
     </div>
     <div>
