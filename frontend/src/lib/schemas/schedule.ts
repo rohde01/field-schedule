@@ -61,6 +61,7 @@ export const createScheduleSchema = z.object({
   active_from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: "active_from must be in the format YYYY-MM-DD" }).nullable().optional(),
   active_until: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: "active_until must be in the format YYYY-MM-DD" }).nullable().optional(),
   description: z.string().nullable().optional(),
+  schedule_entries: z.array(scheduleEntrySchema).optional(),
 });
 export type CreateScheduleInput = z.infer<typeof createScheduleSchema>;
 

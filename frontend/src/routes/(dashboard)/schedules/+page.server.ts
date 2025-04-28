@@ -84,15 +84,63 @@ export const actions = {
         const form = await superValidate(request, zod(createScheduleSchema));
         if (!form.valid) return fail(400, { form });
 
-        const data: CreateScheduleInput = form.data;
+        const data = form.data;
+        const scheduleEntries = data.schedule_entries || [];
+        
+        // Remove schedule_entries before inserting schedule
+        const { schedule_entries, ...scheduleData } = data;
+        
+        // Create the schedule
         const { data: newSchedule, error: insertError } = await locals.supabase
             .from('schedules')
-            .insert(data)
+            .insert(scheduleData)
             .select()
             .single();
             
         if (insertError) return fail(500, { form, message: 'Schedule creation failed', error: insertError.message });
         
-        return { form, success: true, schedule: newSchedule };
+        // If there are schedule entries to save
+        if (scheduleEntries.length > 0) {
+            // Add schedule_id to each entry
+            const entriesToInsert = scheduleEntries.map((entry: ScheduleEntry) => {
+                const { schedule_entry_id, ...entryData } = entry;
+                return { ...entryData, schedule_id: newSchedule.schedule_id };
+            });
+            
+            // Insert the entries
+            const { error: entriesError } = await locals.supabase
+                .from('schedule_entries')
+                .insert(entriesToInsert);
+                
+            if (entriesError) {
+                return fail(500, { 
+                    form, 
+                    message: 'Schedule created but failed to save entries', 
+                    error: entriesError.message,
+                    schedule: newSchedule
+                });
+            }
+        }
+        
+        // Fetch the complete schedule with entries after creation
+        const { data: completeSchedule, error: fetchError } = await locals.supabase
+            .from('schedules')
+            .select(`
+                *,
+                schedule_entries(*)
+            `)
+            .eq('schedule_id', newSchedule.schedule_id)
+            .single();
+            
+        if (fetchError) {
+            return fail(500, { 
+                form, 
+                message: 'Schedule created but failed to fetch complete data', 
+                error: fetchError.message,
+                schedule: newSchedule
+            });
+        }
+        
+        return { form, success: true, schedule: completeSchedule };
     }
 } satisfies Actions;

@@ -5,20 +5,37 @@
     import { facilities } from '$lib/stores/facilities';
     import { schedules, selectedSchedule, IsCreating } from '$lib/stores/schedules';
     import { Label, Select, Textarea, Input, Helper } from 'flowbite-svelte';
-    import { get } from 'svelte/store';
     import { superForm } from 'sveltekit-superforms/client';
     import { zodClient } from 'sveltekit-superforms/adapters';
-    import { createScheduleSchema } from '$lib/schemas/schedule';
+    import { createScheduleSchema, scheduleSchema } from '$lib/schemas/schedule';
     import { page } from '$app/stores';
   
     let { breadcrumb, title = 'Creating new schedule' }: PlaygroundProps = $props();
 
-    // Initialize superForm
     const { form, errors, enhance, submitting, message } = superForm($page.data.createForm, {
       validators: zodClient(createScheduleSchema),
       resetForm: false,
+      dataType: "json",
       onResult: ({ result }) => {
         if (result.type === 'success') {
+          if (result.data?.schedule) {
+            try {
+              const returnedSchedule = result.data.schedule;
+              
+              // Update the schedules store with the new schedule
+              schedules.update(currentSchedules => {
+                const filtered = currentSchedules.filter(s => 
+                  s.schedule_id !== returnedSchedule.schedule_id && 
+                  !(s.schedule_id === null && s.name === returnedSchedule.name)
+                );
+                return [...filtered, scheduleSchema.parse(returnedSchedule)];
+              });
+        
+              selectedSchedule.set(returnedSchedule);
+            } catch (error) {
+              console.error("Error updating schedule store:", error);
+            }
+          }
           IsCreating.set(false);
         }
       }
@@ -32,7 +49,8 @@
           name: $selectedSchedule.name || '',
           facility_id: $selectedSchedule.facility_id || null,
           description: $selectedSchedule.description || null,
-          club_id: $selectedSchedule.club_id || $page.data.user?.club_id || 0
+          club_id: $selectedSchedule.club_id || $page.data.user?.club_id || 0,
+          schedule_entries: $selectedSchedule.schedule_entries || []
         }));
       }
     });
@@ -67,6 +85,7 @@
           <form method="POST" action="?/createSchedule" use:enhance>
             <div class="space-y-4">
               <input type="hidden" name="club_id" bind:value={$form.club_id}>
+              <input type="hidden" name="schedule_entries" value={JSON.stringify($selectedSchedule?.schedule_entries || [])} />
               
               <Label class="space-y-2">
                 <span>Name</span>
