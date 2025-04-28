@@ -3,8 +3,9 @@
     import { Card } from 'flowbite-svelte';
     import type { PlaygroundProps } from '$lib/types/types';
     import { facilities } from '$lib/stores/facilities';
-    import { selectedSchedule, unsavedChanges } from '$lib/stores/schedules';
+    import { schedules, selectedSchedule, unsavedChanges } from '$lib/stores/schedules';
     import { Label, Select, Textarea, Input } from 'flowbite-svelte';
+    import { get } from 'svelte/store';
   
     let { breadcrumb, title = 'Create something awesome here' }: PlaygroundProps = $props();
 
@@ -12,7 +13,12 @@
       return (event: any) => {
         const raw = event.target.value;
         const value = field === 'facility_id' ? (raw ? parseInt(raw) : null) : raw;
-        selectedSchedule.update(sch => sch ? ({ ...sch, [field]: value }) : sch);
+        const current = get(selectedSchedule);
+        if (!current) return;
+        const updated = { ...current, [field]: value };
+        schedules.update(list => list.map(s => s === current ? updated : s));
+        selectedSchedule.set(updated);
+        unsavedChanges.set(true);
       };
     }
   </script>

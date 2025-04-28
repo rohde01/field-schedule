@@ -1,6 +1,6 @@
 <script lang="ts">
     import { enhance } from '$app/forms';
-    import { deletedEntryIds, unsavedChanges, selectedSchedule, addSchedule, IsCreating, removeSchedule } from '../../../lib/stores/schedules';
+    import { deletedEntryIds, schedules, unsavedChanges, selectedSchedule, addSchedule, IsCreating, removeSchedule } from '../../../lib/stores/schedules';
     import type { LocalSchedule } from '$lib/stores/schedules';
     import { get } from 'svelte/store';
     import { Button, Spinner } from 'flowbite-svelte';
@@ -11,13 +11,11 @@
     let result: any;
 
     function createLocalSchedule() {
-        const newSchedule: LocalSchedule = {
-            schedule_id: null,
-            name: 'New schedule',
-            schedule_entries: []
-        };
+        const newSchedule: LocalSchedule = { schedule_id: null, name: 'New schedule', schedule_entries: [] };
         addSchedule(newSchedule);
-        selectedSchedule.set(newSchedule);
+        const all = get(schedules);
+        const draft = all[all.length - 1];
+        selectedSchedule.set(draft);
     }
 
     function toggleCreate() {
