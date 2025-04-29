@@ -1,13 +1,13 @@
 // a store for fetched constraints
 import { derived, get } from 'svelte/store';
 import type { Constraint } from '$lib/schemas/constraint';
-import { selectedSchedule } from '$lib/stores/schedules';
+import { selectedSchedule, IsCreating } from '$lib/stores/schedules';
 import { getTimeFromDate, getWeekdayNumber } from '$lib/utils/dateUtils';
 
 export const constraints = derived(
-  selectedSchedule,
-  ($selected) => {
-    if (!$selected) return [] as Constraint[];
+  [selectedSchedule, IsCreating],
+  ([$selected, $isCreating]) => {
+    if (!$selected || !$isCreating) return [] as Constraint[];
     return $selected.schedule_entries
       .filter(entry => entry.team_id != null)
       .map(entry => ({

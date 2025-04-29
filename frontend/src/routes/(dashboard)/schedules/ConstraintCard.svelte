@@ -2,23 +2,15 @@
     import { Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell, Checkbox } from 'flowbite-svelte';
     import { teams } from '$lib/stores/teams';
     import { selectedSchedule } from '$lib/stores/schedules';
+    import { constraints } from '$lib/stores/constraints';
     import type { Team } from '$lib/schemas/team';
     
-    // Get a numeric value from the UXX year format for sorting
-    function getYearValue(yearString: string): number {
-        const match = yearString.match(/^U(\d+)$/);
-        if (match && match[1]) {
-            return parseInt(match[1], 10);
-        }
-        return 0;
-    }
-    
-    // Sort functions for each column
-    const sortByName = (a: Team, b: Team) => a.name.localeCompare(b.name);
-    const sortByYear = (a: Team, b: Team) => getYearValue(a.year) - getYearValue(b.year);
-    const sortByLevel = (a: Team, b: Team) => a.level - b.level;
-    
     let teamItems: Team[] = [];
+    let openTeam: number | null = null;
+
+    function toggleRow(teamId: number) {
+        openTeam = openTeam === teamId ? null : teamId;
+    }
     
     teams.subscribe(value => {
         teamItems = value;
@@ -61,9 +53,9 @@
     }
 </script>
 
-<div class="rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden">
-  <Table hoverable={true} items={teamItems}>
-    <TableHead>
+
+  <Table shadow >
+    <TableHead theadClass="text-base uppercase">
       <TableHeadCell>
         <Checkbox checked={allSelected} on:change={(e) => {
           if (e.target && 'checked' in e.target) {
@@ -71,27 +63,49 @@
           }
         }} />
       </TableHeadCell>
-      <TableHeadCell sort={sortByName}>Name</TableHeadCell>
-      <TableHeadCell sort={sortByYear}>Year</TableHeadCell>
-      <TableHeadCell sort={sortByLevel}>Level</TableHeadCell>
+      <TableHeadCell>Name</TableHeadCell>
+      <TableHeadCell>Year</TableHeadCell>
+      <TableHeadCell>Level</TableHeadCell>
     </TableHead>
     <TableBody tableBodyClass="divide-y">
-      <TableBodyRow slot="row" let:item>
-        {@const team = item as Team}
-        <TableBodyCell class="p-4!">
-          <Checkbox 
-            checked={team.team_id ? selectedTeamIds.includes(team.team_id) : false}
-            on:change={(e) => {
-              if (e.target && 'checked' in e.target && team.team_id) {
-                handleCheckboxChange(team.team_id, (e.target as HTMLInputElement).checked);
-              }
-            }}
-          />
-        </TableBodyCell>
-        <TableBodyCell>{team.name}</TableBodyCell>
-        <TableBodyCell>{team.year}</TableBodyCell>
-        <TableBodyCell>{team.level}</TableBodyCell>
-      </TableBodyRow>
+      {#each teamItems as team}
+        <TableBodyRow on:click={() => toggleRow(team.team_id!)}>
+          <TableBodyCell class="p-4!">
+            <Checkbox
+              checked={selectedTeamIds.includes(team.team_id!)}
+              on:change={(e) => handleCheckboxChange(team.team_id!, (e.target as HTMLInputElement).checked)}
+            />
+          </TableBodyCell>
+          <TableBodyCell>{team.name}</TableBodyCell>
+          <TableBodyCell>{team.year}</TableBodyCell>
+          <TableBodyCell>{team.level}</TableBodyCell>
+        </TableBodyRow>
+        {#if openTeam === team.team_id}
+          <TableBodyRow>
+            <TableBodyCell colspan={5} class="p-0">
+              <Table noborder={true} >
+                <TableHead theadClass="text-xs uppercase">
+                  <TableHeadCell class="text-xs"></TableHeadCell>
+                  <TableHeadCell class="text-xs">Day</TableHeadCell>
+                  <TableHeadCell class="text-xs">Start Time</TableHeadCell>
+                  <TableHeadCell class="text-xs">Length</TableHeadCell>
+                  <TableHeadCell class="text-xs">Field ID</TableHeadCell>
+                </TableHead>
+                <TableBody tableBodyClass="divide-y">
+                  {#each $constraints.filter(c => c.team_id === team.team_id) as c}
+                    <TableBodyRow>
+                      <TableBodyCell class="p-4!"><Checkbox /></TableBodyCell>
+                      <TableBodyCell>{c.day_of_week}</TableBodyCell>
+                      <TableBodyCell>{c.start_time}</TableBodyCell>
+                      <TableBodyCell>{c.length}</TableBodyCell>
+                      <TableBodyCell>{c.field_id}</TableBodyCell>
+                    </TableBodyRow>
+                  {/each}
+                </TableBody>
+              </Table>
+            </TableBodyCell>
+          </TableBodyRow>
+        {/if}
+      {/each}
     </TableBody>
   </Table>
-</div>
