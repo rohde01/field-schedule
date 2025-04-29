@@ -60,7 +60,7 @@ export function isHourMark(time: string): boolean {
   return time.endsWith(':00') && time !== '00:00' && time !== '24:00';
 }
 
-export const weekDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+export const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 export const currentWeekDay = derived(currentDate, ($currentDate) => {
   return $currentDate.getDay();
@@ -151,5 +151,7 @@ export function computeDateUTC(baseDate: Date, time: string): Date {
 // Utility to get weekday number (0-6) from a date
 export function getWeekdayNumber(date: Date | string): number {
   const d = typeof date === 'string' ? new Date(date) : date;
-  return d.getDay();
+  // Convert JavaScript's day (0=Sunday, 1=Monday) to our backend format (0=Monday, 1=Tuesday)
+  const jsDay = d.getDay();
+  return jsDay === 0 ? 6 : jsDay - 1; // Sunday becomes 6, everything else shifts down by 1
 }

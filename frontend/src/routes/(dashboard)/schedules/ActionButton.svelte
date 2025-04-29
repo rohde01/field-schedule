@@ -98,7 +98,7 @@
                 Cancel
             </Button>
             <Button size="sm" type="submit" form="create-schedule-form">
-                Save Draft
+                Save Schedule
             </Button>
         {:else}
             <Button size=sm on:click={() => { createLocalSchedule(); toggleCreate(); }}>

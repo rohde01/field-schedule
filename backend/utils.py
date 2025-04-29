@@ -1,6 +1,9 @@
 from models.field import Field
-from models.schedule import Constraint
+from models.constraint import Constraint # Correct import
 from typing import List, Dict, Tuple
+import uuid
+from datetime import date, datetime, timezone, timedelta
+from models.schedule import ScheduleEntry
 
 SIZE_TO_CAPACITY = {
     '11v11': 1000,
@@ -40,9 +43,9 @@ def build_fields_by_id(top_fields: List[Field]) -> Tuple[Dict[int, Field], List[
     
     def add_field_and_descendants(field: Field) -> None:
         fields_by_id[field.field_id] = field
-        for hf in field.half_subfields:
+        for hf in (field.half_subfields or []):
             add_field_and_descendants(hf)
-        for qf in field.quarter_subfields:
+        for qf in (field.quarter_subfields or []):
             add_field_and_descendants(qf)
 
     for tf in top_fields:
@@ -75,3 +78,52 @@ def find_top_field_and_cost(subfield_id: int, fields_by_id: Dict[int, Field]) ->
         sub_cost = top_capacity
 
     return (top_field.field_id, sub_cost)
+
+def convert_response_to_schedule_entries(schedule_response: List[Dict]) -> List[ScheduleEntry]:
+    """
+    Convert list of schedule dicts to list of ScheduleEntry instances.
+    """
+    entries: List[ScheduleEntry] = []
+    today = date.today()
+    weekday_map = {
+        'Mon': 'MO', 'Tue': 'TU', 'Wed': 'WE', 'Thu': 'TH',
+        'Fri': 'FR', 'Sat': 'SA', 'Sun': 'SU'
+    }
+    day_to_num = {'Mon': 0, 'Tue': 1, 'Wed': 2, 'Thu': 3, 'Fri': 4, 'Sat': 5, 'Sun': 6}
+    for sess in schedule_response:
+        # Parse start and end times
+        start_h, start_m = map(int, sess['start_time'].split(':'))
+        end_h, end_m = map(int, sess['end_time'].split(':'))
+        # Compute date for the correct weekday in current week
+        target_num = day_to_num.get(sess['day_of_week'], today.weekday())
+        delta = target_num - today.weekday()
+        date_for_day = today + timedelta(days=delta)
+        dtstart = datetime(
+            year=date_for_day.year, month=date_for_day.month, day=date_for_day.day,
+            hour=start_h, minute=start_m, tzinfo=timezone.utc
+        )
+        dtend = datetime(
+            year=date_for_day.year, month=date_for_day.month, day=date_for_day.day,
+            hour=end_h, minute=end_m, tzinfo=timezone.utc
+        )
+        # Build recurrence rule
+        day_code = weekday_map.get(sess['day_of_week'], sess['day_of_week'].upper())
+        recurrence = f"FREQ=WEEKLY;BYWEEKDAY={day_code}"
+
+        entry = ScheduleEntry(
+            schedule_entry_id=None,
+            schedule_id=None,
+            uid=uuid.uuid4(),
+            team_id=sess['team_id'],
+            field_id=sess['field_id'],
+            dtstart=dtstart,
+            dtend=dtend,
+            recurrence_rule=recurrence,
+            recurrence_id=None,
+            exdate=[],
+            summary=None,
+            description=None
+        )
+        entries.append(entry)
+
+    return entries

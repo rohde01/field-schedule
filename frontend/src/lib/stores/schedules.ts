@@ -169,3 +169,15 @@ export function removeSchedule(schedule: Schedule | LocalSchedule) {
     selectedSchedule.set(remaining.length > 0 ? remaining[0] : null);
     console.log('Removed schedule:', schedule);
 }
+
+export function setScheduleEntries(schedule_id: number, entries: ScheduleEntry[]) {
+    schedules.update(list =>
+        list.map(schedule =>
+            schedule.schedule_id === schedule_id
+                ? { ...schedule, schedule_entries: entries }
+                : schedule
+        )
+    );
+    const updated = get(schedules).find(s => s.schedule_id === schedule_id) ?? null;
+    selectedSchedule.set(updated);
+}

@@ -16,9 +16,9 @@ def get_all_blocked_ids(field: Field, required_cost: int, assigned_subfield_id: 
             subfield_lookup = {}
             def index_fields(field: Field):
                 subfield_lookup[field.field_id] = field
-                for sf in field.quarter_subfields:
+                for sf in (field.quarter_subfields or []):
                     index_fields(sf)
-                for sf in field.half_subfields:
+                for sf in (field.half_subfields or []):
                     index_fields(sf)
             index_fields(f)
             current = subfield_lookup[target_id]
@@ -34,9 +34,9 @@ def get_all_blocked_ids(field: Field, required_cost: int, assigned_subfield_id: 
     if required_cost == 1000 and field.size == '11v11':
         def block_recursively(f: Field):
             blocked_ids.add(f.field_id)
-            for sf in f.half_subfields:
+            for sf in (f.half_subfields or []):
                 block_recursively(sf)
-            for sf in f.quarter_subfields:
+            for sf in (f.quarter_subfields or []):
                 block_recursively(sf)
         block_recursively(field)
         return blocked_ids
@@ -46,9 +46,9 @@ def get_all_blocked_ids(field: Field, required_cost: int, assigned_subfield_id: 
     if required_cost == top_level_capacity:
         def block_recursively(f: Field):
             blocked_ids.add(f.field_id)
-            for sf in f.half_subfields:
+            for sf in (f.half_subfields or []):
                 block_recursively(sf)
-            for sf in f.quarter_subfields:
+            for sf in (f.quarter_subfields or []):
                 block_recursively(sf)
         block_recursively(field)
         return blocked_ids
@@ -61,9 +61,9 @@ def get_all_blocked_ids(field: Field, required_cost: int, assigned_subfield_id: 
     
     def index_all_subfields(f: Field) -> dict[int, Field]:
         d = {f.field_id: f}
-        for half_sf in f.half_subfields:
+        for half_sf in (f.half_subfields or []):
             d.update(index_all_subfields(half_sf))
-        for quart_sf in f.quarter_subfields:
+        for quart_sf in (f.quarter_subfields or []):
             d.update(index_all_subfields(quart_sf))
         return d
 

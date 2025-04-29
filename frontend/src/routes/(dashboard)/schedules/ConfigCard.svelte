@@ -2,11 +2,12 @@
     import { Card, Toggle, GradientButton,  } from 'flowbite-svelte';
     import { WandMagicSparklesOutline} from 'flowbite-svelte-icons';
     import { get } from 'svelte/store';
-    import { selectedSchedule } from '$lib/stores/schedules';
+    import { selectedSchedule, setScheduleEntries } from '$lib/stores/schedules';
     import { fields } from '$lib/stores/fields';
     import { selectedConstraints } from '$lib/stores/constraints';
     import { fieldSchema } from '$lib/schemas/field';
     import { constraintSchema } from '$lib/schemas/constraint';
+    import { scheduleEntrySchema } from '$lib/schemas/schedule';
 
     let fairWeekdays = true;
     const API_URL = 'http://localhost:8000';
@@ -27,8 +28,16 @@
             body: JSON.stringify(payload)
         });
         if (response.ok) {
-            console.log('success');
-            console.log(`weekday_objective: ${fairWeekdays}`);
+            const data = await response.json();
+            try {
+                const entries = scheduleEntrySchema.array().parse(data);
+                setScheduleEntries(schedule.schedule_id!, entries);
+                console.log('Schedule entries updated:', entries);
+            } catch (e) {
+                console.error('Invalid schedule entries response:', e);
+            }
+        } else {
+            console.error('Failed to generate schedule:', response.statusText);
         }
     }
 </script>

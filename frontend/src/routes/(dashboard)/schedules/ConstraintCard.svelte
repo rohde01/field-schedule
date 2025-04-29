@@ -107,8 +107,8 @@
     const weekdayNames = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
     function formatDay(day: number | null | undefined): string {
       if (day == null) return '—';
-      const idx = (day + 6) % 7;
-      return weekdayNames[idx] || '—';
+      // No need for adjustment since backend uses 0-based indexing where 0=Monday
+      return weekdayNames[day] || '—';
     }
 </script>
 
