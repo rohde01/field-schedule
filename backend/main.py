@@ -9,8 +9,6 @@ from collections import defaultdict
 import cProfile
 import pstats
 from utils import ( time_str_to_block, blocks_to_time_str, get_capacity_and_allowed, build_fields_by_id, find_top_field_and_cost)
-from database.schedules import save_schedule
-from database.fields import get_fields_by_facility
 from assign_subfields import post_process_solution
 from typing import List, Any, Optional
 from objectives import add_adjacency_objective

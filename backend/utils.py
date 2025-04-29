@@ -1,6 +1,5 @@
 from models.field import Field
 from models.schedule import Constraint
-from database.teams import get_teams_by_ids
 from typing import List, Dict, Tuple
 
 SIZE_TO_CAPACITY = {

@@ -5,13 +5,7 @@ Filename: schedules.py in routes folder
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 from main import generate_schedule
-from database.constraints import Constraint as ConstraintModel
-from database.schedules import get_club_schedules, delete_schedule, get_schedule_club_id, update_schedule_entry, get_schedule_entry_schedule_id, create_schedule_entry, delete_schedule_entry
 from models.schedule import Schedule
-from dependencies.auth import get_current_user
-from dependencies.permissions import require_club_access
-from models.user import User
-from database.constraints import get_constraints
 from models.schedule import GenerateScheduleRequest, Constraint
 from models.schedule import CreateScheduleEntry, ScheduleEntryCreate
 
