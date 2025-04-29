@@ -2,6 +2,7 @@
     import Schedule from './Schedule.svelte'
     import CreateCard from './CreateCard.svelte'
     import TeamCard from './ConstraintCard.svelte'
+    import ConfigCard from './ConfigCard.svelte'
     import { Datepicker, P, Card } from 'flowbite-svelte';
     import { IsCreating } from '$lib/stores/schedules';
     let dateRange = { from: null, to: null };
@@ -10,12 +11,15 @@
 
     <div id="main-content" class="relative mx-auto h-full w-full overflow-y-auto bg-gray-50 p-4 dark:bg-gray-900">
         {#if $IsCreating}
-            <div class="grid grid-cols-1 pt-2 xl:grid-cols-3 xl:gap-4 xl:px-0 dark:bg-gray-900">
-                <div class="col-span-full xl:col-auto">
+            <div class="flex gap-4">
+                <div style="flex: 2">
                     <CreateCard />
                 </div>
-                <div class="col-span-2 xl:col-span-2">
+                <div style="flex: 7">
                     <TeamCard />
+                </div>
+                <div style="flex: 1">
+                    <ConfigCard />
                 </div>
             </div>
         {/if}

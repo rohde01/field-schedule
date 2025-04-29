@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell, Checkbox } from 'flowbite-svelte';
+    import { Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell, Checkbox, Card } from 'flowbite-svelte';
     import { teams } from '$lib/stores/teams';
     import { constraints } from '$lib/stores/constraints';
     import type { Team } from '$lib/schemas/team';
@@ -116,79 +116,83 @@
 </script>
 
 
-  <Table shadow >
-    <TableHead theadClass="text-base uppercase">
-      <TableHeadCell>
-        <Checkbox checked={allSelected} on:change={(e) => {
-          if (e.target && 'checked' in e.target) {
-            handleSelectAll((e.target as HTMLInputElement).checked);
-          }
-        }} />
-      </TableHeadCell>
-      <TableHeadCell>Name</TableHeadCell>
-      <TableHeadCell>Year</TableHeadCell>
-      <TableHeadCell>Level</TableHeadCell>
-    </TableHead>
-    <TableBody tableBodyClass="divide-y">
-      {#each teamItems as team}
-        <TableBodyRow on:click={() => toggleRow(team.team_id!)}>
-          <TableBodyCell class="p-4!">
-            <Checkbox
-              checked={selectedTeamIds.includes(team.team_id!)}
-              on:change={(e) => handleCheckboxChange(team.team_id!, (e.target as HTMLInputElement).checked)}
-            />
-          </TableBodyCell>
-          <TableBodyCell>{team.name}</TableBodyCell>
-          <TableBodyCell>{team.year}</TableBodyCell>
-          <TableBodyCell>{team.level}</TableBodyCell>
-        </TableBodyRow>
-        {#if openTeam === team.team_id}
-          <TableBodyRow>
-            <TableBodyCell colspan={5} class="p-0">
-              <Table noborder={true} divClass="relative overflow-x-auto pl-8">
-                <TableHead theadClass="text-xs uppercase">
-                  <TableHeadCell class="text-xs"></TableHeadCell>
-                  <TableHeadCell class="text-xs">Day</TableHeadCell>
-                  <TableHeadCell class="text-xs">Start Time</TableHeadCell>
-                  <TableHeadCell class="text-xs">Field ID</TableHeadCell>
-                  <TableHeadCell class="text-xs">Length</TableHeadCell>
-                  <TableHeadCell class="text-xs">Required Cost</TableHeadCell>
-                </TableHead>
-                <TableBody tableBodyClass="divide-y">
-                  {#each $constraints.filter(c => c.team_id === team.team_id) as c}
-                    <TableBodyRow>
-                      <TableBodyCell class="p-4!">
-                        <Checkbox
-                          checked={$selectedConstraints.some(sc => sc.uid === c.uid)}
-                          on:change={(e) => handleConstraintCheckboxChange(c, (e.target as HTMLInputElement).checked)}
-                        />
-                      </TableBodyCell>
-                      <TableBodyCell>{formatDay(c.day_of_week)}</TableBodyCell>
-                      <TableBodyCell>{c.start_time ?? '—'}</TableBodyCell>
-                      <TableBodyCell>
-                        {#if c.field_id}
-                          <Badge border color="blue" class="mr-2">{getFieldName(c.field_id)}</Badge>
-                        {:else}
-                          —
-                        {/if}
-                      </TableBodyCell>
-                      <TableBodyCell>{formatLength(c.length)}</TableBodyCell>
-                      <TableBodyCell>
-                        {#if c.required_cost}
-                          {#each formatFieldSize(c.required_cost) as size}
-                            <Badge border color="green" class="mr-2">{size}</Badge>
-                          {/each}
-                        {:else}
-                          —
-                        {/if}
-                      </TableBodyCell>
-                    </TableBodyRow>
-                  {/each}
-                </TableBody>
-              </Table>
-            </TableBodyCell>
-          </TableBodyRow>
-        {/if}
-      {/each}
-    </TableBody>
-  </Table>
+  <Card size="xl" class="mb-4 h-[24rem] w-full overflow-hidden">
+    <div class="h-full overflow-y-auto">
+      <Table shadow >
+        <TableHead>
+          <TableHeadCell>
+            <Checkbox checked={allSelected} on:change={(e) => {
+              if (e.target && 'checked' in e.target) {
+                handleSelectAll((e.target as HTMLInputElement).checked);
+              }
+            }} />
+          </TableHeadCell>
+          <TableHeadCell>Name</TableHeadCell>
+          <TableHeadCell>Year</TableHeadCell>
+          <TableHeadCell>Level</TableHeadCell>
+        </TableHead>
+        <TableBody tableBodyClass="divide-y">
+          {#each teamItems as team}
+            <TableBodyRow on:click={() => toggleRow(team.team_id!)}>
+              <TableBodyCell class="p-4!">
+                <Checkbox
+                  checked={selectedTeamIds.includes(team.team_id!)}
+                  on:change={(e) => handleCheckboxChange(team.team_id!, (e.target as HTMLInputElement).checked)}
+                />
+              </TableBodyCell>
+              <TableBodyCell>{team.name}</TableBodyCell>
+              <TableBodyCell>{team.year}</TableBodyCell>
+              <TableBodyCell>{team.level}</TableBodyCell>
+            </TableBodyRow>
+            {#if openTeam === team.team_id}
+              <TableBodyRow>
+                <TableBodyCell colspan={5} class="p-0">
+                  <Table noborder={true} divClass="relative overflow-x-auto pl-8">
+                    <TableHead theadClass="text-xs uppercase">
+                      <TableHeadCell class="text-xs"></TableHeadCell>
+                      <TableHeadCell class="text-xs">Day</TableHeadCell>
+                      <TableHeadCell class="text-xs">Start Time</TableHeadCell>
+                      <TableHeadCell class="text-xs">Field ID</TableHeadCell>
+                      <TableHeadCell class="text-xs">Length</TableHeadCell>
+                      <TableHeadCell class="text-xs">Required Cost</TableHeadCell>
+                    </TableHead>
+                    <TableBody tableBodyClass="divide-y">
+                      {#each $constraints.filter(c => c.team_id === team.team_id) as c}
+                        <TableBodyRow>
+                          <TableBodyCell class="p-4!">
+                            <Checkbox
+                              checked={$selectedConstraints.some(sc => sc.uid === c.uid)}
+                              on:change={(e) => handleConstraintCheckboxChange(c, (e.target as HTMLInputElement).checked)}
+                            />
+                          </TableBodyCell>
+                          <TableBodyCell>{formatDay(c.day_of_week)}</TableBodyCell>
+                          <TableBodyCell>{c.start_time ?? '—'}</TableBodyCell>
+                          <TableBodyCell>
+                            {#if c.field_id}
+                              <Badge border color="blue" class="mr-2">{getFieldName(c.field_id)}</Badge>
+                            {:else}
+                              —
+                            {/if}
+                          </TableBodyCell>
+                          <TableBodyCell>{formatLength(c.length)}</TableBodyCell>
+                          <TableBodyCell>
+                            {#if c.required_cost}
+                              {#each formatFieldSize(c.required_cost) as size}
+                                <Badge border color="green" class="mr-2">{size}</Badge>
+                              {/each}
+                            {:else}
+                              —
+                            {/if}
+                          </TableBodyCell>
+                        </TableBodyRow>
+                      {/each}
+                    </TableBody>
+                  </Table>
+                </TableBodyCell>
+              </TableBodyRow>
+            {/if}
+          {/each}
+        </TableBody>
+      </Table>
+    </div>
+  </Card>

@@ -69,7 +69,7 @@
     }
   </script>
   
-  <Card size="xl" class="mb-4 min-h-[20rem] w-full space-y-6 p-4 2xl:col-span-2">
+  <Card size="xl" class="mb-4 h-[24rem] w-full space-y-6 p-4 2xl:col-span-2">
     <form id="create-schedule-form" method="POST" action="?/createSchedule" use:enhance>
       <div class="space-y-4">
         <input type="hidden" name="club_id" bind:value={$form.club_id}>
