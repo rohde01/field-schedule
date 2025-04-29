@@ -209,14 +209,14 @@
           {#if $showHalfFields}
             <TableBodyCell class="p-4">
               {#each field.half_subfields ?? [] as h (h.field_id)}
-                <Badge border color="green" class="mr-2">{h.name}</Badge>
+                <Badge border color="blue" class="mr-2">{h.name}</Badge>
               {/each}
             </TableBodyCell>
           {/if}
           {#if $showQuarterFields}
             <TableBodyCell class="p-4">
               {#each [...(field.quarter_subfields ?? []), ...((field.half_subfields?.flatMap(h => h.quarter_subfields ?? [])) ?? [])] as q (q.field_id)}
-                <Badge border color="green" class="mr-2">{q.name}</Badge>
+                <Badge border color="blue" class="mr-2">{q.name}</Badge>
               {/each}
             </TableBodyCell>
           {/if}

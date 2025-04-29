@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
 export const constraintSchema = z.object({
+  uid: z.string().uuid({ message: "uid must be a valid UUID" }),
   team_id: z.number(),
-  sessions: z.number().int().min(1).max(7),
   start_time: z.string()
     .regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Must be in HH:MM format")
     .nullable()
