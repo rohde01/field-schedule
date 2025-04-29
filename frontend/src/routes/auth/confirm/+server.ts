@@ -19,7 +19,8 @@ export const GET: RequestHandler = async ({ url, locals: { supabase } }) => {
     const { error } = await supabase.auth.verifyOtp({ token_hash, type })
     console.log('Verification result:', { error })
     if (!error) {
-      redirectTo.searchParams.delete('next')
+      // Redirect to settings page after successful validation
+      redirectTo.pathname = '/settings'
       throw redirect(303, redirectTo.pathname)
     }
   }

@@ -1,13 +1,16 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { superValidate } from 'sveltekit-superforms/server';
 import { zod } from 'sveltekit-superforms/adapters';
-import { createUserSchema } from '$lib/schemas/user';
+import { createUserSchema, loginSchema } from '$lib/schemas/user';
 import type { Actions, PageServerLoad } from './$types';
 import { dev } from '$app/environment';
 
+export const ssr = false;
+
 export const load = (async ({}) => {
-  const form = await superValidate(zod(createUserSchema));
-  return { form };
+  const signupForm = await superValidate(zod(createUserSchema));
+  const loginForm = await superValidate(zod(loginSchema));
+  return { signupForm, loginForm };
 })
 
 export const actions: Actions = {
@@ -37,7 +40,7 @@ export const actions: Actions = {
   },
 
   login: async ({ request, locals: { supabase } }) => {
-    const form = await superValidate(request, zod(createUserSchema));
+    const form = await superValidate(request, zod(loginSchema));
     if (!form.valid) return fail(400, { form });
 
     const { email, password } = form.data;
