@@ -1,18 +1,15 @@
 <script lang="ts">
     import { Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell, Checkbox, Card } from 'flowbite-svelte';
     import { teams } from '$lib/stores/teams';
-    import { constraints } from '$lib/stores/constraints';
+    import { constraints, selectedConstraints } from '$lib/stores/constraints';
     import type { Team } from '$lib/schemas/team';
     import type { Constraint } from '$lib/schemas/constraint';
-    import { writable, get } from 'svelte/store';
+    import { get } from 'svelte/store';
     import { fields, getFlattenedFields } from '$lib/stores/fields';
     import { Badge } from 'flowbite-svelte';
     
     let teamItems: Team[] = [];
     let openTeam: number | null = null;
-
-    // Store to track selected constraints
-    export const selectedConstraints = writable<Constraint[]>([]);
 
     // Remove selections if constraints list changes
     constraints.subscribe(list => {

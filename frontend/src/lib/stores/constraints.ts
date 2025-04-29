@@ -1,5 +1,5 @@
 // a store for fetched constraints
-import { derived, get } from 'svelte/store';
+import { derived, get, writable } from 'svelte/store';
 import type { Constraint } from '$lib/schemas/constraint';
 import { selectedSchedule, IsCreating } from '$lib/stores/schedules';
 import { getTimeFromDate, getWeekdayNumber } from '$lib/utils/dateUtils';
@@ -53,4 +53,7 @@ export const constraints = derived(
 constraints.subscribe(values => {
   console.log('constraints updated:', values);
 });
+
+// Add global selectedConstraints store
+export const selectedConstraints = writable<Constraint[]>([]);
 
