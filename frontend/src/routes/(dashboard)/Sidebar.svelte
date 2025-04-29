@@ -1,4 +1,5 @@
 <script lang="ts">
+    import '$lib/stores/constraints';
   import { afterNavigate } from '$app/navigation';
   import { page } from '$app/state';
   import { onMount } from 'svelte';

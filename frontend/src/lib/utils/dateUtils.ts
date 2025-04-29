@@ -147,3 +147,9 @@ export function computeDateUTC(baseDate: Date, time: string): Date {
   const [h, m] = time.split(':').map(Number);
   return new Date(Date.UTC(year, month - 1, day, h, m));
 }
+
+// Utility to get weekday number (0-6) from a date
+export function getWeekdayNumber(date: Date | string): number {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return d.getDay();
+}

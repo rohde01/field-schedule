@@ -1,7 +1,7 @@
 <script lang="ts">
     import Schedule from './Schedule.svelte'
     import CreateCard from './CreateCard.svelte'
-    import TeamCard from './TeamCard.svelte'
+    import TeamCard from './ConstraintCard.svelte'
     import { Datepicker, P, Card } from 'flowbite-svelte';
     import { IsCreating } from '$lib/stores/schedules';
     let dateRange = { from: null, to: null };
