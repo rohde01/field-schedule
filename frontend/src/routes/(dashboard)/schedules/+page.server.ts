@@ -4,7 +4,7 @@ import { error } from '@sveltejs/kit';
 import { superValidate } from 'sveltekit-superforms/server';
 import { zod } from 'sveltekit-superforms/adapters';
 import type { RequestEvent } from '@sveltejs/kit';
-import { deleteScheduleSchema, createScheduleSchema, type CreateScheduleInput } from '$lib/schemas/schedule';
+import { deleteScheduleSchema, createScheduleSchema, updateScheduleSchema, type CreateScheduleInput, type UpdateScheduleInput } from '$lib/schemas/schedule';
 import { fail } from '@sveltejs/kit';
 
 export const ssr = false;
@@ -17,6 +17,9 @@ export const load = (async ({ locals }: RequestEvent) => {
     const createScheduleForm = await superValidate(zod(createScheduleSchema), {
         id: 'create-schedule-form'
     });
+    const updateForm = await superValidate(zod(updateScheduleSchema), {
+        id: 'update-schedule-form'
+    });
 
     if (!locals.user) {
         throw error(401, 'Unauthorized');
@@ -24,7 +27,8 @@ export const load = (async ({ locals }: RequestEvent) => {
 
     return {
         deleteForm: deleteScheduleForm,
-        createForm: createScheduleForm
+        createForm: createScheduleForm,
+        updateForm
     };
 }) 
 
@@ -142,5 +146,21 @@ export const actions = {
         }
         
         return { form, success: true, schedule: completeSchedule };
+    },
+    updateSchedule: async ({ request, locals }) => {
+        if (!locals.user) throw error(401, 'Unauthorized');
+        const form = await superValidate(request, zod(updateScheduleSchema));
+        if (!form.valid) return fail(400, { form });
+
+        const { schedule_id, name, description, active_from, active_until } = form.data as UpdateScheduleInput;
+        const { data: updatedSchedule, error: updateError } = await locals.supabase
+            .from('schedules')
+            .update({ name, description, active_from, active_until })
+            .eq('schedule_id', schedule_id)
+            .select()
+            .single();
+        if (updateError) return fail(500, { form, message: 'Schedule update failed', error: updateError.message });
+
+        return { form, success: true, schedule: updatedSchedule };
     }
 } satisfies Actions;
