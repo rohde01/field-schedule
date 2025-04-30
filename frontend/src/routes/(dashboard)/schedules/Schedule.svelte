@@ -252,13 +252,13 @@
               {getEntryTitle(entry)}
             </div>
             {#if visibility.showField}
-              <div class="event-field flex items-center gap-1 text-[1.12em] text-gray-600">
-                📍 {getFieldName(entry.field_id!, $activeFields)}
+              <div class="event-field text-[1.12em] text-gray-600">
+                {getFieldName(entry.field_id!, $activeFields)}
               </div>
             {/if}
             {#if visibility.showTime}
-              <div class="event-time flex items-center gap-1 text-[1.12em] text-gray-600">
-                🕐 {entry.start_time} - {entry.end_time}
+              <div class="event-time text-[1.12em] text-gray-600">
+                {entry.start_time} - {entry.end_time}
               </div>
             {/if}
             {#if showInfoCard && selectedEntryUiId === entry.ui_id}
@@ -305,8 +305,10 @@
   }
   
   .schedule-event {
-    background-color: #edfcf5;
-    color: #065f46;
+    container-type: inline-size;
+    container-name: entry;
+    background-color: var(--color-primary-200);
+    color: var(--color-primary-700);
     padding: 0.375rem;
     border-radius: 0.125rem;
     font-size: 0.875rem;
@@ -323,7 +325,28 @@
       border-left 0.15s ease-out;
   }
 
-  
+  .event-team {
+    /* graphite title for both light and dark mode */
+    color: #444;
+  }
+
+  .dark .schedule-event {
+    background-color: var(--color-primary-600);
+    color: var(--color-primary-100);
+  }
+
+  @container entry (max-width: 120px) {
+    .event-time {
+      display: none;
+    }
+  }
+
+  @container entry (max-width: 80px) {
+    .event-field {
+      display: none;
+    }
+  }
+
   .current-time-indicator {
     position: absolute;
     display: flex;

@@ -39,7 +39,7 @@ export const constraints = derived(
           uid: uuidv4(),
           team_id: team.team_id as number,
           start_time: null,
-          length: 4,
+          length: 6,
           day_of_week: null,
           required_cost: team.minimum_field_size,
           field_id: null,

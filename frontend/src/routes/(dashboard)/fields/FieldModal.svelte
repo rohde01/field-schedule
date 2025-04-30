@@ -221,13 +221,19 @@
               
               <!-- Add new availability below slots -->
               <Button type="button" size="sm" class="mt-2" on:click={() => {
-                formData.update(fd => ({
-                  ...fd,
-                  availabilities: [
-                    ...(fd.availabilities || []),
-                    { day_of_week: dayOfWeekEnum.enum.Mon, start_time: '09:00', end_time: '10:00' }
-                  ]
-                }));
+                formData.update(fd => {
+                  const days = Object.values(dayOfWeekEnum.enum);
+                  const lastDay = fd.availabilities?.[fd.availabilities.length - 1]?.day_of_week;
+                  const idx = days.indexOf(lastDay as any);
+                  const nextDay = days[(idx + 1) % days.length];
+                  return {
+                    ...fd,
+                    availabilities: [
+                      ...(fd.availabilities || []),
+                      { day_of_week: nextDay, start_time: '16:00', end_time: '20:30' }
+                    ]
+                  };
+                });
               }}>Add Availability</Button>
               
               {#if $errors.availabilities}

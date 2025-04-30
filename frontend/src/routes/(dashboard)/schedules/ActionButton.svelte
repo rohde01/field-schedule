@@ -29,81 +29,79 @@
     }
 </script>
 
-{#if $selectedSchedule}
-    {#if $unsavedChanges}
-        <form 
-            method="POST" 
-            action="?/insertScheduleEntries" 
-            use:enhance={() => {
-                saving = true;
-                message = '';
-                
-                return async ({ result }) => {
-                    // first insert new entries
-                    if (result.type === 'success') {
-                        // enforce entry types
-                        const sched = get(selectedSchedule)!;
-                        const entries = scheduleEntrySchema.array().parse(sched.schedule_entries);
-                        const fd = new FormData();
-                        fd.append('scheduleId', String(get(selectedSchedule)!.schedule_id));
-                        fd.append('entries', JSON.stringify(entries));
-                        const resUpdate = await fetch('?/updateScheduleEntries', { method: 'POST', body: fd });
-                        const updateData = await resUpdate.json();
-                        if (resUpdate.ok) {
-                            // delete entries removed locally
-                            const deleteIds = get(deletedEntryIds);
-                            if (deleteIds.length) {
-                                const fdDel = new FormData();
-                                fdDel.append('deleteIds', JSON.stringify(deleteIds));
-                                const resDel = await fetch('?/deleteScheduleEntries', { method: 'POST', body: fdDel });
-                                const delData = await resDel.json();
-                                if (!resDel.ok) {
-                                    message = delData?.message || 'Failed to delete entries';
-                                }
-                                deletedEntryIds.set([]);
+{#if $unsavedChanges}
+    <form 
+        method="POST" 
+        action="?/insertScheduleEntries" 
+        use:enhance={() => {
+            saving = true;
+            message = '';
+            
+            return async ({ result }) => {
+                // first insert new entries
+                if (result.type === 'success') {
+                    // enforce entry types
+                    const sched = get(selectedSchedule)!;
+                    const entries = scheduleEntrySchema.array().parse(sched.schedule_entries);
+                    const fd = new FormData();
+                    fd.append('scheduleId', String(get(selectedSchedule)!.schedule_id));
+                    fd.append('entries', JSON.stringify(entries));
+                    const resUpdate = await fetch('?/updateScheduleEntries', { method: 'POST', body: fd });
+                    const updateData = await resUpdate.json();
+                    if (resUpdate.ok) {
+                        // delete entries removed locally
+                        const deleteIds = get(deletedEntryIds);
+                        if (deleteIds.length) {
+                            const fdDel = new FormData();
+                            fdDel.append('deleteIds', JSON.stringify(deleteIds));
+                            const resDel = await fetch('?/deleteScheduleEntries', { method: 'POST', body: fdDel });
+                            const delData = await resDel.json();
+                            if (!resDel.ok) {
+                                message = delData?.message || 'Failed to delete entries';
                             }
-                            message = 'Changes saved successfully!';
-                            unsavedChanges.set(false);
-                        } else {
-                            message = updateData?.message || 'Failed to save changes';
+                            deletedEntryIds.set([]);
                         }
-                    } else if (result.type === 'failure') {
-                        message = result.data?.message as string || 'Failed to save changes';
+                        message = 'Changes saved successfully!';
+                        unsavedChanges.set(false);
+                    } else {
+                        message = updateData?.message || 'Failed to save changes';
                     }
-                    saving = false;
-                    setTimeout(() => message = '', 3000);
-                };
-            }}
-        >
-            <input type="hidden" name="scheduleId" value={$selectedSchedule!.schedule_id} />
-            <input type="hidden" name="entries" value={JSON.stringify($selectedSchedule!.schedule_entries)} />
-            
-            <Button size=sm type="submit" disabled={saving}>
-                {#if saving}
-                    <Spinner class="me-3" size="4" color="white" />Saving ...
-                {:else}
-                    Save Changes
-                {/if}
-            </Button>
-            
-            {#if message}
-                <div class={result?.type === 'success' ? 'alert alert-success' : 'alert alert-error'}>
-                    {message}
-                </div>
+                } else if (result.type === 'failure') {
+                    message = result.data?.message as string || 'Failed to save changes';
+                }
+                saving = false;
+                setTimeout(() => message = '', 3000);
+            };
+        }}
+    >
+        <input type="hidden" name="scheduleId" value={$selectedSchedule!.schedule_id} />
+        <input type="hidden" name="entries" value={JSON.stringify($selectedSchedule!.schedule_entries)} />
+        
+        <Button size=sm type="submit" disabled={saving}>
+            {#if saving}
+                <Spinner class="me-3" size="4" color="white" />Saving ...
+            {:else}
+                Save Changes
             {/if}
-        </form>
-    {:else}
-        {#if $IsCreating}
-            <Button outline size="sm" on:click={handleCancel}>
-                Cancel
-            </Button>
-            <Button size="sm" type="submit" form="create-schedule-form">
-                Save Schedule
-            </Button>
-        {:else}
-            <Button size=sm on:click={() => { createLocalSchedule(); toggleCreate(); }}>
-                Create Schedule
-            </Button>
+        </Button>
+        
+        {#if message}
+            <div class={result?.type === 'success' ? 'alert alert-success' : 'alert alert-error'}>
+                {message}
+            </div>
         {/if}
+    </form>
+{:else}
+    {#if $IsCreating}
+        <Button outline size="sm" on:click={handleCancel}>
+            Cancel
+        </Button>
+        <Button size="sm" type="submit" form="create-schedule-form">
+            Save Schedule
+        </Button>
+    {:else}
+        <Button size=sm on:click={() => { createLocalSchedule(); toggleCreate(); }}>
+            Create Schedule
+        </Button>
     {/if}
 {/if}

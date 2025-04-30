@@ -162,7 +162,7 @@
           <TableBodyCell class="p-4">{team.level}</TableBodyCell>
           <TableBodyCell class="p-4">
             {#each formatFieldSize(team.minimum_field_size).split(', ') as size}
-              <Badge border color="green" class="mr-2">{size}</Badge>
+              <Badge border color="yellow" class="mr-2">{size}</Badge>
             {/each}
           </TableBodyCell>
           <TableBodyCell class="p-4">
