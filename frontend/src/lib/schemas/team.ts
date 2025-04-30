@@ -25,11 +25,22 @@ export const teamSchema = z.object({
 
 export type Team = z.infer<typeof teamSchema>;
 
+export const createTeamSchema = teamSchema;
+
+export const updateTeamSchema = teamSchema.extend({
+    team_id: z.number().int().positive()
+});
+
 export const deleteTeamSchema = z.object({
     team_id: z.number().int().positive()
 });
 
 export type DeleteTeamResponse = {
+    message: string;
+    action: string;
+};
+
+export type UpdateTeamResponse = {
     message: string;
     action: string;
 };

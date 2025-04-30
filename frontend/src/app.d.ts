@@ -1,18 +1,43 @@
-import type { User } from '$stores/auth.d';
+import type { Session, SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from './database.types.ts'
+import type { User as CustomUser } from '$lib/schemas/user'
+import type { Team } from '$lib/schemas/team'
+import type { Facility } from '$lib/schemas/facility'
+import type { Field } from '$lib/schemas/field'
+import type { Schedule } from '$lib/schemas/schedule'
+import type { EventSchedule } from '$lib/schemas/event'
+import type { LayoutServerLoad } from './$types'
 
-// See https://svelte.dev/docs/kit/types#app.d.ts
-// for information about these interfaces
 declare global {
-	namespace App {
-		// interface Error {}
-		interface Locals {
-			user: User | null;
-			token: string | null;
-		}
-		// interface PageData {}
-		// interface PageState {}
-		// interface Platform {}
-	}
+  namespace App {
+    interface Locals {
+      supabase: SupabaseClient<Database>
+      safeGetSession: () => Promise<{ session: Session | null; user: CustomUser | null }>
+      session: Session | null
+      user: CustomUser | null
+    }
+    interface PageData {
+      session: Session | null
+      user: CustomUser | null
+      facilities: Facility[]
+      fields: Field[]
+      teams: Team[]
+      schedules: Schedule[]
+      cookies: Record<string, string>
+    }
+  }
 }
 
-export {};
+declare module '@supabase/supabase-js' {
+  interface User extends CustomUser {}
+}
+
+export {}
+
+export const load: LayoutServerLoad = async ({ locals: { safeGetSession }, cookies }) => {
+  const { session } = await safeGetSession()
+  return {
+    session,
+    cookies: cookies.getAll(),
+  }
+}

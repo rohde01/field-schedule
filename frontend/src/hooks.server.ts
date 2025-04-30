@@ -1,52 +1,77 @@
-import { validateAndRefreshTokens } from '$lib/server/auth';
-import { routeConfig } from '$lib/server/routeConfig';
-import type { Handle } from '@sveltejs/kit';
+import { createServerClient } from '@supabase/ssr'
+import { type Handle, redirect } from '@sveltejs/kit'
+import { sequence } from '@sveltejs/kit/hooks'
+import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public'
 
-export const handle: Handle = async ({ event, resolve }) => {
-    const token = event.cookies.get('token');
-    const refreshToken = event.cookies.get('refresh_token');
-    
-    let user = null;
-    if (token) {
-        const { user: validatedUser, tokenRefreshed } = await validateAndRefreshTokens(
-            token,
-            refreshToken,
-            event.cookies,
-            event.fetch
-        );
-        user = validatedUser;
-        
-        if (tokenRefreshed) {
-            const newToken = event.cookies.get('token') ?? null;
-            event.locals.token = newToken;
+const supabase: Handle = async ({ event, resolve }) => {
+    event.locals.supabase = createServerClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
+        cookies: {
+            getAll: () => event.cookies.getAll(),
+            setAll: (cookiesToSet) => {
+                cookiesToSet.forEach(({ name, value, options }) => {
+                    event.cookies.set(name, value, { ...options, path: '/' })
+                })
+            },
+        },
+    })
+
+    event.locals.safeGetSession = async () => {
+        const {
+            data: { session },
+        } = await event.locals.supabase.auth.getSession()
+        if (!session) {
+            return { session: null, user: null }
         }
-    }
 
-    event.locals.token = token ?? null;
-    event.locals.user = user;
-
-    const path = event.url.pathname;
-    const routeMeta = Object.hasOwn(routeConfig, path) ? routeConfig[path as keyof typeof routeConfig] : undefined;
-
-    if (routeMeta?.requiresAuth && !event.locals.user) {
-        // Clear cookies if authentication failed
-        event.cookies.delete('token', { path: '/' });
-        event.cookies.delete('refresh_token', { path: '/' });
-        
-        return new Response('Redirect', {
-            status: 303,
-            headers: { Location: '/login' },
-        });
-    }
-
-    if (routeMeta?.requiresClub && !event.locals.user?.primary_club_id) {
-        if (path !== '/club/create') {
-            return new Response('Redirect', {
-                status: 303,
-                headers: { Location: '/club/create' },
-            });
+        const {
+            data: { user: authUser },
+            error,
+        } = await event.locals.supabase.auth.getUser()
+        if (error || !authUser) {
+            return { session: null, user: null }
         }
+
+        // Fetch full user data from users table
+        const { data: userData } = await event.locals.supabase
+            .from('users')
+            .select('*')
+            .eq('user_id', authUser.id)
+            .single()
+
+        return { session, user: userData }
     }
 
-    return resolve(event);
-};
+    return resolve(event, {
+        filterSerializedResponseHeaders(name) {
+            return name === 'content-range' || name === 'x-supabase-api-version'
+        },
+    })
+}
+
+const authGuard: Handle = async ({ event, resolve }) => {
+    const { session, user } = await event.locals.safeGetSession()
+    event.locals.session = session
+    event.locals.user = user
+
+    const isProtected = event.route.id?.startsWith('/(dashboard)')
+    if (!isProtected) {
+        return resolve(event)
+    }
+
+    if (!session) {
+        throw redirect(303, '/auth')
+    }
+
+    if (event.url.pathname === '/auth') {
+        throw redirect(303, '/')
+    }
+
+    // Redirect to onboarding if name or club is missing
+    if (!event.url.pathname.startsWith('/settings') && (!user?.first_name || !user?.last_name || !user?.club_id)) {
+        throw redirect(303, '/settings')
+    }
+
+    return resolve(event)
+}
+
+export const handle: Handle = sequence(supabase, authGuard)

@@ -1,381 +1,265 @@
-import type { Field } from '$lib/schemas/field';
-import type { ScheduleEntry } from '$lib/schemas/schedule';
-import type { Event } from '$lib/schemas/event';
+import { processedEntries, timeSlots } from '$lib/utils/calendarUtils';
 import { getCandidateStatesForMainField, getMainFieldForEvent } from './fieldUtils';
+import type { Field } from '$lib/schemas/field';
+import { get } from 'svelte/store';
+import { commitUpdate, getOriginalRecurrenceStart } from '$lib/utils/calendarUtils';
+import { computeDateUTC } from './dateUtils';
 
-export function handleTopDragMove(
-  deltaY: number,
-  rowHeight: number,
-  initialStartIndex: number,
-  initialEndIndex: number,
-  timeSlotsArr: string[]
-): { newStartIndex: number, newStartTime: string } | null {
-  const deltaRows = Math.round(deltaY / rowHeight);
-  let newStartIndex = initialStartIndex + deltaRows;
-  
-  const minimumEndIndex = initialEndIndex;
-  newStartIndex = Math.max(0, Math.min(newStartIndex, minimumEndIndex - 2));
-  
-  const newStartTime = timeSlotsArr[newStartIndex];
-  return { newStartIndex, newStartTime };
+export function resizeHandle(node: HTMLElement, { ui_id, edge }: { ui_id: string; edge: 'top'|'bottom' }) {
+  // make handle visible as resizer and prevent text selection
+  node.style.cursor = 'ns-resize';
+  node.style.userSelect = 'none';
+  let moved = false;
+  let startY: number;
+  let initialIndex: number;
+  let slots: string[];
+  let rowHeight: number;
+  let originalStartTimeForRecurrence: string | null;
+
+  const onMouseMove = (e: MouseEvent) => {
+    moved = true;
+    const deltaY = e.clientY - startY;
+    const sensitivityFactor = 1;
+    const deltaSlots = deltaY >= 0
+      ? Math.floor(deltaY / (rowHeight * sensitivityFactor))
+      : Math.ceil(deltaY / (rowHeight * sensitivityFactor));
+    const newIndex = Math.min(
+      Math.max(0, initialIndex + deltaSlots),
+      slots.length - 1
+    );
+    const newTime = slots[newIndex];
+    processedEntries.update(entries =>
+      entries.map(entry => {
+        if (entry.ui_id !== ui_id) return entry;
+        const newDate = computeDateUTC(entry.dtstart as Date, newTime);
+        return edge === 'top'
+          ? { ...entry, start_time: newTime, dtstart: newDate }
+          : { ...entry, end_time: newTime, dtend: newDate };
+      })
+    );
+  };
+
+  const onMouseUp = () => {
+    node.dispatchEvent(new CustomEvent('dragend', { detail: moved, bubbles: true }));
+    const finalEntry = get(processedEntries).find(e => e.ui_id === ui_id);
+    if (moved && finalEntry) commitUpdate(finalEntry, originalStartTimeForRecurrence);
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onMouseUp);
+  };
+
+  const onMouseDown = (e: MouseEvent) => {
+    moved = false;
+    e.preventDefault();
+    e.stopPropagation();
+    startY = e.clientY;
+    slots = get(timeSlots);
+    const entry = get(processedEntries).find(e => e.ui_id === ui_id);
+    if (!entry) return;
+    originalStartTimeForRecurrence = getOriginalRecurrenceStart(entry);
+    const time = edge === 'top' ? entry?.start_time : entry?.end_time;
+    initialIndex = time ? slots.indexOf(time) : 0;
+    const wrapper = node.closest('.daily-schedule-wrapper') as HTMLElement;
+    rowHeight = wrapper.clientHeight / slots.length;
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  };
+
+  node.addEventListener('mousedown', onMouseDown);
+  return {
+    destroy() {
+      node.removeEventListener('mousedown', onMouseDown);
+    }
+  };
 }
 
-export function handleBottomDragMove(
-  deltaY: number,
-  rowHeight: number,
-  initialStartIndex: number,
-  initialEndIndex: number,
-  timeSlotsArr: string[]
-): { newEndIndex: number, newEndTime: string } | null {
-  const deltaRows = Math.round(deltaY / rowHeight);
-  let newEndIndex = initialEndIndex + deltaRows;
+export function horizontalDrag(node: HTMLElement, { ui_id, direction, totalColumns, activeFields, fieldToGridColMap }: any) {
+  node.style.cursor = 'ew-resize';
+  node.style.userSelect = 'none';
+  let moved = false;
+  let originalStartTimeForRecurrence: string | null;
   
-  const minimumStartIndex = initialStartIndex;
-  newEndIndex = Math.max(minimumStartIndex + 2, Math.min(newEndIndex, timeSlotsArr.length - 1));
-  
-  const newEndTime = timeSlotsArr[newEndIndex];
-  return { newEndIndex, newEndTime };
+  const onMouseDown = (ev: MouseEvent) => {
+    moved = false;
+    ev.preventDefault(); ev.stopPropagation();
+    const entry = get(processedEntries).find(e => e.ui_id === ui_id);
+    if (!entry) return;
+    originalStartTimeForRecurrence = getOriginalRecurrenceStart(entry);
+    const gridEl = node.closest('.schedule-grid') as HTMLElement;
+    const { left, width } = gridEl.getBoundingClientRect();
+    const columnWidth = width / totalColumns;
+    const mainField = getMainFieldForEvent(entry.field_id!, activeFields);
+    if (!mainField) return;
+    const candidates = getCandidateStatesForMainField(mainField, fieldToGridColMap);
+    const original = candidates.find(c => c.field_id === entry.field_id);
+    if (!original) return;
+    const isRight = direction === 'right';
+    const edgeIndex = isRight ? original.colIndex : original.colIndex + original.width - 1;
+    const forEdge = candidates
+      .filter(c => isRight ? c.colIndex === edgeIndex : (c.colIndex + c.width - 1) === edgeIndex)
+      .sort((a, b) => isRight
+        ? (a.colIndex + a.width) - (b.colIndex + b.width)
+        : b.colIndex - a.colIndex
+      );
+    let lastUpdate: Partial<any> | null = null;
+
+    const onMove = (e2: MouseEvent) => {
+      moved = true;
+      const currentEntry = get(processedEntries).find(e => e.ui_id === ui_id);
+      if (!currentEntry) return;
+      const currentOriginal = candidates.find(c => c.field_id === currentEntry.field_id);
+      if (!currentOriginal) return;
+      const rel = Math.max(0, Math.min(e2.clientX - left, width));
+      const target = Math.floor(rel / columnWidth) + 1;
+      let chosen = currentOriginal;
+      for (const c of forEdge) {
+        const edge = isRight ? c.colIndex + c.width - 1 : c.colIndex;
+        if (isRight ? target >= edge : target <= edge) chosen = c;
+      }
+      if (chosen.field_id !== currentEntry.field_id) {
+        lastUpdate = { field_id: chosen.field_id };
+        processedEntries.update(entries =>
+          entries.map(ent =>
+            ent.ui_id === ui_id ? { ...ent, ...lastUpdate! } : ent
+          )
+        );
+      }
+    };
+    const onUp = () => {
+      node.dispatchEvent(new CustomEvent('dragend', { detail: moved, bubbles: true }));
+      if (lastUpdate) processedEntries.update(entries =>
+        entries.map(ent =>
+          ent.ui_id === entry.ui_id ? { ...ent, ...lastUpdate! } : ent
+        )
+      );
+
+      const finalEntry = get(processedEntries).find(e => e.ui_id === ui_id);
+      if (moved && finalEntry) commitUpdate(finalEntry, originalStartTimeForRecurrence);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+  node.addEventListener('mousedown', onMouseDown);
+  return {
+    destroy() {
+      node.removeEventListener('mousedown', onMouseDown);
+    }
+  };
+
 }
 
-export function calculateNewFieldId(
-  relativeX: number,
-  gridWidth: number,
-  totalColumns: number,
-  headerCells: { colIndex: number; fieldId: number }[],
-  scheduleEntry: ScheduleEntry,
-  activeFields: Field[],
-  fieldToGridColMap: Map<number, { colIndex: number; colSpan: number }>
-): number {
-  const columnWidth = gridWidth / totalColumns;
-  relativeX = Math.max(0, Math.min(relativeX, gridWidth));
-  const targetCol = Math.floor(relativeX / columnWidth) + 1;
+export function moveHandle(node: HTMLElement, { ui_id, totalColumns, activeFields, fieldToGridColMap }: any) {
+  node.style.userSelect = 'none';
 
-  // Find closest header cell
-  let chosenHeader = headerCells[0];
-  let minHeaderDiff = Math.abs(chosenHeader.colIndex - targetCol);
-  for (const cell of headerCells) {
-    const diff = Math.abs(cell.colIndex - targetCol);
-    if (diff < minHeaderDiff) {
-      chosenHeader = cell;
-      minHeaderDiff = diff;
+  let startY: number;
+  let initialStartIndex: number;
+  let initialEndIndex: number;
+  let slots: string[];
+  let rowHeight: number;
+  let candidates: any[];
+  let originalType: string;
+  let mainField: any;
+  let moved = false;
+  let originalStartTimeForRecurrence: string | null;
+  let originalDtDate: Date;
+
+  const onMouseMove = (e: MouseEvent) => {
+    moved = true;
+    const deltaY = e.clientY - startY;
+    const sensitivityFactor = 1;
+    const deltaSlots = deltaY >= 0
+      ? Math.floor(deltaY / (rowHeight * sensitivityFactor))
+      : Math.ceil(deltaY / (rowHeight * sensitivityFactor));
+
+    let newStartIndex = Math.min(
+      Math.max(0, initialStartIndex + deltaSlots),
+      slots.length - 1
+    );
+    let newEndIndex = Math.min(
+      Math.max(0, initialEndIndex + deltaSlots),
+      slots.length - 1
+    );
+    if (newEndIndex <= newStartIndex) {
+      newEndIndex = newStartIndex + (initialEndIndex - initialStartIndex);
+      if (newEndIndex >= slots.length) newEndIndex = slots.length - 1;
     }
-  }
 
-  // Get main field and calculate candidates
-  const newMainField = getMainFieldForEvent(chosenHeader.fieldId, activeFields);
-  if (!newMainField) return scheduleEntry.field_id!;
+    const gridEl = node.closest('.schedule-grid') as HTMLElement;
+    const { left, width } = gridEl.getBoundingClientRect();
+    const relX = Math.max(0, Math.min(e.clientX - left, width));
+    const columnWidth = width / totalColumns;
+    const targetCol = Math.min(Math.max(1, Math.round(relX / columnWidth) + 1), totalColumns);
 
-  const candidates = getCandidateStatesForMainField(newMainField, fieldToGridColMap);
-
-  // Get original candidate width
-  const originalMainField = getMainFieldForEvent(scheduleEntry.field_id!, activeFields);
-  let desiredWidth = 1;
-  if (originalMainField) {
-    const originalCandidates = getCandidateStatesForMainField(originalMainField, fieldToGridColMap);
-    const originalCandidate = originalCandidates.find(c => c.field_id === scheduleEntry.field_id);
-    if (originalCandidate) {
-      desiredWidth = originalCandidate.width;
-    }
-  }
-
-  // Filter and sort candidates
-  let validCandidates = candidates.filter(c => c.width === desiredWidth);
-  if (validCandidates.length === 0) {
-    validCandidates = candidates;
-  }
-
-  // Find closest candidate
-  let chosenCandidate = validCandidates[0];
-  let minDiff = Math.abs(chosenCandidate.colIndex - targetCol);
-  for (const cand of validCandidates) {
-    const diff = Math.abs(cand.colIndex - targetCol);
-    if (diff < minDiff) {
-      chosenCandidate = cand;
-      minDiff = diff;
-    }
-  }
-
-  return chosenCandidate.field_id;
-}
-
-interface DragCallbacks {
-  onUpdate: (updates: Partial<Event | ScheduleEntry>, isLocal?: boolean) => void;
-}
-
-export function initializeTopDrag(
-  e: MouseEvent,
-  scheduleEntry: Event | ScheduleEntry,
-  gridElement: HTMLElement,
-  timeSlots: string[],
-  callbacks: DragCallbacks
-) {
-  // Check if the event has override_id, only allow dragging for overrides
-  if ('override_id' in scheduleEntry && !scheduleEntry.override_id) {
-    return; // Exit early for base events (no override_id)
-  }
-
-  e.stopPropagation();
-  e.preventDefault();
-  
-  const timeCell = gridElement.querySelector('.schedule-time') as HTMLElement;
-  if (!timeCell) return;
-  
-  const rowHeight = timeCell.clientHeight;
-  const initialClientY = e.clientY;
-  const initialStartIndex = timeSlots.indexOf(normalizeTime(scheduleEntry.start_time));
-  const initialEndIndex = timeSlots.indexOf(normalizeTime(scheduleEntry.end_time));
-  let lastUpdate: Partial<Event | ScheduleEntry> | null = null;
-
-  function onMouseMove(moveEvent: MouseEvent) {
-    const deltaY = moveEvent.clientY - initialClientY;
-    const result = handleTopDragMove(deltaY, rowHeight, initialStartIndex, initialEndIndex, timeSlots);
-    if (result && result.newStartTime !== scheduleEntry.start_time) {
-      lastUpdate = { start_time: result.newStartTime };
-      callbacks.onUpdate(lastUpdate, true);
-    }
-  }
-
-  function onMouseUp() {
-    if (lastUpdate) {
-      callbacks.onUpdate(lastUpdate, false);
-    }
-    window.removeEventListener('mousemove', onMouseMove);
-    window.removeEventListener('mouseup', onMouseUp);
-  }
-
-  window.addEventListener('mousemove', onMouseMove);
-  window.addEventListener('mouseup', onMouseUp);
-}
-
-export function initializeBottomDrag(
-  e: MouseEvent,
-  scheduleEntry: Event | ScheduleEntry,
-  gridElement: HTMLElement,
-  timeSlots: string[],
-  callbacks: DragCallbacks
-) {
-  // Check if the event has override_id, only allow dragging for overrides
-  if ('override_id' in scheduleEntry && !scheduleEntry.override_id) {
-    return; // Exit early for base events (no override_id)
-  }
-
-  e.stopPropagation();
-  e.preventDefault();
-  
-  const timeCell = gridElement.querySelector('.schedule-time') as HTMLElement;
-  if (!timeCell) return;
-  
-  const rowHeight = timeCell.clientHeight;
-  const initialClientY = e.clientY;
-  const initialStartIndex = timeSlots.indexOf(normalizeTime(scheduleEntry.start_time));
-  const initialEndIndex = timeSlots.indexOf(normalizeTime(scheduleEntry.end_time));
-  let lastUpdate: Partial<Event | ScheduleEntry> | null = null;
-
-  function onMouseMove(moveEvent: MouseEvent) {
-    const deltaY = moveEvent.clientY - initialClientY;
-    const result = handleBottomDragMove(deltaY, rowHeight, initialStartIndex, initialEndIndex, timeSlots);
-    if (result && result.newEndTime !== scheduleEntry.end_time) {
-      lastUpdate = { end_time: result.newEndTime };
-      callbacks.onUpdate(lastUpdate, true);
-    }
-  }
-
-  function onMouseUp() {
-    if (lastUpdate) {
-      callbacks.onUpdate(lastUpdate, false);
-    }
-    window.removeEventListener('mousemove', onMouseMove);
-    window.removeEventListener('mouseup', onMouseUp);
-  }
-
-  window.addEventListener('mousemove', onMouseMove);
-  window.addEventListener('mouseup', onMouseUp);
-}
-
-export function initializeEventDrag(
-  e: MouseEvent,
-  scheduleEntry: Event | ScheduleEntry,
-  gridElement: HTMLElement,
-  timeSlots: string[],
-  totalColumns: number,
-  headerCells: { colIndex: number; fieldId: number }[],
-  activeFields: Field[],
-  fieldToGridColMap: Map<number, { colIndex: number; colSpan: number }>,
-  callbacks: DragCallbacks
-) {
-  // Check if the event has override_id, only allow dragging for overrides
-  if ('override_id' in scheduleEntry && !scheduleEntry.override_id) {
-    return; // Exit early for base events (no override_id)
-  }
-
-  e.stopPropagation();
-  e.preventDefault();
-  
-  const timeCell = gridElement.querySelector('.schedule-time') as HTMLElement;
-  if (!timeCell) return;
-  
-  const rowHeight = timeCell.clientHeight;
-  const initialClientY = e.clientY;
-  const initialStartIndex = timeSlots.indexOf(normalizeTime(scheduleEntry.start_time));
-  const initialEndIndex = timeSlots.indexOf(normalizeTime(scheduleEntry.end_time));
-  const duration = initialEndIndex - initialStartIndex;
-  const minDuration = Math.max(2, duration);
-
-  const gridRect = gridElement.getBoundingClientRect();
-  let lastUpdate: Partial<Event | ScheduleEntry> | null = null;
-
-  function clamp(val: number, min: number, max: number) {
-    return Math.max(min, Math.min(val, max));
-  }
-
-  function onMouseMove(moveEvent: MouseEvent) {
-    const deltaY = moveEvent.clientY - initialClientY;
-    const deltaRows = Math.round(deltaY / rowHeight);
-    const maxStartIndex = timeSlots.length - 1 - minDuration;
-    const newStartIndex = clamp(initialStartIndex + deltaRows, 0, maxStartIndex);
-    const newEndIndex = newStartIndex + minDuration;
-    const newStartTime = timeSlots[newStartIndex];
-    const newEndTime = timeSlots[newEndIndex];
-
-    let relativeX = moveEvent.clientX - gridRect.left;
-    relativeX = clamp(relativeX, 0, gridRect.width);
-    
-    const newFieldId = calculateNewFieldId(
-      relativeX,
-      gridRect.width,
-      totalColumns,
-      headerCells,
-      scheduleEntry,
-      activeFields,
-      fieldToGridColMap
+    const destField = activeFields.find((f: Field) => {
+      const m = fieldToGridColMap.get(f.field_id);
+      return m && targetCol >= m.colIndex && targetCol < m.colIndex + m.colSpan;
+    });
+    const baseCandidates = getCandidateStatesForMainField(destField || mainField, fieldToGridColMap);
+    const filtered = baseCandidates.filter(c => c.candidateType === originalType);
+    const candidatesToUse = filtered.length ? filtered : baseCandidates;
+    const chosen = candidatesToUse.reduce((prev, curr) =>
+      Math.abs(curr.colIndex - targetCol) < Math.abs(prev.colIndex - targetCol) ? curr : prev
     );
 
-    lastUpdate = { 
-      start_time: newStartTime, 
-      end_time: newEndTime, 
-      field_id: newFieldId 
-    };
-    callbacks.onUpdate(lastUpdate, true);
-  }
+    processedEntries.update(entries =>
+      entries.map(ent =>
+        ent.ui_id === ui_id
+          ? {
+              ...ent,
+              start_time: slots[newStartIndex],
+              end_time: slots[newEndIndex],
+              dtstart: computeDateUTC(originalDtDate, slots[newStartIndex]),
+              dtend: computeDateUTC(originalDtDate, slots[newEndIndex]),
+              field_id: chosen.field_id
+            }
+          : ent
+      )
+    );
+  };
 
-  function onMouseUp() {
-    if (lastUpdate) {
-      callbacks.onUpdate(lastUpdate, false);
-    }
-    window.removeEventListener('mousemove', onMouseMove);
-    window.removeEventListener('mouseup', onMouseUp);
-  }
+  const onMouseUp = () => {
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onMouseUp);
+    node.dispatchEvent(new CustomEvent('dragend', { detail: moved }));
+    const finalEntry = get(processedEntries).find(e => e.ui_id === ui_id);
+    if (moved && finalEntry) commitUpdate(finalEntry, originalStartTimeForRecurrence);
+  };
 
-  window.addEventListener('mousemove', onMouseMove);
-  window.addEventListener('mouseup', onMouseUp);
-}
-
-export function initializeHorizontalDrag(
-  e: MouseEvent,
-  scheduleEntry: Event | ScheduleEntry,
-  direction: 'left' | 'right',
-  gridElement: HTMLElement,
-  totalColumns: number,
-  activeFields: Field[],
-  fieldToGridColMap: Map<number, { colIndex: number; colSpan: number }>,
-  callbacks: DragCallbacks
-) {
-  // Check if the event has override_id, only allow dragging for overrides
-  if ('override_id' in scheduleEntry && !scheduleEntry.override_id) {
-    return; // Exit early for base events (no override_id)
-  }
-
-  e.stopPropagation();
-  e.preventDefault();
-
-  const gridRect = gridElement.getBoundingClientRect();
-  const columnWidth = gridRect.width / totalColumns;
-  
-  const mainField = getMainFieldForEvent(scheduleEntry.field_id!, activeFields);
-  if (!mainField) return;
-  
-  const candidates = getCandidateStatesForMainField(mainField, fieldToGridColMap);
-  const originalCandidate = candidates.find(c => c.field_id === scheduleEntry.field_id);
-  if (!originalCandidate) return;
-
-  let lastUpdate: Partial<Event | ScheduleEntry> | null = null;
-
-  if (direction === 'right') {
-    const originalLeft = originalCandidate.colIndex;
-    
-    function onMouseMove(moveEvent: MouseEvent) {
-      let relativeX = moveEvent.clientX - gridRect.left;
-      relativeX = Math.max(0, Math.min(relativeX, gridRect.width));
-      const targetRight = Math.floor(relativeX / columnWidth) + 1;
-      
-      const candidatesForSameLeft = candidates.filter(c => c.colIndex === originalLeft)
-        .sort((a, b) => (a.colIndex + a.width) - (b.colIndex + b.width));
-      
-      if (candidatesForSameLeft.length === 0) return;
-      
-      let chosenCandidate = originalCandidate;
-      for (const cand of candidatesForSameLeft) {
-        const candRight = cand.colIndex + cand.width - 1;
-        if (targetRight >= candRight) {
-          chosenCandidate = cand;
-        }
-      }
-      
-      if (chosenCandidate && chosenCandidate.field_id !== scheduleEntry.field_id) {
-        lastUpdate = { field_id: chosenCandidate.field_id };
-        callbacks.onUpdate(lastUpdate, true);
-      }
+  const onMouseDown = (e: MouseEvent) => {
+    moved = false;
+    const target = e.target as HTMLElement;
+    if (target.closest('.info-card-container') || target.closest('input') || target.closest('select') || target.closest('button')) {
+      return;
     }
 
-    const cleanup = () => {
-      if (lastUpdate) {
-        callbacks.onUpdate(lastUpdate, false);
-      }
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', cleanup);
-    };
+    e.preventDefault();
+    e.stopPropagation();
+    startY = e.clientY;
+    slots = get(timeSlots);
+    const entry = get(processedEntries).find(e2 => e2.ui_id === ui_id);
+    if (!entry) return;
+    initialStartIndex = slots.indexOf(entry.start_time);
+    initialEndIndex = slots.indexOf(entry.end_time);
+    const wrapper = node.closest('.daily-schedule-wrapper') as HTMLElement;
+    rowHeight = wrapper.clientHeight / slots.length;
 
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', cleanup);
-  } else {
-    const originalRight = originalCandidate.colIndex + originalCandidate.width - 1;
-    
-    function onMouseMove(moveEvent: MouseEvent) {
-      let relativeX = moveEvent.clientX - gridRect.left;
-      relativeX = Math.max(0, Math.min(relativeX, gridRect.width));
-      const targetLeft = Math.floor(relativeX / columnWidth) + 1;
-      
-      const candidatesForSameRight = candidates.filter(c => (c.colIndex + c.width - 1) === originalRight)
-        .sort((a, b) => b.colIndex - a.colIndex);
-      
-      if (candidatesForSameRight.length === 0) return;
-      
-      let chosenCandidate = originalCandidate;
-      for (const cand of candidatesForSameRight) {
-        if (targetLeft <= cand.colIndex) {
-          chosenCandidate = cand;
-        }
-      }
-      
-      if (chosenCandidate && chosenCandidate.field_id !== scheduleEntry.field_id) {
-        lastUpdate = { field_id: chosenCandidate.field_id };
-        callbacks.onUpdate(lastUpdate, true);
-      }
+    mainField = getMainFieldForEvent(entry.field_id!, activeFields)!;
+    candidates = getCandidateStatesForMainField(mainField, fieldToGridColMap);
+    const original = candidates.find(c => c.field_id === entry.field_id);
+    originalType = original?.candidateType || 'main';
+    originalStartTimeForRecurrence = getOriginalRecurrenceStart(entry);
+    originalDtDate = entry.dtstart as Date;
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  };
+
+  node.addEventListener('mousedown', onMouseDown);
+  return {
+    destroy() {
+      node.removeEventListener('mousedown', onMouseDown);
     }
-
-    const cleanup = () => {
-      if (lastUpdate) {
-        callbacks.onUpdate(lastUpdate, false);
-      }
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', cleanup);
-    };
-
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', cleanup);
-  }
+  };
 }
 
-function normalizeTime(time: string): string {
-  return time.split(':').slice(0, 2).join(':');
-}

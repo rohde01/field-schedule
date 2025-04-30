@@ -1,87 +1,25 @@
-<script lang="ts">
-    import '../app.css';
-    import { page } from '$app/stores';
-    import { setFacilities } from '$stores/facilities';
-    import { setFields } from '$stores/fields';
-    import { setTeams } from '$stores/teams';
-    import { setConstraints } from '$stores/constraints';
-    import { setSchedules } from '$stores/schedules';
-    import { setEvents } from '$stores/events';
+<script>
+  import { invalidate } from '$app/navigation'
+  import { onMount } from 'svelte'
+  import '../app.css'
+  import Navbar from './(dashboard)/Navbar.svelte'
 
-    let { data } = $props();
+  let { data, children } = $props()
+  let { session, supabase } = $derived(data)
 
-    $effect(() => {
-        if (data.facilities) {
-            setFacilities(data.facilities);
-        }
-    });
+  onMount(() => {
+    const { data } = supabase.auth.onAuthStateChange((_, newSession) => {
+      if (newSession?.expires_at !== session?.expires_at) {
+        invalidate('supabase:auth')
+      }
+    })
 
-    $effect(() => {
-        if (data.fields) {
-            setFields(data.fields);
-        }
-    });
-
-    $effect(() => {
-        if (data.teams) {
-            setTeams(data.teams);
-        }
-    });
-
-    $effect(() => {
-        if (data.schedules) {
-            setSchedules(data.schedules);
-        }
-    });
-
-    $effect(() => {
-        if (data.constraints) {
-            setConstraints(data.constraints);
-        }
-    });
-
-    $effect(() => {
-        if (data.events) {
-            setEvents(data.events);
-        }
-    });
-
-    const isLandingPage = $derived($page.url.pathname === '/');
+    return () => data.subscription.unsubscribe()
+  })
+  
 </script>
 
-<div class="min-h-screen bg-sage-50"> 
-    <div class="h-24">
-        <nav class="fixed top-4 left-0 right-0 z-50">
-            <div class="max-w-[90%] mx-auto">
-                <div class="bg-white shadow-lg rounded-2xl">
-                    <div class="flex justify-between h-14 px-6">
-                        <div class="flex items-center space-x-4">
-                            <a href="/" class="nav-link">Home</a>
-                            {#if data.user}
-                                <a href="/dashboard" class="nav-link">Dashboard</a>
-                                <a href="/schedules" class="nav-link">Schedules</a>
-                                <a href="/teams" class="nav-link">Teams</a>
-                                <a href="/fields" class="nav-link">Fields</a>
-                            {:else}
-                                <a href="/dashboard" class="nav-link">Dashboard</a>
-                            {/if}
-                        </div>
-                        <div class="flex items-center space-x-4">
-                            {#if data.user}
-                                <form action="/logout" method="POST">
-                                    <button type="submit" class="btn-secondary">Logout</button>
-                                </form>
-                            {:else}
-                                <a href="/login" class="nav-link">Login</a>
-                                <a href="/register" class="btn-primary">Register</a>
-                            {/if}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </nav>
-    </div>
-    <main class="{isLandingPage ? '' : 'max-w-[90%] mx-auto px-4'}">
-        <slot />
-    </main>
-</div>
+<header class="fixed top-0 z-40 mx-auto w-full flex-none border-b border-gray-200 bg-white dark:border-gray-600 dark:bg-gray-800">
+  <Navbar {session}/>
+</header>
+{@render children()}
