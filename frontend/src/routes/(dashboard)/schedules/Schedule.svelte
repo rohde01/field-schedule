@@ -330,11 +330,6 @@
     color: #444;
   }
 
-  .dark .schedule-event {
-    background-color: var(--color-primary-600);
-    color: var(--color-primary-100);
-  }
-
   @container entry (max-width: 120px) {
     .event-time {
       display: none;
