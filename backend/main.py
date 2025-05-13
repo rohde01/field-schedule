@@ -9,7 +9,6 @@ from collections import defaultdict
 import cProfile
 import pstats
 from utils import ( time_str_to_block, blocks_to_time_str, get_capacity_and_allowed, build_fields_by_id, find_top_field_and_cost)
-from assign_subfields import post_process_solution
 from typing import List, Optional, Dict
 from objectives import add_adjacency_objective
 from models.field import Field
@@ -27,6 +26,16 @@ def generate_schedule(request: GenerateScheduleRequest) -> Optional[List[Dict]]:
 
     # Build field objects and organize them
     fields_by_id, top_fields = build_fields_by_id(request.fields)
+    # Build subfield resources and capacities
+    from collections import defaultdict
+    resource_ids_by_top = defaultdict(list)
+    capacity_by_id = {}
+    for res_id, res_obj in fields_by_id.items():
+        top_id, cap = find_top_field_and_cost(res_id, fields_by_id)
+        capacity_by_id[res_id] = cap
+        resource_ids_by_top[top_id].append(res_id)
+    possible_days = list(range(7))
+    top_field_ids = list(resource_ids_by_top.keys())
 
     # Process all constraints and convert them to session requirements
     all_sessions = []
@@ -123,55 +132,39 @@ def generate_schedule(request: GenerateScheduleRequest) -> Optional[List[Dict]]:
         else:
             possible_top_fields = top_fields
 
-        if c_day_of_week is not None:
-            possible_days = [c_day_of_week]
-        else:
-            possible_days = range(7)
-
+        # Generate assignment on subfields matching required capacity
         for f_obj in possible_top_fields:
-            f_id = f_obj.field_id
-            if f_id not in field_info:
-                print(f"Warning: Field ID {f_id} from possible_top_fields not found in field_info. Skipping assignment variables for session {sid}.")
+            top_id = f_obj.field_id
+            fi = field_info.get(top_id)
+            if not fi or req_capacity not in fi['allowed_demands']:
                 continue
-            fi = field_info[f_id]
-
-            if req_capacity not in fi['allowed_demands']:
-                continue
-
-            for d in possible_days:
-                if d not in fi['day_windows']:
+            for res_id in resource_ids_by_top[top_id]:
+                if capacity_by_id.get(res_id) != req_capacity:
                     continue
-
-                window_start, window_end = fi['day_windows'][d]
-                if window_end - window_start < duration_main:
-                    continue
-
-                pres = model.NewBoolVar(f'pres_s{sid}_f{f_id}_d{d}')
-                presence_var[(s, f_id, d)] = pres
-                session_presence_vars[s].append(pres)
-
-                s_main = model.NewIntVar(window_start, window_end - duration_main,
-                                         f'start_s{sid}_f{f_id}_d{d}_main')
-                e_main = model.NewIntVar(window_start + duration_main, window_end,
-                                         f'end_s{sid}_f{f_id}_d{d}_main')
-                interval_main = model.NewOptionalIntervalVar(
-                    s_main, duration_main, e_main, pres,
-                    f'interval_s{sid}_f{f_id}_d{d}_main'
-                )
-
-                start_var_main[(s, f_id, d)] = s_main
-                end_var_main[(s, f_id, d)] = e_main
-                interval_var_main[(s, f_id, d)] = interval_main
-                demands_capacity_main[(s, f_id, d)] = req_capacity
-                demands_splits_main[(s, f_id, d)] = 1
-
-                if c_start_time is not None:
-                    fixed_block = time_str_to_block(c_start_time)
-                    if window_start <= fixed_block <= window_end - duration_main:
-                        model.Add(s_main == fixed_block).OnlyEnforceIf(pres)
-                    else:
-                        model.Add(pres == 0)
-                        print(f"Warning: Fixed start time {c_start_time} for session {sid} on field {f_id} day {d} is outside the allowed window [{blocks_to_time_str(window_start)}, {blocks_to_time_str(window_end - duration_main)}]. Disabling this option.")
+                for d in possible_days:
+                    if d not in fi['day_windows']:
+                        continue
+                    ws, we = fi['day_windows'][d]
+                    if we - ws < duration_main:
+                        continue
+                    pres = model.NewBoolVar(f'pres_s{sid}_r{res_id}_d{d}')
+                    presence_var[(s, res_id, d)] = pres
+                    session_presence_vars[s].append(pres)
+                    s_var = model.NewIntVar(ws, we - duration_main, f'start_s{sid}_r{res_id}_d{d}')
+                    e_var = model.NewIntVar(ws + duration_main, we, f'end_s{sid}_r{res_id}_d{d}')
+                    interval = model.NewOptionalIntervalVar(s_var, duration_main, e_var, pres, f'interval_s{sid}_r{res_id}_d{d}')
+                    start_var_main[(s, res_id, d)] = s_var
+                    end_var_main[(s, res_id, d)] = e_var
+                    interval_var_main[(s, res_id, d)] = interval
+                    demands_capacity_main[(s, res_id, d)] = req_capacity
+                    # enforce fixed start if specified
+                    if c_start_time is not None:
+                        fb = time_str_to_block(c_start_time)
+                        if ws <= fb <= we - duration_main:
+                            model.Add(s_var == fb).OnlyEnforceIf(pres)
+                        else:
+                            model.Add(pres == 0)
+                            print(f"Warning: Fixed start {c_start_time} for session {sid} on res {res_id} day {d} outside [{blocks_to_time_str(ws)}, {blocks_to_time_str(we-duration_main)}]")
 
     # Ensure each session is assigned exactly once
     for s in range(num_sessions):
@@ -182,30 +175,23 @@ def generate_schedule(request: GenerateScheduleRequest) -> Optional[List[Dict]]:
              profiler.disable()
              return None
 
-    # Add capacity and split constraints for each field and day
-    top_field_ids = [f.field_id for f in top_fields]
-    for f_id in top_field_ids:
-        if f_id not in field_info:
-            print(f"Warning: Field ID {f_id} not found in field_info during cumulative constraint setup. Skipping.")
-            continue
-        fi = field_info[f_id]
+    # Capacity on top-level and no overlap on each subfield per day
+    for top_id, fi in field_info.items():
         cap = fi['total_cap']
-        max_splits = fi['max_splits']
-
         for d in fi['day_windows']:
-            intervals_fd = []
-            cap_demands_fd = []
-            split_demands_fd = []
-
-            for s in range(num_sessions):
-                if (s, f_id, d) in interval_var_main:
-                    intervals_fd.append(interval_var_main[(s, f_id, d)])
-                    cap_demands_fd.append(demands_capacity_main[(s, f_id, d)])
-                    split_demands_fd.append(demands_splits_main[(s, f_id, d)])
-
-            if intervals_fd:
-                model.AddCumulative(intervals_fd, cap_demands_fd, cap)
-                model.AddCumulative(intervals_fd, split_demands_fd, max_splits)
+            # cumulative capacity on top
+            ints_top, demands_top = [], []
+            # no-overlap on each resource under top
+            for res_id in resource_ids_by_top[top_id]:
+                day_intervals = [interval_var_main[(s, res_id, d)] for s in range(num_sessions) if (s, res_id, d) in interval_var_main]
+                if day_intervals:
+                    model.AddNoOverlap(day_intervals)
+                for s in range(num_sessions):
+                    if (s, res_id, d) in interval_var_main:
+                        ints_top.append(interval_var_main[(s, res_id, d)])
+                        demands_top.append(demands_capacity_main[(s, res_id, d)])
+            if ints_top:
+                model.AddCumulative(ints_top, demands_top, cap)
 
     # Add constraint that teams can only have one session per day
     team_sessions = defaultdict(list)
@@ -215,11 +201,7 @@ def generate_schedule(request: GenerateScheduleRequest) -> Optional[List[Dict]]:
 
     for team_id, sess_list in team_sessions.items():
         for d in range(7):
-            bools_for_that_day = []
-            for s in sess_list:
-                for f_id in top_field_ids:
-                    if (s, f_id, d) in presence_var:
-                        bools_for_that_day.append(presence_var[(s, f_id, d)])
+            bools_for_that_day = [presence_var[k] for k in presence_var if k[0] in sess_list and k[2] == d]
             if bools_for_that_day:
                 model.Add(sum(bools_for_that_day) <= 1)
 
@@ -252,16 +234,12 @@ def generate_schedule(request: GenerateScheduleRequest) -> Optional[List[Dict]]:
             assigned_start_main = None
             assigned_end_main = None
 
-            for f_id in top_field_ids:
-                for d in range(7):
-                    key = (s, f_id, d)
-                    if key in presence_var and solver.Value(presence_var[key]) == 1:
-                        chosen_field = f_id
-                        chosen_day   = d
-                        assigned_start_main = solver.Value(start_var_main[key])
-                        assigned_end_main   = solver.Value(end_var_main[key])
-                        break
-                if chosen_field is not None:
+            for (sess_id, res_id, d) in presence_var:
+                if sess_id == s and solver.Value(presence_var[(sess_id, res_id, d)]) == 1:
+                    chosen_field = res_id
+                    chosen_day = d
+                    assigned_start_main = solver.Value(start_var_main[(sess_id, res_id, d)])
+                    assigned_end_main = solver.Value(end_var_main[(sess_id, res_id, d)])
                     break
 
             if chosen_field is None or chosen_day is None:
@@ -284,8 +262,7 @@ def generate_schedule(request: GenerateScheduleRequest) -> Optional[List[Dict]]:
             }
             solution.append(main_session)
 
-        # Post-process to assign subfields
-        solution = post_process_solution(solution, top_fields)
+        # Subfield assignment integrated; solution intervals reflect subfield picks
 
         return solution
 
