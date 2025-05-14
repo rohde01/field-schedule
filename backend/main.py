@@ -238,6 +238,7 @@ def generate_schedule(request: GenerateScheduleRequest) -> Optional[List[Dict]]:
 
     # Solve the model
     solver = cp_model.CpSolver()
+    solver.parameters.max_time_in_seconds = 5
     status = solver.Solve(model)
 
     # Process solution if found
