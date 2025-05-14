@@ -29,7 +29,6 @@ async def generate_schedule_route(
         print(f"[DEBUG] Received weekday_objective: {request.weekday_objective}")
         # call the generate_schedule function
         solution = generate_schedule(request)
-        print(f"[DEBUG] Generated schedule solution: {solution}")
         if solution is None:
             raise HTTPException(status_code=400, detail="No feasible schedule found.")
         entries = convert_response_to_schedule_entries(solution)

@@ -9,12 +9,12 @@ from collections import defaultdict
 import cProfile
 import pstats
 from utils import ( time_str_to_block, blocks_to_time_str, get_capacity_and_allowed, build_fields_by_id, find_top_field_and_cost)
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Set
 from objectives import add_adjacency_objective
 from models.field import Field
 from models.constraint import Constraint
 from pydantic import BaseModel
-from test import fieldConflicts  # add conflict check import
+from test import fieldConflicts 
 
 class GenerateScheduleRequest(BaseModel):
     fields: List[Field]
@@ -27,8 +27,19 @@ def generate_schedule(request: GenerateScheduleRequest) -> Optional[List[Dict]]:
 
     # Build field objects and organize them
     fields_by_id, top_fields = build_fields_by_id(request.fields)
+    # Build ancestor map: ancestor_map[field_id] = {set of its ancestor_ids}
+    ancestor_map: Dict[int, Set[int]] = defaultdict(set)
+    for fid_child, field_obj_child in fields_by_id.items():
+        current_parent_id = field_obj_child.parent_field_id
+        while current_parent_id is not None:
+            ancestor_map[fid_child].add(current_parent_id)
+            parent_obj = fields_by_id.get(current_parent_id)
+            if parent_obj:
+                current_parent_id = parent_obj.parent_field_id
+            else:
+                break
+
     # Build subfield resources and capacities
-    from collections import defaultdict
     resource_ids_by_top = defaultdict(list)
     capacity_by_id = {}
     for res_id, res_obj in fields_by_id.items():
@@ -180,17 +191,30 @@ def generate_schedule(request: GenerateScheduleRequest) -> Optional[List[Dict]]:
     for top_id, fi in field_info.items():
         cap = fi['total_cap']
         for d in fi['day_windows']:
-            # cumulative capacity on top
             ints_top, demands_top = [], []
-            # no-overlap on each resource under top
-            for res_id in resource_ids_by_top[top_id]:
-                day_intervals = [interval_var_main[(s, res_id, d)] for s in range(num_sessions) if (s, res_id, d) in interval_var_main]
-                if day_intervals:
-                    model.AddNoOverlap(day_intervals)
-                for s in range(num_sessions):
-                    if (s, res_id, d) in interval_var_main:
-                        ints_top.append(interval_var_main[(s, res_id, d)])
-                        demands_top.append(demands_capacity_main[(s, res_id, d)])
+            intervals_by_res_id = defaultdict(list)
+            for res_id_under_top in resource_ids_by_top[top_id]:
+                for s_idx in range(num_sessions):
+                    key = (s_idx, res_id_under_top, d)
+                    if key in interval_var_main:
+                        iv = interval_var_main[key]
+                        intervals_by_res_id[res_id_under_top].append(iv)
+                        ints_top.append(iv)
+                        demands_top.append(demands_capacity_main[key])
+            # no overlap on same resource
+            for specific_intervals in intervals_by_res_id.values():
+                if specific_intervals:
+                    model.AddNoOverlap(specific_intervals)
+            # no overlap for ancestor-descendant resources
+            res_ids = list(intervals_by_res_id.keys())
+            for i in range(len(res_ids)):
+                for j in range(i+1, len(res_ids)):
+                    ra, rb = res_ids[i], res_ids[j]
+                    if ra in ancestor_map.get(rb, set()) or rb in ancestor_map.get(ra, set()):
+                        combined = intervals_by_res_id[ra] + intervals_by_res_id[rb]
+                        if combined:
+                            model.AddNoOverlap(combined)
+            # cumulative capacity constraint
             if ints_top:
                 model.AddCumulative(ints_top, demands_top, cap)
 
