@@ -14,6 +14,7 @@ from objectives import add_adjacency_objective
 from models.field import Field
 from models.constraint import Constraint
 from pydantic import BaseModel
+from test import fieldConflicts  # add conflict check import
 
 class GenerateScheduleRequest(BaseModel):
     fields: List[Field]
@@ -264,6 +265,9 @@ def generate_schedule(request: GenerateScheduleRequest) -> Optional[List[Dict]]:
 
         # Subfield assignment integrated; solution intervals reflect subfield picks
 
+        # run conflict detection on generated solution
+        field_list = list(fields_by_id.values())
+        fieldConflicts(solution, field_list)
         return solution
 
     else:
