@@ -10,6 +10,7 @@
     import { scheduleEntrySchema } from '$lib/schemas/schedule';
 
     let fairWeekdays = true;
+    let fairStartTimes = true;
     const API_URL = 'http://localhost:8000';
 
     async function generateModel() {
@@ -21,7 +22,9 @@
         const parsedFields = fieldSchema.array().parse(facilityFields);
         const constraintsList = get(selectedConstraints);
         const parsedConstraints = constraintSchema.array().parse(constraintsList);
-        const payload = { fields: parsedFields, constraints: parsedConstraints, weekday_objective: fairWeekdays };
+        const payload = { fields: parsedFields, constraints: parsedConstraints, weekday_objective: fairWeekdays, 
+            start_time_objective: fairStartTimes
+         };
         const response = await fetch(`${API_URL}/schedules/generate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -37,7 +40,8 @@
                 console.error('Invalid schedule entries response:', e);
             }
         } else {
-            console.error('Failed to generate schedule:', response.statusText);
+            const err = await response.json();
+            console.error('Failed to generate schedule:', response.status, err);
         }
     }
 </script>
@@ -48,7 +52,7 @@
     </h3>
     <Toggle color=purple bind:checked={fairWeekdays} class="mb-6">Fair weekdays</Toggle>
 
-    <Toggle color=purple disabled checked={false}>Shared fields</Toggle>
+    <Toggle color=purple bind:checked={fairStartTimes} class="mb-6">Fair start times</Toggle>
 
     <GradientButton outline color="purpleToBlue" class="mt-auto" on:click={generateModel}>
         <WandMagicSparklesOutline class="mr-2 h-5 w-5" />

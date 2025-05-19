@@ -24,6 +24,7 @@ export const constraints = derived(
           return uidMap.get(key) as string;
         })(),
         team_id: entry.team_id as number,
+        year: $teams.find(t => t.team_id === entry.team_id)?.year!,
         start_time: getTimeFromDate(entry.dtstart),
         length: Math.ceil((new Date(entry.dtend).getTime() - new Date(entry.dtstart).getTime()) / (15 * 60 * 1000)),
         day_of_week: getWeekdayNumber(entry.dtstart) as 0|1|2|3|4|5|6,
@@ -38,6 +39,7 @@ export const constraints = derived(
         teamConstraints.push({
           uid: uuidv4(),
           team_id: team.team_id as number,
+          year: team.year,
           start_time: null,
           length: 6,
           day_of_week: null,

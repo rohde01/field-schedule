@@ -2,7 +2,7 @@
 Filename: schedules.py in routes folder
 '''
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 import traceback
 from typing import List
 from pydantic import BaseModel
@@ -18,6 +18,7 @@ class GenerateScheduleRequest(BaseModel):
     fields: List[Field]
     constraints: List[Constraint]
     weekday_objective: bool
+    start_time_objective: bool
 
 @router.post("/generate", response_model=List[ScheduleEntry])
 async def generate_schedule_route(
@@ -27,6 +28,7 @@ async def generate_schedule_route(
         print(f"[DEBUG] Received fields (count): {len(request.fields)}")
         print(f"[DEBUG] Received constraints (count): {len(request.constraints)}")
         print(f"[DEBUG] Received weekday_objective: {request.weekday_objective}")
+        print(f"[DEBUG] Received start_time_objective: {request.start_time_objective}")
         # call the generate_schedule function
         solution = generate_schedule(request)
         if solution is None:
