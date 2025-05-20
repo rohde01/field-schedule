@@ -10,7 +10,7 @@ import cProfile
 import pstats
 from utils import ( time_str_to_block, blocks_to_time_str, get_capacity_and_allowed, build_fields_by_id, find_top_field_and_cost)
 from typing import List, Optional, Dict, Set
-from objectives import add_adjacency_objective
+from objectives import add_adjacency_objective, add_year_gap_objective
 from models.field import Field
 from models.constraint import Constraint
 from pydantic import BaseModel
@@ -20,6 +20,7 @@ class GenerateScheduleRequest(BaseModel):
     fields: List[Field]
     constraints: List[Constraint]
     weekday_objective: bool
+    start_time_objective: bool
 
 def generate_schedule(request: GenerateScheduleRequest) -> Optional[List[Dict]]:
     profiler = cProfile.Profile()
@@ -230,15 +231,22 @@ def generate_schedule(request: GenerateScheduleRequest) -> Optional[List[Dict]]:
             if bools_for_that_day:
                 model.Add(sum(bools_for_that_day) <= 1)
 
-    # Add objective function based on request type
+    # Add objective functions based on request type
+    objectives = []
     if request.weekday_objective:
-        add_adjacency_objective(model, team_sessions, presence_var, top_field_ids)
-    else:
-        pass
+        objectives.append(add_adjacency_objective(model, team_sessions, presence_var, top_field_ids))
+    if request.start_time_objective:
+        # map team to year integer
+        team_year_map: Dict[int, int] = {}
+        for c in request.constraints:
+            team_year_map[c.team_id] = int(c.year.lstrip('U'))
+        objectives.append(add_year_gap_objective(model, team_sessions, presence_var, resource_ids_by_top, team_year_map))
+    if objectives:
+        model.Minimize(sum(objectives))
 
     # Solve the model
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = 5
+    solver.parameters.max_time_in_seconds = 15
     status = solver.Solve(model)
 
     # Process solution if found
