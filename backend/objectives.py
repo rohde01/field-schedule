@@ -30,10 +30,9 @@ def add_adjacency_objective(
     for t_id, sess_list in team_sessions.items():
         for d in range(NUM_DAYS):
             day_bools = []
-            for s in sess_list:
-                for f_id in top_field_ids:
-                    if (s, f_id, d) in presence_var:
-                        day_bools.append(presence_var[(s, f_id, d)])
+            for (sess_id, res_id, day), pres in presence_var.items():
+                if sess_id in sess_list and day == d:
+                    day_bools.append(pres)
             
             var = model.NewIntVar(0, 1, f'has_session_t{t_id}_d{d}')
             model.Add(var == sum(day_bools))
