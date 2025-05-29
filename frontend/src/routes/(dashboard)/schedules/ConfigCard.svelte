@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Card, Toggle, GradientButton,  } from 'flowbite-svelte';
+    import { Card, Toggle, GradientButton, Spinner } from 'flowbite-svelte';
     import { WandMagicSparklesOutline} from 'flowbite-svelte-icons';
     import { get } from 'svelte/store';
     import { selectedSchedule, setScheduleEntries } from '$lib/stores/schedules';
@@ -11,9 +11,11 @@
 
     let fairWeekdays = true;
     let fairStartTimes = true;
+    let generating = false;
     const API_URL = 'http://localhost:8000';
 
     async function generateModel() {
+        generating = true;
         const schedule = get(selectedSchedule);
         if (!schedule) return;
         const facilityId = schedule.facility_id;
@@ -43,6 +45,7 @@
             const err = await response.json();
             console.error('Failed to generate schedule:', response.status, err);
         }
+        generating = false;
     }
 </script>
   
@@ -54,9 +57,13 @@
 
     <Toggle color=purple bind:checked={fairStartTimes} class="mb-6">Fair start times</Toggle>
 
-    <GradientButton outline color="purpleToBlue" class="mt-auto" on:click={generateModel}>
-        <WandMagicSparklesOutline class="mr-2 h-5 w-5" />
-        Generate
+    <GradientButton outline color="purpleToBlue" class="mt-auto" on:click={generateModel} disabled={generating}>
+        {#if generating}
+            <Spinner class="me-3" size="4" color="white" />Generating
+        {:else}
+            <WandMagicSparklesOutline class="mr-2 h-5 w-5" />
+            Generate
+        {/if}
     </GradientButton>
 
 </Card>
