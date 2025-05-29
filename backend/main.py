@@ -233,8 +233,10 @@ def generate_schedule(request: GenerateScheduleRequest) -> Optional[List[Dict]]:
 
     # Add objective functions based on request type
     objectives = []
+    adjacency_objective = None
     if request.weekday_objective:
-        objectives.append(add_adjacency_objective(model, team_sessions, presence_var, top_field_ids))
+        adjacency_objective = add_adjacency_objective(model, team_sessions, presence_var, top_field_ids)
+        objectives.append(adjacency_objective)
     if request.start_time_objective:
         # map team to year integer
         team_year_map: Dict[int, int] = {}
@@ -246,7 +248,7 @@ def generate_schedule(request: GenerateScheduleRequest) -> Optional[List[Dict]]:
 
     # Solve the model
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = 15
+    solver.parameters.max_time_in_seconds = 60
     status = solver.Solve(model)
 
     # Process solution if found
@@ -259,6 +261,12 @@ def generate_schedule(request: GenerateScheduleRequest) -> Optional[List[Dict]]:
 
         # Extract solution and format for return
         solution = []
+        
+        # Print adjacency objective score if weekday objective was used
+        if request.weekday_objective and adjacency_objective is not None:
+            adjacency_score = solver.Value(adjacency_objective)
+            print(f"For this solution, the sum of the smallest possible longest chains for all teams combined is {adjacency_score}")
+        
         for s in range(num_sessions):
             session_data = all_sessions[s]
             sid, team_id, _, req_capacity, _, req_field_id, _, _ = session_data
