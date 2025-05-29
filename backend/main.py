@@ -243,7 +243,10 @@ def generate_schedule(request: GenerateScheduleRequest) -> Optional[List[Dict]]:
         for c in request.constraints:
             team_year_map[c.team_id] = int(c.year.lstrip('U'))
         objectives.append(add_year_gap_objective(model, team_sessions, presence_var, resource_ids_by_top, team_year_map))
-    if objectives:
+    if request.weekday_objective and request.start_time_objective:
+        # prioritize adjacency then year gap without worsening adjacency score
+        model.Minimize(adjacency_objective * 10000 + objectives[1])
+    elif objectives:
         model.Minimize(sum(objectives))
 
     # Solve the model
@@ -266,6 +269,16 @@ def generate_schedule(request: GenerateScheduleRequest) -> Optional[List[Dict]]:
         if request.weekday_objective and adjacency_objective is not None:
             adjacency_score = solver.Value(adjacency_objective)
             print(f"For this solution, the sum of the smallest possible longest chains for all teams combined is {adjacency_score}")
+        
+        # Print year gap objective score if start time objective was used
+        if request.start_time_objective:
+            if request.weekday_objective:
+                # When both objectives are used, year gap is the second part
+                year_gap_score = solver.Value(objectives[1])
+            else:
+                # When only year gap objective is used
+                year_gap_score = solver.Value(objectives[0])
+            print(f"For this solution, the combined smallest possible year gap across all teams is {year_gap_score}")
         
         for s in range(num_sessions):
             session_data = all_sessions[s]

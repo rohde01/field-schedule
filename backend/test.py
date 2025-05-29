@@ -117,10 +117,3 @@ def analyzeAdjacencyPatterns(schedule: List[Dict]) -> None:
             non_ideal_teams.append((team_id, num_sessions, actual_days))
     
     print(f"Adjacency Pattern Analysis: {ideal_count}/{total_teams} teams have ideal patterns")
-    
-    if non_ideal_teams:
-        print("Teams with non-ideal patterns:")
-        for team_id, session_count, days in non_ideal_teams:
-            print(f"  Team {team_id}: {session_count} sessions on {', '.join(days)}")
-    else:
-        print("All teams have ideal patterns!")
