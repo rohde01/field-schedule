@@ -105,47 +105,47 @@
       return weekdayNames[day] || '—';
     }
 
-    // Update day_of_week via dropdown and add to selectedConstraints
+    // Update day_of_week via dropdown
     function handleConstraintDayChange(constraint: Constraint, newDay: number) {
       selectedConstraints.update(list => {
         const idx = list.findIndex(c => c.uid === constraint.uid);
         if (idx !== -1) {
           return list.map(c => c.uid === constraint.uid ? { ...c, day_of_week: newDay as 0|1|2|3|4|5|6 } : c);
         }
-        return [...list, { ...constraint, day_of_week: newDay as 0|1|2|3|4|5|6 }];
+        return list;
       });
     }
 
-    // Update field_id via dropdown and add to selectedConstraints
+    // Update field_id via dropdown
     function handleConstraintFieldChange(constraint: Constraint, newFieldId: number | null) {
       selectedConstraints.update(list => {
         const idx = list.findIndex(c => c.uid === constraint.uid);
         if (idx !== -1) {
           return list.map(c => c.uid === constraint.uid ? { ...c, field_id: newFieldId } : c);
         }
-        return [...list, { ...constraint, field_id: newFieldId }];
+        return list;
       });
     }
 
-    // Update length via dropdown and add to selectedConstraints
+    // Update length via dropdown
     function handleConstraintLengthChange(constraint: Constraint, newLength: number) {
       selectedConstraints.update(list => {
         const idx = list.findIndex(c => c.uid === constraint.uid);
         if (idx !== -1) {
           return list.map(c => c.uid === constraint.uid ? { ...c, length: newLength } : c);
         }
-        return [...list, { ...constraint, length: newLength }];
+        return list;
       });
     }
 
-    // Update required_cost via dropdown and add to selectedConstraints
+    // Update required_cost via dropdown
     function handleConstraintCostChange(constraint: Constraint, newCost: number | null) {
       selectedConstraints.update(list => {
         const idx = list.findIndex(c => c.uid === constraint.uid);
         if (idx !== -1) {
           return list.map(c => c.uid === constraint.uid ? { ...c, required_cost: newCost as 125 | 250 | 500 | 1000 | null } : c);
         }
-        return [...list, { ...constraint, required_cost: newCost as 125 | 250 | 500 | 1000 | null }];
+        return list;
       });
     }
 
