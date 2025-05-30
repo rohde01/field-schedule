@@ -12,14 +12,6 @@
     let teamItems: Team[] = [];
     let openTeam: number | null = null;
 
-    // Remove selections if constraints list changes
-    constraints.subscribe(list => {
-      selectedConstraints.update(current => current.filter(c => list.some(gc => gc.uid === c.uid)));
-    });
-
-    // Log selectedConstraints changes
-    selectedConstraints.subscribe(list => console.log('selectedConstraints changed:', list));
-
     function toggleRow(teamId: number) {
         openTeam = openTeam === teamId ? null : teamId;
     }
@@ -32,7 +24,8 @@
     let selectedTeamIds: number[] = [];
     
     // Handle checkbox changes by updating selectedConstraints only
-    function handleCheckboxChange(teamId: number, checked: boolean) {
+    function handleCheckboxChange(teamId: number, checked: boolean, event: Event) {
+        event.stopPropagation();
         if (checked) {
             selectedConstraints.update(list => {
                 const teamCons = get(constraints).filter(c => c.team_id === teamId);
@@ -181,6 +174,7 @@
         <TableHead>
           <TableHeadCell>
             <Checkbox checked={allSelected} on:change={(e) => {
+              e.stopPropagation();
               if (e.target && 'checked' in e.target) {
                 handleSelectAll((e.target as HTMLInputElement).checked);
               }
@@ -194,10 +188,23 @@
           {#each teamItems as team}
             <TableBodyRow on:click={() => toggleRow(team.team_id!)}>
               <TableBodyCell class="p-4!">
-                <Checkbox
-                  checked={selectedTeamIds.includes(team.team_id!)}
-                  on:change={(e) => handleCheckboxChange(team.team_id!, (e.target as HTMLInputElement).checked)}
-                />
+                <div 
+                  class="inline-block" 
+                  role="button"
+                  tabindex="0"
+                  on:click={(e) => e.stopPropagation()}
+                  on:keydown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }
+                  }}
+                >
+                  <Checkbox
+                    checked={selectedTeamIds.includes(team.team_id!)}
+                    on:change={(e) => handleCheckboxChange(team.team_id!, (e.target as HTMLInputElement).checked, e)}
+                  />
+                </div>
               </TableBodyCell>
               <TableBodyCell>{team.name}</TableBodyCell>
               <TableBodyCell>{team.year}</TableBodyCell>
