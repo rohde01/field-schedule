@@ -7,6 +7,7 @@
     import { get } from 'svelte/store';
     import { fields, getFlattenedFields } from '$lib/stores/fields';
     import { Badge } from 'flowbite-svelte';
+    import { Select } from 'flowbite-svelte';
     
     let teamItems: Team[] = [];
     let openTeam: number | null = null;
@@ -110,6 +111,17 @@
       // No need for adjustment since backend uses 0-based indexing where 0=Monday
       return weekdayNames[day] || '—';
     }
+
+    // Update day_of_week via dropdown and add to selectedConstraints
+    function handleConstraintDayChange(constraint: Constraint, newDay: number) {
+      selectedConstraints.update(list => {
+        const idx = list.findIndex(c => c.uid === constraint.uid);
+        if (idx !== -1) {
+          return list.map(c => c.uid === constraint.uid ? { ...c, day_of_week: newDay as 0|1|2|3|4|5|6 } : c);
+        }
+        return [...list, { ...constraint, day_of_week: newDay as 0|1|2|3|4|5|6 }];
+      });
+    }
 </script>
 
 
@@ -162,7 +174,14 @@
                               on:change={(e) => handleConstraintCheckboxChange(c, (e.target as HTMLInputElement).checked)}
                             />
                           </TableBodyCell>
-                          <TableBodyCell>{formatDay(c.day_of_week)}</TableBodyCell>
+                          <TableBodyCell>
+                            <Select size="sm" on:change={(e) => handleConstraintDayChange(c, parseInt((e.target as HTMLSelectElement).value))}>
+                              <option value="" selected={(($selectedConstraints.find(sc => sc.uid === c.uid)?.day_of_week) ?? c.day_of_week) == null}>—</option>
+                              {#each weekdayNames as name, idx}
+                                <option value={idx} selected={idx === (($selectedConstraints.find(sc => sc.uid === c.uid)?.day_of_week) ?? c.day_of_week)}>{name}</option>
+                              {/each}
+                            </Select>
+                          </TableBodyCell>
                           <TableBodyCell>{c.start_time ?? '—'}</TableBodyCell>
                           <TableBodyCell>
                             {#if c.field_id}
