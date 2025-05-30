@@ -31,11 +31,22 @@ export const constraints = derived(
         required_cost: null,
         field_id: entry.field_id as number,
       } as Constraint));
-    // generate team-based constraints
+    
+    // Count existing schedule constraints per team
+    const scheduleConstraintsByTeam = new Map<number, number>();
+    scheduleConstraints.forEach(constraint => {
+      const teamId = constraint.team_id;
+      scheduleConstraintsByTeam.set(teamId, (scheduleConstraintsByTeam.get(teamId) || 0) + 1);
+    });
+    
+    // generate team-based constraints to balance with schedule constraints
     const teamConstraints: Constraint[] = [];
     $teams.forEach(team => {
-      const count = team.weekly_trainings;
-      for (let i = 0; i < count; i++) {
+      const requiredCount = team.weekly_trainings;
+      const existingCount = scheduleConstraintsByTeam.get(team.team_id as number) || 0;
+      const remainingCount = Math.max(0, requiredCount - existingCount);
+      
+      for (let i = 0; i < remainingCount; i++) {
         teamConstraints.push({
           uid: uuidv4(),
           team_id: team.team_id as number,
