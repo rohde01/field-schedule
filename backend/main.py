@@ -154,7 +154,13 @@ def generate_schedule(request: GenerateScheduleRequest) -> Optional[List[Dict]]:
             for res_id in resource_ids_by_top[top_id]:
                 if capacity_by_id.get(res_id) != req_capacity:
                     continue
-                for d in possible_days:
+                # Determine which days to consider based on constraint
+                if c_day_of_week is not None:
+                    days_to_consider = [c_day_of_week]
+                else:
+                    days_to_consider = possible_days
+                    
+                for d in days_to_consider:
                     if d not in fi['day_windows']:
                         continue
                     ws, we = fi['day_windows'][d]
@@ -251,7 +257,7 @@ def generate_schedule(request: GenerateScheduleRequest) -> Optional[List[Dict]]:
 
     # Solve the model
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = 60
+    solver.parameters.max_time_in_seconds = 7
     status = solver.Solve(model)
 
     # Process solution if found
