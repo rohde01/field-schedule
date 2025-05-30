@@ -6,8 +6,8 @@ Provides a generate_schedule function to be called from other modules.
 
 from ortools.sat.python import cp_model
 from collections import defaultdict
-import cProfile
-import pstats
+# import cProfile disabled
+# import pstats disabled
 from utils import ( time_str_to_block, blocks_to_time_str, get_capacity_and_allowed, build_fields_by_id, find_top_field_and_cost)
 from typing import List, Optional, Dict, Set
 from objectives import add_adjacency_objective, add_year_gap_objective
@@ -23,8 +23,8 @@ class GenerateScheduleRequest(BaseModel):
     start_time_objective: bool
 
 def generate_schedule(request: GenerateScheduleRequest) -> Optional[List[Dict]]:
-    profiler = cProfile.Profile()
-    profiler.enable()
+    # profiler = cProfile.Profile()
+    # profiler.enable()
 
     # Build field objects and organize them
     fields_by_id, top_fields = build_fields_by_id(request.fields)
@@ -115,7 +115,7 @@ def generate_schedule(request: GenerateScheduleRequest) -> Optional[List[Dict]]:
 
     if not all_starts:
         print("No field availability found across all fields. No feasible solution possible.")
-        profiler.disable()
+        # profiler.disable()
         return None
 
     model = cp_model.CpModel()
@@ -191,7 +191,7 @@ def generate_schedule(request: GenerateScheduleRequest) -> Optional[List[Dict]]:
              model.AddExactlyOne(session_presence_vars[s])
         else:
              print(f"Error: Session {s} (Team {all_sessions[s][1]}) has no possible field/day assignments based on constraints and availability. Problem is infeasible.")
-             profiler.disable()
+             # profiler.disable()
              return None
 
     # Capacity on top-level and no overlap on each subfield per day
@@ -264,9 +264,9 @@ def generate_schedule(request: GenerateScheduleRequest) -> Optional[List[Dict]]:
     if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
         solution_type = "OPTIMAL" if status == cp_model.OPTIMAL else "FEASIBLE (not optimal)"
         print(f"Found a {solution_type} solution!")
-        profiler.disable()
-        stats = pstats.Stats(profiler).sort_stats('cumtime')
-        stats.print_stats(10)
+        # profiler.disable()
+        # stats = pstats.Stats(profiler).sort_stats('cumtime')
+        # stats.print_stats(10)
 
         # Extract solution and format for return
         solution = []
@@ -337,7 +337,7 @@ def generate_schedule(request: GenerateScheduleRequest) -> Optional[List[Dict]]:
     else:
         status_str = solver.StatusName(status)
         print(f"No feasible solution found. Solver status: {status_str}")
-        profiler.disable()
-        stats = pstats.Stats(profiler).sort_stats('cumtime')
-        stats.print_stats(10)
+        # profiler.disable()
+        # stats = pstats.Stats(profiler).sort_stats('cumtime')
+        # stats.print_stats(10)
         return None
