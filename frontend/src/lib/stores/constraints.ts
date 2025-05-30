@@ -47,8 +47,12 @@ export const constraints = derived(
       const remainingCount = Math.max(0, requiredCount - existingCount);
       
       for (let i = 0; i < remainingCount; i++) {
+        const key = `team-constraint-${team.team_id}-${i}`; // Generate a stable key
+        if (!uidMap.has(key)) {
+          uidMap.set(key, uuidv4()); // Add to map if not present
+        }
         teamConstraints.push({
-          uid: uuidv4(),
+          uid: uidMap.get(key) as string, // Use the stable UID
           team_id: team.team_id as number,
           year: team.year,
           start_time: null,

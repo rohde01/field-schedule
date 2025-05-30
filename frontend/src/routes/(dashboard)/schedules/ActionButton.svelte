@@ -5,6 +5,7 @@
     import { get } from 'svelte/store';
     import { Button, Spinner } from 'flowbite-svelte';
     import { scheduleEntrySchema } from '$lib/schemas/schedule';
+    import { selectedConstraints } from '$lib/stores/constraints'; // Import selectedConstraints
     
     let saving = false;
     let message = '';
@@ -25,6 +26,7 @@
     function handleCancel() {
         const sched = get(selectedSchedule);
         if (sched) removeSchedule(sched);
+        selectedConstraints.set([]); // Reset selectedConstraints
         toggleCreate();
     }
 </script>
