@@ -10,6 +10,7 @@
     import { scheduleEntrySchema } from '$lib/schemas/schedule';
 
     let fairWeekdays = true;
+    let groupByYear = true;
     let fairStartTimes = true;
     let generating = false;
     const API_URL = 'http://localhost:8000';
@@ -25,8 +26,9 @@
         const constraintsList = get(selectedConstraints);
         const parsedConstraints = constraintSchema.array().parse(constraintsList);
         const payload = { fields: parsedFields, constraints: parsedConstraints, weekday_objective: fairWeekdays, 
-            start_time_objective: fairStartTimes
-         };
+            year_objective: groupByYear, start_time_objective: fairStartTimes
+         };  
+        console.log('generateModel payload:', payload);
         const response = await fetch(`${API_URL}/schedules/generate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -54,6 +56,8 @@
         Model settings
     </h3>
     <Toggle color=purple bind:checked={fairWeekdays} class="mb-6">Fair weekdays</Toggle>
+
+    <Toggle color=purple bind:checked={groupByYear} class="mb-6">Group by year</Toggle>
 
     <Toggle color=purple bind:checked={fairStartTimes} class="mb-6">Fair start times</Toggle>
 
