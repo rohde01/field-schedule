@@ -20,7 +20,6 @@ class GenerateScheduleRequest(BaseModel):
     fields: List[Field]
     constraints: List[Constraint]
     weekday_objective: bool
-    year_objective: bool
     start_time_objective: bool
 
 def generate_schedule(request: GenerateScheduleRequest) -> Optional[List[Dict]]:
@@ -244,16 +243,13 @@ def generate_schedule(request: GenerateScheduleRequest) -> Optional[List[Dict]]:
     if request.weekday_objective:
         adjacency_objective = add_adjacency_objective(model, team_sessions, presence_var, top_field_ids)
         objectives.append(adjacency_objective)
-    if request.year_objective:
+    if request.start_time_objective:
         # map team to year integer
         team_year_map: Dict[int, int] = {}
         for c in request.constraints:
             team_year_map[c.team_id] = int(c.year.lstrip('U'))
         objectives.append(add_year_gap_objective(model, team_sessions, presence_var, resource_ids_by_top, team_year_map))
-    if request.start_time_objective:
-        # TODO: Implement start time fairness objective
-        pass
-    if request.weekday_objective and request.year_objective:
+    if request.weekday_objective and request.start_time_objective:
         # prioritize adjacency then year gap without worsening adjacency score
         model.Minimize(adjacency_objective * 10000 + objectives[1])
     elif objectives:
@@ -280,8 +276,8 @@ def generate_schedule(request: GenerateScheduleRequest) -> Optional[List[Dict]]:
             adjacency_score = solver.Value(adjacency_objective)
             print(f"For this solution, the sum of the smallest possible longest chains for all teams combined is {adjacency_score}")
         
-        # Print year gap objective score if year objective was used
-        if request.year_objective:
+        # Print year gap objective score if start time objective was used
+        if request.start_time_objective:
             if request.weekday_objective:
                 # When both objectives are used, year gap is the second part
                 year_gap_score = solver.Value(objectives[1])
