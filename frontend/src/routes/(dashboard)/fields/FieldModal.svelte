@@ -104,11 +104,10 @@
           {/if}
           
           <!-- Half fields section -->
-          <div class="col-span-6">
-            <h3 class="text-lg font-medium">Half Fields</h3>
-            
-            {#if !isEditMode()}
-              <!-- In create mode, show interactive half fields -->
+          {#if !isEditMode()}
+            <div class="col-span-6">
+              <h3 class="text-lg font-medium">Half Fields</h3>
+              
               {#if !$formData.half_fields?.length}
                 <Button size="sm" outline on:click={toggleHalfFields} class="mb-2">
                   <PlusOutline size="sm" class="mr-1"/>Add Half Fields
@@ -145,35 +144,8 @@
                   {/each}
                 </div>
               {/if}
-            {:else}
-              <!-- In edit mode, show existing subfields with disabled inputs -->
-              {#if (data as Field).half_subfields?.length}
-                <div class="space-y-4">
-                  {#each (data as Field).half_subfields as half, idx}
-                    <div class="p-2">
-                      <Label class="space-y-2">
-                        <span>Half Field {idx + 1} Name</span>
-                        <Input disabled readonly value={half.name} />
-                      </Label>
-                      
-                      {#if half.quarter_subfields?.length}
-                        <div class="ml-4 space-y-2">
-                          {#each half.quarter_subfields as quarter, qidx}
-                            <Label class="space-y-2">
-                              <span>Quarter Field {qidx + 1} Name</span>
-                              <Input disabled readonly value={quarter.name} />
-                            </Label>
-                          {/each}
-                        </div>
-                      {/if}
-                    </div>
-                  {/each}
-                </div>
-              {:else}
-                <Input disabled readonly value="No subfields for this field" />
-              {/if}
-            {/if}
-          </div>
+            </div>
+          {/if}
           
           <!-- Availabilities section -->
           <div class="col-span-6">
