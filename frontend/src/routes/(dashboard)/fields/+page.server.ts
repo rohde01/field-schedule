@@ -54,6 +54,7 @@ export const actions: Actions = {
         const clubId = user?.club_id;
         if (!clubId || clubId <= 0) {
             console.log('Invalid club_id:', clubId);
+            form.message = 'Invalid club ID';
             return fail(400, { 
                 form,
                 error: 'Invalid club ID'
@@ -64,6 +65,7 @@ export const actions: Actions = {
         
         const validatedForm = await superValidate(form.data, zod(facilityCreateSchema));
         if (!validatedForm.valid) {
+            validatedForm.message = 'Please fix validation errors and try again.';
             return fail(400, { form: validatedForm });
         }
 
@@ -75,12 +77,14 @@ export const actions: Actions = {
                 .single();
 
             if (insertError) {
+                form.message = insertError.message || 'Failed to create facility';
                 return fail(400, { 
                     form,
                     error: insertError.message || 'Failed to create facility'
                 });
             }
             
+            form.message = 'Facility created successfully.';
             return {
                 form,
                 facility,
@@ -88,6 +92,7 @@ export const actions: Actions = {
             };
         } catch (err) {
             console.error('Error creating facility:', err);
+            form.message = 'Failed to create facility';
             return fail(500, { 
                 form, 
                 error: 'Failed to create facility'

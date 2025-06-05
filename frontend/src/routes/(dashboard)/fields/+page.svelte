@@ -2,7 +2,7 @@
   import { fields, deleteField, addField } from '$lib/stores/fields.js';
   import { superForm } from 'sveltekit-superforms/client';
   import { zodClient } from 'sveltekit-superforms/adapters';
-  import { facilitySchema } from '$lib/schemas/facility';
+  import { facilityCreateSchema } from '$lib/schemas/facility';
   import { showCreateFacility, toggleCreateFacility, selectedFacility } from '$lib/stores/facilities';
   import FacilityDrawer from '$lib/components/FacilityDrawer.svelte';
   import { Drawer } from 'flowbite-svelte';
@@ -37,7 +37,7 @@
   });
 
   const facilityForm = superForm(data.facilityForm, {
-      validators: zodClient(facilitySchema),
+      validators: zodClient(facilityCreateSchema),
       resetForm: true,
       onResult: ({ result }) => {
           if (result.type === 'success') {
@@ -78,6 +78,7 @@
     const { message: createMessage } = createForm;
     const { message: updateMessage } = updateForm; 
     const { message: deleteMessage } = deleteForm;
+    const { message: facilityMessage } = facilityForm;
 
   let hiddenDrawer = $state(true);
   let openDelete: boolean = $state(false);
@@ -266,3 +267,4 @@ actionPath={isEditMode ? '?/updateField' : '?/createField'}
 <ToastMessage message={$createMessage} />
 <ToastMessage message={$updateMessage} />
 <ToastMessage message={$deleteMessage} />
+<ToastMessage message={$facilityMessage} />
