@@ -29,7 +29,7 @@
 {#if message}
   <Toast color={toastColor} class={positionClass}>
     <svelte:fragment slot="icon">
-      {#if type === 'success'}
+      {#if type === 'success' || type === 'warning'}
         <CheckCircleSolid class="w-5 h-5" />
         <span class="sr-only">Check icon</span>
       {:else}
