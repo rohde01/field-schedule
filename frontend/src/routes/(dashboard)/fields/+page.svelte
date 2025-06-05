@@ -23,7 +23,6 @@
   
   const deleteForm = superForm(data.deleteForm, {
       resetForm: true,
-      taintedMessage: 'Please fix errors and try again.',
       onResult: ({ result }) => {
           if (result.type === 'success') {
               // Close the modal after successful deletion
@@ -47,7 +46,6 @@
   });
 
   const createForm = superForm(data.createFieldForm, {
-      taintedMessage: 'Please fix errors and try again.',
       dataType: 'json',
       validators: zodClient(fieldCreateSchema),
       resetForm: true,
@@ -65,7 +63,6 @@
 
   const updateForm = superForm(data.updateFieldForm, {
       validators: zodClient(updateFieldSchema),
-      taintedMessage: 'Please fix errors and try again.',
       resetForm: false,
       onResult: ({ result }) => {
           if (result.type === 'success') {
@@ -128,6 +125,8 @@
           field_type: field.field_type,
           is_active: field.is_active
       });
+      // Clear any tainted state
+      updateForm.tainted.set(undefined);
       openFieldModal = true;
   }
 
