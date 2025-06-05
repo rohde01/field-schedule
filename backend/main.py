@@ -251,14 +251,23 @@ def generate_schedule(request: GenerateScheduleRequest) -> Optional[List[Dict]]:
         objectives.append(add_year_gap_objective(model, team_sessions, presence_var, resource_ids_by_top, team_year_map))
     if request.weekday_objective and request.start_time_objective:
         # prioritize adjacency then year gap without worsening adjacency score
-        model.Minimize(adjacency_objective * 10000 + objectives[1])
+        model.Minimize(adjacency_objective * 100 + objectives[1])
     elif objectives:
         model.Minimize(sum(objectives))
 
-    # Solve the model
+    # Solve the model with verbose logging enabled
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = 7
+    solver.parameters.max_time_in_seconds = 120
+    solver.parameters.num_search_workers = 8
+    solver.parameters.log_search_progress = True
+    solver.parameters.log_to_stdout = True
+
     status = solver.Solve(model)
+
+    # Print solver statistics
+    print("\n===== Solver Statistics =====")
+    print(solver.ResponseStats())
+    print("================================\n")
 
     # Process solution if found
     if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
