@@ -1,6 +1,6 @@
 <script lang="ts">
     import '$lib/stores/constraints';
-  import { afterNavigate } from '$app/navigation';
+  import { afterNavigate, goto } from '$app/navigation';
   import { page } from '$app/state';
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
@@ -69,6 +69,19 @@
     toggleCreateFacility(true);
     document.getElementById('bottom-dropdown')?.click();
   }
+
+  function handleCreateSchedule() {
+    if (!isSchedulesPage) {
+      goto('/schedules');
+    }
+  }
+
+  // Handle navigation when creating schedule
+  $effect(() => {
+    if ($IsCreating && !isSchedulesPage) {
+      goto('/schedules');
+    }
+  });
 
   onMount(() => {
     if (sortedSchedules.length > 0 && !$selectedSchedule) {
