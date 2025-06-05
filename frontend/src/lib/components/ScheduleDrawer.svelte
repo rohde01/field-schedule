@@ -2,6 +2,7 @@
     import { Button, CloseButton, Heading, Input, Label, Textarea, Toggle, Helper } from 'flowbite-svelte';
     import { CloseOutline } from 'flowbite-svelte-icons';
     import type { SuperForm } from 'sveltekit-superforms';
+    import ToastMessage from '$lib/components/Toast.svelte';
   
     let { hidden = $bindable(true), title = 'Update schedule', form }: { 
         hidden: boolean; 
@@ -10,6 +11,12 @@
     } = $props();
     
     const { form: formData, enhance, errors, message } = form;
+    
+    // Debug: Log message changes and result
+    $effect(() => {
+        console.log('Schedule form message:', $message);
+        console.log('Form data:', $formData);
+    });
 </script>
   
 <Heading tag="h5" class="mb-6 text-sm font-semibold uppercase">{title}</Heading>

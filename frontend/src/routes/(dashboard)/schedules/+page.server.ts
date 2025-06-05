@@ -159,8 +159,21 @@ export const actions = {
             .eq('schedule_id', schedule_id)
             .select()
             .single();
-        if (updateError) return fail(500, { form, message: 'Schedule update failed', error: updateError.message });
+        
+        if (updateError) {
+            let errorMessage = 'Schedule update failed';
+            
+            // Provide user-friendly error messages for specific constraint violations
+            if (updateError.message?.includes('no_overlapping_active_windows')) {
+                errorMessage = 'Schedule dates overlap with another active schedule. Please choose different dates.';
+            }
+            
+            form.message = errorMessage;
+            return fail(500, { form, message: errorMessage, error: updateError.message });
+        }
 
+        // Set message on the form object for superforms
+        form.message = 'Schedule updated successfully!';
         return { form, success: true, schedule: updatedSchedule };
     }
 } satisfies Actions;

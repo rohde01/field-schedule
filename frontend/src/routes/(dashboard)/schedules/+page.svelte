@@ -9,6 +9,7 @@
     import { selectedSchedule, IsCreating } from '$lib/stores/schedules';
     import ScheduleDrawer from '$lib/components/ScheduleDrawer.svelte';
     import { superForm } from 'sveltekit-superforms/client';
+    import ToastMessage from '$lib/components/Toast.svelte';
     
     let { data } = $props();
     
@@ -16,11 +17,23 @@
     
     const updateForm = superForm(data.updateForm, {
         onResult: ({ result }) => {
+            console.log('Update schedule result:', result);
+            if (result.type === 'success' && 'data' in result) {
+                console.log('Result data:', result.data);
+            }
             if (result.type === 'success') {
                 hiddenDrawer = true;
+                // The message should be automatically handled by superforms
+                // since we set form.message in the server action
+            }
+            if (result.type === 'failure' && 'data' in result && result.data?.message) {
+                // Handle error messages from server
+                console.log('Error message:', result.data.message);
             }
         }
     });
+    
+    const { message: updateMessage } = updateForm;
     
     function editSchedule() {
         if ($selectedSchedule) {
@@ -67,3 +80,6 @@
 <Drawer placement="right" bind:hidden={hiddenDrawer}>
   <ScheduleDrawer title="Update schedule" bind:hidden={hiddenDrawer} form={updateForm} />
 </Drawer>
+
+<!-- Toast message -->
+<ToastMessage message={$updateMessage} />
