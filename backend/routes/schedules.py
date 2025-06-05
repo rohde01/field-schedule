@@ -20,7 +20,11 @@ class GenerateScheduleRequest(BaseModel):
     weekday_objective: bool
     start_time_objective: bool
 
-@router.post("/generate", response_model=List[ScheduleEntry])
+class ScheduleResponse(BaseModel):
+    entries: List[ScheduleEntry]
+    message: str
+
+@router.post("/generate", response_model=ScheduleResponse)
 async def generate_schedule_route(
     request: GenerateScheduleRequest
 ):
@@ -30,11 +34,15 @@ async def generate_schedule_route(
         print(f"[DEBUG] Received weekday_objective: {request.weekday_objective}")
         print(f"[DEBUG] Received start_time_objective: {request.start_time_objective}")
         # call the generate_schedule function
-        solution = generate_schedule(request)
-        if solution is None:
+        result = generate_schedule(request)
+        if result is None:
             raise HTTPException(status_code=400, detail="No feasible schedule found.")
-        entries = convert_response_to_schedule_entries(solution)
-        return entries
+        
+        entries = convert_response_to_schedule_entries(result["solution"])
+        solution_type = result.get("solution_type", "UNKNOWN")
+        message = f"Found a {solution_type} solution!"
+        
+        return ScheduleResponse(entries=entries, message=message)
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:

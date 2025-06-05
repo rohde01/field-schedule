@@ -22,7 +22,7 @@ class GenerateScheduleRequest(BaseModel):
     weekday_objective: bool
     start_time_objective: bool
 
-def generate_schedule(request: GenerateScheduleRequest) -> Optional[List[Dict]]:
+def generate_schedule(request: GenerateScheduleRequest) -> Optional[Dict]:
     # profiler = cProfile.Profile()
     # profiler.enable()
 
@@ -341,7 +341,10 @@ def generate_schedule(request: GenerateScheduleRequest) -> Optional[List[Dict]]:
         # run adjacency pattern analysis
         analyzeAdjacencyPatterns(solution)
         
-        return solution
+        return {
+            "solution": solution,
+            "solution_type": solution_type
+        }
 
     else:
         status_str = solver.StatusName(status)

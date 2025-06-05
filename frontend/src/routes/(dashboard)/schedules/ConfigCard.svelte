@@ -8,10 +8,13 @@
     import { fieldSchema } from '$lib/schemas/field';
     import { constraintSchema } from '$lib/schemas/constraint';
     import { scheduleEntrySchema } from '$lib/schemas/schedule';
+    import ToastMessage from '$lib/components/Toast.svelte';
 
     let fairWeekdays = true;
     let fairStartTimes = true;
     let generating = false;
+    let toastMessage = '';
+    let toastType = 'success'; // 'success', 'warning', 'error'
     const API_URL = 'http://localhost:8000';
 
     async function generateModel() {
@@ -35,15 +38,30 @@
         if (response.ok) {
             const data = await response.json();
             try {
-                const entries = scheduleEntrySchema.array().parse(data);
+                const entries = scheduleEntrySchema.array().parse(data.entries);
                 setScheduleEntries(schedule.schedule_id!, entries);
+                toastMessage = data.message || 'Schedule generated successfully!';
+                
+                // Set toast color based on solution type
+                if (data.message?.includes('OPTIMAL')) {
+                    toastType = 'success'; // Green
+                } else if (data.message?.includes('FEASIBLE')) {
+                    toastType = 'warning'; // Orange
+                } else {
+                    toastType = 'success'; // Default to green
+                }
+                
                 console.log('Schedule entries updated:', entries);
             } catch (e) {
                 console.error('Invalid schedule entries response:', e);
+                toastMessage = 'Error: Invalid response format';
+                toastType = 'error';
             }
         } else {
             const err = await response.json();
             console.error('Failed to generate schedule:', response.status, err);
+            toastMessage = `Error: ${err.detail || 'Failed to generate schedule'}`;
+            toastType = 'error';
         }
         generating = false;
     }
@@ -67,3 +85,6 @@
     </GradientButton>
 
 </Card>
+
+<!-- Toast message -->
+<ToastMessage message={toastMessage} type={toastType} />

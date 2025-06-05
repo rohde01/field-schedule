@@ -4,11 +4,16 @@
 
   let { 
     message = $bindable(''),
+    type = 'success', // 'success', 'warning', 'error'
     position = 'top-right'
   } = $props();
 
-  // Determine if this is a success message
-  let isSuccess = $derived(message.toLowerCase().includes('success'));
+  // Determine color based on type
+  let toastColor: 'green' | 'yellow' | 'red' = $derived(
+    type === 'success' ? 'green' :
+    type === 'warning' ? 'yellow' :
+    'red'
+  );
   
   // Compute position classes
   let positionClass = $derived(
@@ -22,9 +27,9 @@
 </script>
 
 {#if message}
-  <Toast color={isSuccess ? 'green' : 'red'} class={positionClass}>
+  <Toast color={toastColor} class={positionClass}>
     <svelte:fragment slot="icon">
-      {#if isSuccess}
+      {#if type === 'success'}
         <CheckCircleSolid class="w-5 h-5" />
         <span class="sr-only">Check icon</span>
       {:else}
