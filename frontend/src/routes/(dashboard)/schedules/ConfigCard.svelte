@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Card, Toggle, GradientButton,  } from 'flowbite-svelte';
+    import { Card, Toggle, GradientButton, Spinner } from 'flowbite-svelte';
     import { WandMagicSparklesOutline} from 'flowbite-svelte-icons';
     import { get } from 'svelte/store';
     import { selectedSchedule, setScheduleEntries } from '$lib/stores/schedules';
@@ -10,9 +10,12 @@
     import { scheduleEntrySchema } from '$lib/schemas/schedule';
 
     let fairWeekdays = true;
+    let fairStartTimes = true;
+    let generating = false;
     const API_URL = 'http://localhost:8000';
 
     async function generateModel() {
+        generating = true;
         const schedule = get(selectedSchedule);
         if (!schedule) return;
         const facilityId = schedule.facility_id;
@@ -21,7 +24,9 @@
         const parsedFields = fieldSchema.array().parse(facilityFields);
         const constraintsList = get(selectedConstraints);
         const parsedConstraints = constraintSchema.array().parse(constraintsList);
-        const payload = { fields: parsedFields, constraints: parsedConstraints, weekday_objective: fairWeekdays };
+        const payload = { fields: parsedFields, constraints: parsedConstraints, weekday_objective: fairWeekdays, 
+            start_time_objective: fairStartTimes
+         };
         const response = await fetch(`${API_URL}/schedules/generate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -37,8 +42,10 @@
                 console.error('Invalid schedule entries response:', e);
             }
         } else {
-            console.error('Failed to generate schedule:', response.statusText);
+            const err = await response.json();
+            console.error('Failed to generate schedule:', response.status, err);
         }
+        generating = false;
     }
 </script>
   
@@ -48,11 +55,15 @@
     </h3>
     <Toggle color=purple bind:checked={fairWeekdays} class="mb-6">Fair weekdays</Toggle>
 
-    <Toggle color=purple disabled checked={false}>Shared fields</Toggle>
+    <Toggle color=purple bind:checked={fairStartTimes} class="mb-6">Fair start times</Toggle>
 
-    <GradientButton outline color="purpleToBlue" class="mt-auto" on:click={generateModel}>
-        <WandMagicSparklesOutline class="mr-2 h-5 w-5" />
-        Generate
+    <GradientButton outline color="purpleToBlue" class="mt-auto" on:click={generateModel} disabled={generating}>
+        {#if generating}
+            <Spinner class="me-3" size="4" color="white" />Generating
+        {:else}
+            <WandMagicSparklesOutline class="mr-2 h-5 w-5" />
+            Generate
+        {/if}
     </GradientButton>
 
 </Card>

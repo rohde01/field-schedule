@@ -7,17 +7,10 @@
     import { get } from 'svelte/store';
     import { fields, getFlattenedFields } from '$lib/stores/fields';
     import { Badge } from 'flowbite-svelte';
+    import { Select } from 'flowbite-svelte';
     
     let teamItems: Team[] = [];
     let openTeam: number | null = null;
-
-    // Remove selections if constraints list changes
-    constraints.subscribe(list => {
-      selectedConstraints.update(current => current.filter(c => list.some(gc => gc.uid === c.uid)));
-    });
-
-    // Log selectedConstraints changes
-    selectedConstraints.subscribe(list => console.log('selectedConstraints changed:', list));
 
     function toggleRow(teamId: number) {
         openTeam = openTeam === teamId ? null : teamId;
@@ -31,7 +24,8 @@
     let selectedTeamIds: number[] = [];
     
     // Handle checkbox changes by updating selectedConstraints only
-    function handleCheckboxChange(teamId: number, checked: boolean) {
+    function handleCheckboxChange(teamId: number, checked: boolean, event: Event) {
+        event.stopPropagation();
         if (checked) {
             selectedConstraints.update(list => {
                 const teamCons = get(constraints).filter(c => c.team_id === teamId);
@@ -110,6 +104,67 @@
       // No need for adjustment since backend uses 0-based indexing where 0=Monday
       return weekdayNames[day] || '—';
     }
+
+    // Update day_of_week via dropdown
+    function handleConstraintDayChange(constraint: Constraint, newDay: number) {
+      selectedConstraints.update(list => {
+        const idx = list.findIndex(c => c.uid === constraint.uid);
+        if (idx !== -1) {
+          return list.map(c => c.uid === constraint.uid ? { ...c, day_of_week: newDay as 0|1|2|3|4|5|6 } : c);
+        }
+        return list;
+      });
+    }
+
+    // Update field_id via dropdown
+    function handleConstraintFieldChange(constraint: Constraint, newFieldId: number | null) {
+      selectedConstraints.update(list => {
+        const idx = list.findIndex(c => c.uid === constraint.uid);
+        if (idx !== -1) {
+          return list.map(c => c.uid === constraint.uid ? { ...c, field_id: newFieldId } : c);
+        }
+        return list;
+      });
+    }
+
+    // Update length via dropdown
+    function handleConstraintLengthChange(constraint: Constraint, newLength: number) {
+      selectedConstraints.update(list => {
+        const idx = list.findIndex(c => c.uid === constraint.uid);
+        if (idx !== -1) {
+          return list.map(c => c.uid === constraint.uid ? { ...c, length: newLength } : c);
+        }
+        return list;
+      });
+    }
+
+    // Update required_cost via dropdown
+    function handleConstraintCostChange(constraint: Constraint, newCost: number | null) {
+      selectedConstraints.update(list => {
+        const idx = list.findIndex(c => c.uid === constraint.uid);
+        if (idx !== -1) {
+          return list.map(c => c.uid === constraint.uid ? { ...c, required_cost: newCost as 125 | 250 | 500 | 1000 | null } : c);
+        }
+        return list;
+      });
+    }
+
+    // Length options in 15-minute units
+    const lengthOptions = [
+      { value: 2, label: '30 min' },      // 2 * 15 = 30
+      { value: 3, label: '45 min' },      // 3 * 15 = 45
+      { value: 4, label: '1 hour' },      // 4 * 15 = 60
+      { value: 6, label: '1 hour 30 min' }, // 6 * 15 = 90
+      { value: 8, label: '2 hours' }      // 8 * 15 = 120
+    ];
+
+    // Required cost options with field size labels
+    const costOptions = [
+      { value: 125, label: '3v3 / Half 5v5 / Quarter 8v8' },
+      { value: 250, label: '5v5 / Half 8v8 / Quarter 11v11' },
+      { value: 500, label: '8v8 / Half 11v11' },
+      { value: 1000, label: '11v11' }
+    ];
 </script>
 
 
@@ -119,6 +174,7 @@
         <TableHead>
           <TableHeadCell>
             <Checkbox checked={allSelected} on:change={(e) => {
+              e.stopPropagation();
               if (e.target && 'checked' in e.target) {
                 handleSelectAll((e.target as HTMLInputElement).checked);
               }
@@ -132,10 +188,23 @@
           {#each teamItems as team}
             <TableBodyRow on:click={() => toggleRow(team.team_id!)}>
               <TableBodyCell class="p-4!">
-                <Checkbox
-                  checked={selectedTeamIds.includes(team.team_id!)}
-                  on:change={(e) => handleCheckboxChange(team.team_id!, (e.target as HTMLInputElement).checked)}
-                />
+                <div 
+                  class="inline-block" 
+                  role="button"
+                  tabindex="0"
+                  on:click={(e) => e.stopPropagation()}
+                  on:keydown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }
+                  }}
+                >
+                  <Checkbox
+                    checked={selectedTeamIds.includes(team.team_id!)}
+                    on:change={(e) => handleCheckboxChange(team.team_id!, (e.target as HTMLInputElement).checked, e)}
+                  />
+                </div>
               </TableBodyCell>
               <TableBodyCell>{team.name}</TableBodyCell>
               <TableBodyCell>{team.year}</TableBodyCell>
@@ -147,8 +216,8 @@
                   <Table noborder={true} divClass="relative overflow-x-auto pl-8">
                     <TableHead theadClass="text-xs uppercase">
                       <TableHeadCell class="text-xs"></TableHeadCell>
-                      <TableHeadCell class="text-xs">Day</TableHeadCell>
                       <TableHeadCell class="text-xs">Start Time</TableHeadCell>
+                      <TableHeadCell class="text-xs">Day</TableHeadCell>
                       <TableHeadCell class="text-xs">Field ID</TableHeadCell>
                       <TableHeadCell class="text-xs">Length</TableHeadCell>
                       <TableHeadCell class="text-xs">Required Cost</TableHeadCell>
@@ -162,24 +231,40 @@
                               on:change={(e) => handleConstraintCheckboxChange(c, (e.target as HTMLInputElement).checked)}
                             />
                           </TableBodyCell>
-                          <TableBodyCell>{formatDay(c.day_of_week)}</TableBodyCell>
-                          <TableBodyCell>{c.start_time ?? '—'}</TableBodyCell>
                           <TableBodyCell>
-                            {#if c.field_id}
-                              <Badge border color="blue" class="mr-2">{getFieldName(c.field_id)}</Badge>
-                            {:else}
-                              —
-                            {/if}
+                            {c.start_time ?? '—'}
                           </TableBodyCell>
-                          <TableBodyCell>{formatLength(c.length)}</TableBodyCell>
                           <TableBodyCell>
-                            {#if c.required_cost}
-                              {#each formatFieldSize(c.required_cost) as size}
-                                <Badge border color="green" class="mr-2">{size}</Badge>
+                            <Select size="sm" value={(($selectedConstraints.find(sc => sc.uid === c.uid)?.day_of_week) ?? c.day_of_week) ?? ""} on:change={(e) => handleConstraintDayChange(c, parseInt((e.target as HTMLSelectElement).value))}>
+                              <option value="">—</option>
+                              {#each weekdayNames as name, idx}
+                                <option value={idx}>{name}</option>
                               {/each}
-                            {:else}
-                              —
-                            {/if}
+                            </Select>
+                          </TableBodyCell>
+                          <TableBodyCell>
+                            <Select size="sm" value={(($selectedConstraints.find(sc => sc.uid === c.uid)?.field_id) ?? c.field_id) ?? ""} on:change={(e) => handleConstraintFieldChange(c, (e.target as HTMLSelectElement).value ? parseInt((e.target as HTMLSelectElement).value) : null)}>
+                              <option value="">—</option>
+                              {#each getFlattenedFields() as field}
+                                <option value={field.field_id}>{field.name}</option>
+                              {/each}
+                            </Select>
+                          </TableBodyCell>
+                          <TableBodyCell>
+                            <Select size="sm" value={(($selectedConstraints.find(sc => sc.uid === c.uid)?.length) ?? c.length) ?? ""} on:change={(e) => handleConstraintLengthChange(c, parseInt((e.target as HTMLSelectElement).value))}>
+                              <option value="">—</option>
+                              {#each lengthOptions as option}
+                                <option value={option.value}>{option.label}</option>
+                              {/each}
+                            </Select>
+                          </TableBodyCell>
+                          <TableBodyCell>
+                            <Select size="sm" value={(($selectedConstraints.find(sc => sc.uid === c.uid)?.required_cost) ?? c.required_cost) ?? ""} on:change={(e) => handleConstraintCostChange(c, (e.target as HTMLSelectElement).value ? parseInt((e.target as HTMLSelectElement).value) : null)}>
+                              <option value="">—</option>
+                              {#each costOptions as option}
+                                <option value={option.value}>{option.label}</option>
+                              {/each}
+                            </Select>
                           </TableBodyCell>
                         </TableBodyRow>
                       {/each}
