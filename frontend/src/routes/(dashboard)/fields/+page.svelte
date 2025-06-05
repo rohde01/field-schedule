@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { fields, deleteField, addField } from '$lib/stores/fields.js';
+  import { filteredFields, deleteField, addField } from '$lib/stores/fields.js';
   import { superForm } from 'sveltekit-superforms/client';
   import { zodClient } from 'sveltekit-superforms/adapters';
   import { facilityCreateSchema } from '$lib/schemas/facility';
@@ -137,11 +137,11 @@
       openDelete = true;
   }
 
-  const showHalfFields = derived(fields, $fields => 
-    $fields.some(f => (f.half_subfields?.length ?? 0) > 0)
+  const showHalfFields = derived(filteredFields, $filteredFields => 
+    $filteredFields.some(f => (f.half_subfields?.length ?? 0) > 0)
   );
-  const showQuarterFields = derived(fields, $fields => 
-    $fields.some(f => 
+  const showQuarterFields = derived(filteredFields, $filteredFields => 
+    $filteredFields.some(f => 
       ((f.quarter_subfields?.length ?? 0) > 0) ||
       ((f.half_subfields?.some(h => (h.quarter_subfields?.length ?? 0) > 0)) ?? false)
     )
@@ -201,7 +201,7 @@
       <TableHeadCell class="p-4">Actions</TableHeadCell>
     </TableHead>
     <TableBody>
-      {#each $fields as field}
+      {#each $filteredFields as field}
         <TableBodyRow class="text-base">
           <TableBodyCell class="w-4 p-4"><Checkbox /></TableBodyCell>
           <TableBodyCell class="p-4 font-medium">{field.name}</TableBodyCell>

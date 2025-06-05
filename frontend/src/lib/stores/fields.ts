@@ -1,7 +1,18 @@
 import { writable } from 'svelte/store';
+import { derived } from 'svelte/store';
 import type { Field, FlattenedField } from '$lib/schemas/field';
+import { selectedFacility } from './facilities';
 
 export const fields = writable<Field[]>([]);
+
+// Derived store that filters fields by selected facility
+export const filteredFields = derived(
+    [fields, selectedFacility],
+    ([$fields, $selectedFacility]) => {
+        if (!$selectedFacility) return [];
+        return $fields.filter(field => field.facility_id === $selectedFacility.facility_id);
+    }
+);
 
 export function setFields(newFields: Field[]) {
     fields.set(newFields);
