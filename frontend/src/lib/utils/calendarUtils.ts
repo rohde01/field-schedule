@@ -254,19 +254,8 @@ if (browser) {
     ([$selectedSchedule, $currentDate]) => {
       if (!$selectedSchedule) return [];
       const entries = getAllEntriesForDate($selectedSchedule, $currentDate);
-      const processed = entries.map(entry => {
-        const dtstampStr = entry.dtstart instanceof Date
-          ? entry.dtstart.toISOString()
-          : typeof entry.dtstart === 'string'
-            ? entry.dtstart
-            : '';
-        return {
-          ...entry,
-          ui_id: `${entry.uid}-${dtstampStr}`
-        };
-      });
-      console.log('Processed Entries:', processed);
-      return processed;
+      console.log('Processed Entries:', entries);
+      return entries;
     }
   ).subscribe(val => processedEntries.set(val));
 } else {

@@ -1,6 +1,7 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import type { Schedule } from '$lib/schemas/schedule';
+import { processFields } from '$lib/utils/fieldProcessor';
 
 export const load: PageServerLoad = async ({ url, locals: { supabase } }) => {
     const hostname = url.hostname;
@@ -90,7 +91,7 @@ export const load: PageServerLoad = async ({ url, locals: { supabase } }) => {
         }
 
         // Fetch fields for this club
-        const { data: fields, error: fieldsError } = await supabase
+        const { data: rawFields, error: fieldsError } = await supabase
             .from('fields')
             .select('*')
             .eq('club_id', club.club_id);
@@ -99,6 +100,19 @@ export const load: PageServerLoad = async ({ url, locals: { supabase } }) => {
             console.error('Failed to fetch fields:', fieldsError);
             throw error(500, 'Failed to fetch fields');
         }
+
+        // Fetch field availabilities from Supabase
+        const { data: availabilities, error: availabilityError } = await supabase
+            .from('field_availability')
+            .select('*')
+            .eq('club_id', club.club_id);
+
+        if (availabilityError) {
+            console.error('Failed to fetch field availabilities:', availabilityError);
+            throw error(500, 'Failed to fetch field availabilities');
+        }
+
+        const fields = processFields(rawFields || [], availabilities || []);
 
         return {
             hasSubdomain: true,
