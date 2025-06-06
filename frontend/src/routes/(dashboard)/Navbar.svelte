@@ -40,7 +40,7 @@
   <div class="ms-auto flex items-center text-gray-500 sm:order-2 dark:text-gray-300">
     <DarkMode />
     {#if session}
-      <UserMenu name="Carl-Emil" avatar="" email="dev@rohdee.dk" {menuItems}>
+      <UserMenu name="Welcome!" avatar="" email="" {menuItems}>
         <DropdownDivider />
         <DropdownItem>
           <form action="/schedules?/logout" method="post">
