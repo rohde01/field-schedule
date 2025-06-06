@@ -24,8 +24,16 @@
         if (hostname === 'localhost') {
             window.location.href = `${protocol}//${clubName}.localhost:${currentUrl.port}`;
         } else {
-            // For production, assume the main domain structure
-            const mainDomain = hostname.replace(/^[^.]+\./, ''); // Remove subdomain if exists
+            // For production, determine the main domain
+            let mainDomain;
+            if (hostname === 'baneplanen.info' || hostname === 'www.baneplanen.info') {
+                mainDomain = 'baneplanen.info';
+            } else if (hostname.endsWith('.baneplanen.info')) {
+                mainDomain = 'baneplanen.info';
+            } else {
+                // Fallback: extract main domain by removing subdomain
+                mainDomain = hostname.replace(/^[^.]+\./, '');
+            }
             window.location.href = `${protocol}//${clubName}.${mainDomain}`;
         }
     }
