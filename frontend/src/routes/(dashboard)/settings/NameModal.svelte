@@ -9,12 +9,24 @@
   } = $props();
 
   const { form: formData, enhance, errors, message } = form;
+
+  // Custom enhance function to reload page on success
+  const customEnhance = (form: HTMLFormElement) => {
+    return enhance(form, {
+      onResult: ({ result }) => {
+        if (result.type === 'success') {
+          // Force page reload on successful update
+          window.location.reload();
+        }
+      }
+    });
+  };
 </script>
 
 <Modal bind:open title="Complete Your Profile" size="md" class="m-4">
   <!-- Modal body -->
   <div class="space-y-6 p-0">
-    <form method="POST" action="?/updateUser" use:enhance id="name-form">
+    <form method="POST" action="?/updateUser" use:customEnhance id="name-form">
       <div class="grid grid-cols-6 gap-6">
         <Label class="col-span-6 space-y-2 sm:col-span-6">
           <span>First Name</span>
