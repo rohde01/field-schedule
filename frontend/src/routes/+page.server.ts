@@ -7,11 +7,7 @@ export const load: PageServerLoad = async ({ url, locals: { supabase } }) => {
     const parts = hostname.split('.');
     const hasSubdomain = parts.length > 1 && parts[0] !== 'localhost' && parts[0] !== 'www';
     
-    console.log(`[Public View] Analyzing hostname: ${hostname}, parts:`, parts);
-    console.log(`[Public View] Has subdomain: ${hasSubdomain}`);
-    
     if (!hasSubdomain) {
-        console.log('[Public View] No subdomain detected - showing landing page');
         return {
             hasSubdomain: false,
             club: null,
@@ -25,11 +21,27 @@ export const load: PageServerLoad = async ({ url, locals: { supabase } }) => {
     }
 
     const subdomain = parts[0];
-    console.log(`[Public View] Subdomain detected: "${subdomain}" - fetching all schedules from database`);
 
     try {
-        // Fetch ALL schedules from the entire database
-        console.log(`[Public View] Fetching ALL schedules across all clubs`);
+        // First, find the club by matching subdomain to club name
+        const { data: clubs, error: clubError } = await supabase
+            .from('clubs')
+            .select('club_id, name')
+            .eq('name', subdomain)
+            .limit(1);
+
+        if (clubError) {
+            console.error('Failed to fetch club:', clubError);
+            throw error(500, 'Failed to fetch club');
+        }
+
+        if (!clubs || clubs.length === 0) {
+            throw error(404, 'Club not found');
+        }
+
+        const club = clubs[0];
+
+        // Now fetch schedules for this specific club
         const { data: rawSchedules, error: schedulesError } = await supabase
             .from('schedules')
             .select(`
@@ -55,7 +67,8 @@ export const load: PageServerLoad = async ({ url, locals: { supabase } }) => {
                     summary,
                     description
                 )
-            `);
+            `)
+            .eq('club_id', club.club_id);
 
         if (schedulesError) {
             console.error('Failed to fetch schedules:', schedulesError);
@@ -63,7 +76,7 @@ export const load: PageServerLoad = async ({ url, locals: { supabase } }) => {
         }
 
         const schedules: Schedule[] = rawSchedules || [];
-        console.log(`[Public View] Found ${schedules.length} total schedules across all clubs`);
+        console.log(`[Public View] Found ${schedules.length} schedules for club: ${club.name}`);
 
         return {
             hasSubdomain: true,
