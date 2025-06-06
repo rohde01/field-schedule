@@ -14,12 +14,23 @@ export const load: PageServerLoad = async ({ url, locals: { supabase } }) => {
                         (parts.length === 1); // Single part means localhost or similar
     
     if (isMainDomain) {
+        // Fetch all clubs for the dropdown
+        const { data: clubs, error: clubsError } = await supabase
+            .from('clubs')
+            .select('club_id, name')
+            .order('name');
+
+        if (clubsError) {
+            console.error('Failed to fetch clubs:', clubsError);
+            throw error(500, 'Failed to fetch clubs');
+        }
+
         return {
             hasSubdomain: false,
             club: null,
             schedules: [],
             user: null,
-            clubs: [],
+            clubs: clubs || [],
             facilities: [],
             fields: [],
             teams: []
@@ -42,7 +53,23 @@ export const load: PageServerLoad = async ({ url, locals: { supabase } }) => {
         }
 
         if (!clubs || clubs.length === 0) {
-            throw error(404, 'Club not found');
+            // Still fetch all clubs for the dropdown on error page
+            const { data: allClubs, error: allClubsError } = await supabase
+                .from('clubs')
+                .select('club_id, name')
+                .order('name');
+
+            return {
+                hasSubdomain: true,
+                club: null,
+                schedules: [],
+                user: null,
+                clubs: allClubs || [],
+                facilities: [],
+                fields: [],
+                teams: [],
+                invalidSubdomain: subdomain
+            };
         }
 
         const club = clubs[0];
