@@ -1,23 +1,21 @@
 <script lang="ts">
     import { Heading, P, Button } from 'flowbite-svelte';
     import { ArrowRightOutline } from 'flowbite-svelte-icons';
-    import { browser } from '$app/environment';
     import { onMount } from 'svelte';
     import ClubSchedule from './ClubSchedule.svelte';
+    import { setSchedules } from '$lib/stores/schedules';
+    import type { PageData } from './$types';
 
-    let hasSubdomain = false;
+    export let data: PageData;
 
     onMount(() => {
-        if (browser) {
-            const hostname = window.location.hostname;
-            // Check if hostname has a subdomain (not just localhost or an IP)
-            const parts = hostname.split('.');
-            hasSubdomain = parts.length > 1 && parts[0] !== 'localhost' && parts[0] !== 'www';
+        if (data.hasSubdomain && data.schedules) {
+            setSchedules(data.schedules);
         }
     });
 </script>
 
-{#if hasSubdomain}
+{#if data.hasSubdomain}
     <ClubSchedule />
 {:else}
     <div class="flex items-center justify-center min-h-screen dark:bg-gray-900 pt-0 -mt-32">

@@ -46,7 +46,7 @@
   });
 
   let posts = [
-    { name: 'Dashboard', Icon: ChartPieOutline, href: '/dashboard' },
+    { name: 'Dashboard', Icon: ChartPieOutline, href: '/' },
     { name: 'Schedules', Icon: ClipboardListSolid, href: '/schedules' },
     { name: 'Fields', Icon: TableColumnSolid, href: '/fields' },
     { name: 'Teams', Icon: RectangleListSolid, href: '/teams' }
