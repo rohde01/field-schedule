@@ -171,7 +171,7 @@ function getAllEntriesForDate(schedule: {schedule_entries?: ScheduleEntry[]} | n
   // Process single occurrences (non-recurring events)
   const oneTimeEntries = regularEntries
     .filter(entry => shouldShowEntryOnDate(entry, date))
-    .map(entry => {
+    .map((entry, index) => {
       const dtstart = createUTCDate(entry.dtstart);
       const dtend = createUTCDate(entry.dtend);
       return {
@@ -180,7 +180,7 @@ function getAllEntriesForDate(schedule: {schedule_entries?: ScheduleEntry[]} | n
         dtend,
         start_time: getTimeFromDate(dtstart),
         end_time: getTimeFromDate(dtend),
-        ui_id: `${entry.uid}-${dtstart.toISOString()}`,
+        ui_id: `onetime-${entry.uid}-${dtstart.toISOString()}-${index}`,
         isRecurring: false
       };
     });
@@ -191,7 +191,7 @@ function getAllEntriesForDate(schedule: {schedule_entries?: ScheduleEntry[]} | n
       const dtstart = createUTCDate(entry.dtstart);
       return isSameDay(dtstart, date);
     })
-    .map(entry => {
+    .map((entry, index) => {
       const dtstart = createUTCDate(entry.dtstart);
       const dtend = createUTCDate(entry.dtend);
       return {
@@ -200,7 +200,7 @@ function getAllEntriesForDate(schedule: {schedule_entries?: ScheduleEntry[]} | n
         dtend,
         start_time: getTimeFromDate(dtstart),
         end_time: getTimeFromDate(dtend),
-        ui_id: `${entry.uid}-${dtstart.toISOString()}`,
+        ui_id: `exception-${entry.uid}-${dtstart.toISOString()}-${index}`,
         isRecurring: false
       };
     });
@@ -220,6 +220,10 @@ function getAllEntriesForDate(schedule: {schedule_entries?: ScheduleEntry[]} | n
     masterExceptions.get(exception.uid)?.push(exDate);
   });
 
+  // Use a Set to track unique recurring entries and prevent duplicates
+  const seenRecurringIds = new Set<string>();
+  let recurringIndex = 0;
+
   recurringMasters.forEach(master => {
     // Get all occurrences for this master event on the selected date
     const instances = createRecurringEvents(master, schedule)
@@ -235,9 +239,16 @@ function getAllEntriesForDate(schedule: {schedule_entries?: ScheduleEntry[]} | n
         exceptDate.getUTCMinutes() === instance.dtstart.getUTCMinutes()
       );
       
-      // Only add instances that don't have exceptions replacing them
-      if (!hasMatchingException) {
+      // Create a unique identifier for this specific instance
+      const instanceKey = `${master.uid}-${instance.dtstart.toISOString()}`;
+      
+      // Only add instances that don't have exceptions replacing them and haven't been seen before
+      if (!hasMatchingException && !seenRecurringIds.has(instanceKey)) {
+        seenRecurringIds.add(instanceKey);
+        // Update the ui_id to include the recurring index for guaranteed uniqueness
+        instance.ui_id = `recurring-${master.uid}-${instance.dtstart.toISOString()}-${recurringIndex}`;
         recurringEntries.push(instance);
+        recurringIndex++;
       }
     });
   });
