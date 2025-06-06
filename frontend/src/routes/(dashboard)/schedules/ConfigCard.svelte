@@ -9,13 +9,13 @@
     import { constraintSchema } from '$lib/schemas/constraint';
     import { scheduleEntrySchema } from '$lib/schemas/schedule';
     import ToastMessage from '$lib/components/Toast.svelte';
+    import { PUBLIC_API_URL } from '$env/static/public';
 
     let fairWeekdays = true;
     let fairStartTimes = true;
     let generating = false;
     let toastMessage = '';
     let toastType = 'success'; // 'success', 'warning', 'error'
-    const API_URL = 'http://localhost:8000';
 
     async function generateModel() {
         generating = true;
@@ -30,7 +30,7 @@
         const payload = { fields: parsedFields, constraints: parsedConstraints, weekday_objective: fairWeekdays, 
             start_time_objective: fairStartTimes
          };
-        const response = await fetch(`${API_URL}/schedules/generate`, {
+        const response = await fetch(`${PUBLIC_API_URL}/schedules/generate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
