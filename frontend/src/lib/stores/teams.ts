@@ -5,6 +5,7 @@ import type { Team } from '$lib/schemas/team';
 export const teams = writable([] as Team[]);
 
 export function setTeams(newTeams: Team[]) {
+    console.log(`[Teams Store] Setting ${newTeams.length} teams:`, newTeams);
     teams.update(() => [...newTeams]);
 }
 

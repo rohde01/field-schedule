@@ -78,6 +78,28 @@ export const load: PageServerLoad = async ({ url, locals: { supabase } }) => {
         const schedules: Schedule[] = rawSchedules || [];
         console.log(`[Public View] Found ${schedules.length} schedules for club: ${club.name}`);
 
+        // Fetch teams for this club
+        const { data: teams, error: teamsError } = await supabase
+            .from('teams')
+            .select('*')
+            .eq('club_id', club.club_id);
+
+        if (teamsError) {
+            console.error('Failed to fetch teams:', teamsError);
+            throw error(500, 'Failed to fetch teams');
+        }
+
+        // Fetch fields for this club
+        const { data: fields, error: fieldsError } = await supabase
+            .from('fields')
+            .select('*')
+            .eq('club_id', club.club_id);
+
+        if (fieldsError) {
+            console.error('Failed to fetch fields:', fieldsError);
+            throw error(500, 'Failed to fetch fields');
+        }
+
         return {
             hasSubdomain: true,
             club: null,
@@ -85,8 +107,8 @@ export const load: PageServerLoad = async ({ url, locals: { supabase } }) => {
             user: null,
             clubs: [],
             facilities: [],
-            fields: [],
-            teams: []
+            fields: fields || [],
+            teams: teams || []
         };
     } catch (err) {
         console.error('Error in root page load function:', err);

@@ -4,6 +4,8 @@
     import { onMount } from 'svelte';
     import ClubSchedule from './ClubSchedule.svelte';
     import { setSchedules } from '$lib/stores/schedules';
+    import { setTeams } from '$lib/stores/teams';
+    import { setFields } from '$lib/stores/fields';
     import type { PageData } from './$types';
 
     export let data: PageData;
@@ -11,6 +13,12 @@
     onMount(() => {
         if (data.hasSubdomain && data.schedules) {
             setSchedules(data.schedules);
+        }
+        if (data.hasSubdomain && data.teams) {
+            setTeams(data.teams);
+        }
+        if (data.hasSubdomain && data.fields) {
+            setFields(data.fields);
         }
     });
 </script>
