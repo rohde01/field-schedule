@@ -9,6 +9,7 @@
   import { ChartPieOutline, TableColumnSolid, RectangleListSolid, GithubSolid, ClipboardListSolid, ChevronUpOutline } from 'flowbite-svelte-icons';
   import { facilities, selectedFacility, setSelectedFacility, toggleCreateFacility } from '$lib/stores/facilities';
   import { schedules, selectedSchedule, IsCreating, type LocalSchedule } from '$lib/stores/schedules';
+  import { clubs } from '$lib/stores/clubs';
   import type { Facility } from '$lib/schemas/facility';
   import type { Schedule } from '$lib/schemas/schedule';
   import ActionButton from './schedules/ActionButton.svelte';
@@ -45,12 +46,29 @@
     activeMainSidebar = nav.to?.url.pathname ?? '';
   });
 
-  let posts = [
-    { name: 'Dashboard', Icon: ChartPieOutline, href: '/' },
+  let posts = $derived([
+    { name: 'Public club page', Icon: ChartPieOutline, href: getPublicClubUrl() },
     { name: 'Schedules', Icon: ClipboardListSolid, href: '/schedules' },
     { name: 'Fields', Icon: TableColumnSolid, href: '/fields' },
     { name: 'Teams', Icon: RectangleListSolid, href: '/teams' }
-  ];
+  ]);
+
+  function getPublicClubUrl() {
+    if ($clubs.length > 0) {
+      const clubName = $clubs[0].name;
+      const currentHost = window.location.host;
+      const isLocalhost = currentHost.includes('localhost');
+      
+      if (isLocalhost) {
+        return `http://${clubName}.localhost:5173`;
+      } else {
+        // For production, construct the subdomain URL
+        const baseDomain = currentHost.split('.').slice(-2).join('.');
+        return `https://${clubName}.${baseDomain}`;
+      }
+    }
+    return '/';
+  }
 
   let links = [
     { label: 'GitHub Repository', href: 'https://github.com/rohde01/field-schedule.git', Icon: GithubSolid }

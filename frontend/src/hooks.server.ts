@@ -53,6 +53,11 @@ const authGuard: Handle = async ({ event, resolve }) => {
     event.locals.session = session
     event.locals.user = user
 
+    // If user is logged in and trying to access auth page, redirect to schedules
+    if (session && event.url.pathname === '/auth') {
+        throw redirect(303, '/schedules')
+    }
+
     const isProtected = event.route.id?.startsWith('/(dashboard)')
     if (!isProtected) {
         return resolve(event)
@@ -60,10 +65,6 @@ const authGuard: Handle = async ({ event, resolve }) => {
 
     if (!session) {
         throw redirect(303, '/auth')
-    }
-
-    if (event.url.pathname === '/auth') {
-        throw redirect(303, '/')
     }
 
     // Redirect to onboarding if name or club is missing

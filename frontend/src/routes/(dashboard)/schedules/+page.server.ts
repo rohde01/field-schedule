@@ -5,7 +5,8 @@ import { superValidate } from 'sveltekit-superforms/server';
 import { zod } from 'sveltekit-superforms/adapters';
 import type { RequestEvent } from '@sveltejs/kit';
 import { deleteScheduleSchema, createScheduleSchema, updateScheduleSchema, type CreateScheduleInput, type UpdateScheduleInput } from '$lib/schemas/schedule';
-import { fail } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
+import { dev } from '$app/environment';
 
 export const ssr = false;
 
@@ -32,7 +33,7 @@ export const load = (async ({ locals }: RequestEvent) => {
     };
 }) 
 
-export const actions = {
+export const actions: Actions = {
     insertScheduleEntries: async ({ request, locals }) => {
         if (!locals.user) throw error(401, 'Unauthorized');
         const formData = await request.formData();
@@ -175,5 +176,20 @@ export const actions = {
         // Set message on the form object for superforms
         form.message = 'Schedule updated successfully!';
         return { form, success: true, schedule: updatedSchedule };
+    },
+    logout: async ({ cookies, locals: { supabase } }) => {
+        const { error } = await supabase.auth.signOut({
+            scope: 'global'
+        });
+        
+        if (error) {
+            return fail(500, { message: 'Logout failed' });
+        }
+        // Clear supabase auth cookies
+        ['sb-access-token', 'sb-refresh-token', 'sb-auth-token'].forEach(name => {
+            cookies.delete(name, { path: '/', httpOnly: true, secure: !dev, sameSite: 'lax' });
+        });
+        
+        throw redirect(303, '/');
     }
 } satisfies Actions;

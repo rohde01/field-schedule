@@ -6,7 +6,7 @@
   export let session: App.PageData['session'] = null;
   
   const menuItems = [
-    { text: 'Dashboard', href: '/' },
+    { text: 'My club', href: '/schedules' },
     { text: 'Settings', href: '/settings' }
   ];
 
@@ -43,7 +43,7 @@
       <UserMenu name="Carl-Emil" avatar="" email="dev@rohdee.dk" {menuItems}>
         <DropdownDivider />
         <DropdownItem>
-          <form action="/auth?/logout" method="post">
+          <form action="/schedules?/logout" method="post">
             <Button size="xs" type="submit">
               <ArrowUpRightFromSquareSolid class="w-4 h-4 me-2" />
               Sign out
