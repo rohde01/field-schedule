@@ -15,9 +15,45 @@
           getCurrentTimePosition, formatTimeForDisplay,
           shouldHideHourLabel, isHourMark, timeTrackingEnabled } from '$lib/utils/dateUtils';
   import { getFieldColumns, buildFieldToGridColumnMap, generateHeaderCells, getFieldName } from '$lib/utils/fieldUtils';
-  import { selectedSchedule } from '$lib/stores/schedules';
+  import { selectedSchedule, schedules } from '$lib/stores/schedules';
   import { Heading, Button, Toggle, Tooltip } from 'flowbite-svelte';
   import { AngleLeftOutline, AngleRightOutline } from 'flowbite-svelte-icons';
+
+  // Function to find the active schedule for a given date
+  function findActiveScheduleForDate(date: Date): number | null {
+    const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+    
+    for (const schedule of $schedules) {
+      const activeFrom = schedule.active_from;
+      const activeUntil = schedule.active_until;
+      
+      // Skip schedules without BOTH active_from AND active_until defined
+      if (!activeFrom || !activeUntil) {
+        continue;
+      }
+      
+      // Check if current date is within the active range
+      if (dateStr >= activeFrom && dateStr <= activeUntil) {
+        return schedule.schedule_id!;
+      }
+    }
+    
+    return null;
+  }
+
+  // Update selected schedule when current date changes
+  $: if (browser && $schedules.length > 0) {
+    const activeScheduleId = findActiveScheduleForDate($currentDate);
+    if (activeScheduleId && activeScheduleId !== $selectedSchedule?.schedule_id) {
+      const activeSchedule = $schedules.find(s => s.schedule_id === activeScheduleId);
+      if (activeSchedule) {
+        selectedSchedule.set(activeSchedule);
+      }
+    } else if (!activeScheduleId) {
+      // Clear selected schedule if no active schedule found
+      selectedSchedule.set(null);
+    }
+  }
 
   // Time tracking variables
   let currentTimePosition = 0;
@@ -109,6 +145,12 @@
     </div>
   </div>
 
+  <!-- Display message when no schedule is active -->
+  {#if !$selectedSchedule}
+    <div class="no-schedule-message bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-8 text-center my-4">
+      <p class="text-gray-600 dark:text-gray-400 text-lg">No active schedule on this day</p>
+    </div>
+  {:else}
   <!-- HEADER ROW OUTSIDE SCROLLABLE CONTAINER -->
   <div class="schedule-grid bg-gray-100 dark:bg-gray-700">
     <div 
@@ -189,6 +231,7 @@
       {/each}
     </div>
   </div>
+  {/if}
 </div>
 
 <style>
