@@ -6,9 +6,14 @@ import { processFields } from '$lib/utils/fieldProcessor';
 export const load: PageServerLoad = async ({ url, locals: { supabase } }) => {
     const hostname = url.hostname;
     const parts = hostname.split('.');
-    const hasSubdomain = parts.length > 1 && parts[0] !== 'localhost' && parts[0] !== 'www';
     
-    if (!hasSubdomain) {
+    // Check if this is a main domain access (no club subdomain)
+    const isMainDomain = hostname === 'baneplanen.info' || 
+                        hostname === 'www.baneplanen.info' || 
+                        hostname === 'localhost' ||
+                        (parts.length === 1); // Single part means localhost or similar
+    
+    if (isMainDomain) {
         return {
             hasSubdomain: false,
             club: null,
