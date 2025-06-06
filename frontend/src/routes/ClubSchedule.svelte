@@ -120,118 +120,125 @@
 
 
 <!-- make container focusable and keyboard-operable -->
-<div class="schedule-container">
-  <div class="schedule-controls flex items-center my-2 py-2">
-    <div class="current-date flex-1">
-      <Heading tag="h2">
-        {formatDate($currentDate)}
-      </Heading>
-      <Heading tag="h3" class="mt-1 text-gray-600">
-        {formatWeekdayOnly($currentDate)}
-      </Heading>
-    </div>
-
-    <div class="navigation-controls flex-1 flex items-center gap-2 justify-end">
-      <div class="toggle-container">
-        <Toggle bind:checked={$showEarlyTimeslots}></Toggle>
-        <Tooltip placement="top">Show entire day</Tooltip>
+<div id="main-content" class="relative mx-auto h-full w-full overflow-y-auto bg-gray-50 p-4 dark:bg-gray-900 mt-16">
+  <div class="schedule-container">
+    {#if $selectedSchedule}
+      <div class="flex items-center gap-2 mb-4">
+        <Heading tag="h1">{$selectedSchedule.name}</Heading>
       </div>
-      <Button outline={true} class="p-2!" on:click={previousDay}>
-        <AngleLeftOutline class="w-5 h-5" />
-      </Button>
-      <Button outline={true} class="p-2!" on:click={nextDay}>
-        <AngleRightOutline class="w-5 h-5" />
-      </Button>
-    </div>
-  </div>
+    {/if}
+    <div class="schedule-controls flex items-center my-2 py-2">
+      <div class="current-date flex-1">
+        <Heading tag="h2">
+          {formatDate($currentDate)}
+        </Heading>
+        <Heading tag="h3" class="mt-1 text-gray-600">
+          {formatWeekdayOnly($currentDate)}
+        </Heading>
+      </div>
 
-  <!-- Display message when no schedule is active -->
-  {#if !$selectedSchedule}
-    <div class="no-schedule-message bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-8 text-center my-4">
-      <p class="text-gray-600 dark:text-gray-400 text-lg">No active schedule on this day</p>
+      <div class="navigation-controls flex-1 flex items-center gap-2 justify-end">
+        <div class="toggle-container">
+          <Toggle bind:checked={$showEarlyTimeslots}></Toggle>
+          <Tooltip placement="top">Show entire day</Tooltip>
+        </div>
+        <Button outline={true} class="p-2!" on:click={previousDay}>
+          <AngleLeftOutline class="w-5 h-5" />
+        </Button>
+        <Button outline={true} class="p-2!" on:click={nextDay}>
+          <AngleRightOutline class="w-5 h-5" />
+        </Button>
+      </div>
     </div>
-  {:else}
-  <!-- HEADER ROW OUTSIDE SCROLLABLE CONTAINER -->
-  <div class="schedule-grid bg-gray-100 dark:bg-gray-700">
-    <div 
-      class="p-4 font-medium text-gray-900 dark:text-white"
-      style="grid-column: 1;"
-    >
-    </div>
-    {#each headerCells as cell}
-      <div
-        class="p-4 font-medium text-gray-900 dark:text-white text-center"
-        style="grid-column: {cell.colIndex} / span {cell.colSpan}; border-right: none;"
+
+    <!-- Display message when no schedule is active -->
+    {#if !$selectedSchedule}
+      <div class="no-schedule-message bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-8 text-center my-4">
+        <p class="text-gray-600 dark:text-gray-400 text-lg">No active schedule on this day</p>
+      </div>
+    {:else}
+    <!-- HEADER ROW OUTSIDE SCROLLABLE CONTAINER -->
+    <div class="schedule-grid bg-gray-100 dark:bg-gray-700">
+      <div 
+        class="p-4 font-medium text-gray-900 dark:text-white"
+        style="grid-column: 1;"
       >
-        {cell.label}
       </div>
-    {/each}
-  </div>
-  <div class="daily-schedule-wrapper" style="margin-top: 7px;">
-    <div 
-      class="schedule-grid"
-      style="--total-columns: {totalColumns}; --total-rows: {$timeSlots.length + 1};">
-      <!-- TIMESLOT ROWS -->
-      {#each $timeSlots as time, rowIndex}
+      {#each headerCells as cell}
         <div
-          class="schedule-time text-gray-900 dark:text-white"
-          style="grid-column: 1; grid-row: {rowIndex + 2}; justify-content: flex-end;"
+          class="p-4 font-medium text-gray-900 dark:text-white text-center"
+          style="grid-column: {cell.colIndex} / span {cell.colSpan}; border-right: none;"
         >
-          {#if isHourMark(time) && !shouldHideHourLabel(time) && !shouldHideFirstHourMarkWhenEarlyOff(time, $showEarlyTimeslots)}
-            <span style="position:absolute; bottom:50%; right:5;">{time}</span>
-          {/if}
+          {cell.label}
         </div>
-
-        {#each headerCells as cell}
-          <div
-            class={`schedule-cell ${isHourMark(time) && !shouldHideFirstHourMarkWhenEarlyOff(time, $showEarlyTimeslots) ? 'schedule-hour-mark' : ''} ${cell.colIndex > 1 && cell.colIndex < totalColumns ? 'border-grid' : ''}`}
-            style="grid-column: {cell.colIndex} / span {cell.colSpan}; grid-row: {rowIndex + 2};"
-          ></div>
-        {/each}
       {/each}
-
-      <!-- CURRENT TIME INDICATOR -->
-      {#if timeTrackingEnabled}
-        <div 
-          class="current-time-indicator" 
-          style="grid-column: 1 / span {totalColumns}; top: calc({currentTimePosition}% - 1px);"
-        >
-          <div class="current-time-bubble">
-            {formatTimeForDisplay($currentTime)}
+    </div>
+    <div class="daily-schedule-wrapper" style="margin-top: 7px;">
+      <div 
+        class="schedule-grid"
+        style="--total-columns: {totalColumns}; --total-rows: {$timeSlots.length + 1};">
+        <!-- TIMESLOT ROWS -->
+        {#each $timeSlots as time, rowIndex}
+          <div
+            class="schedule-time text-gray-900 dark:text-white"
+            style="grid-column: 1; grid-row: {rowIndex + 2}; justify-content: flex-end;"
+          >
+            {#if isHourMark(time) && !shouldHideHourLabel(time) && !shouldHideFirstHourMarkWhenEarlyOff(time, $showEarlyTimeslots)}
+              <span style="position:absolute; bottom:50%; right:5;">{time}</span>
+            {/if}
           </div>
-          <div class="current-time-line"></div>
-        </div>
-      {/if}
 
-      <!-- ENTRIES -->
-      {#each $processedEntries as entry (entry.ui_id)}
-        {#if entry.field_id != null && fieldToGridColMap.has(entry.field_id)}
-          {@const mapping = fieldToGridColMap.get(entry.field_id)!}
-          {@const startRow = getRowForTimeWithSlots(entry.start_time, $timeSlots)}
-          {@const endRow = getEntryRowEndWithSlots(entry.end_time, $timeSlots)}
-          {@const visibility = getEntryContentVisibility(startRow, endRow)}
-          <div class="schedule-event"
-             style="grid-row-start: {startRow}; grid-row-end: {endRow + 1}; grid-column-start: {mapping.colIndex}; grid-column-end: span {mapping.colSpan};"
-           >
-            <div class="event-team font-bold text-[1.15em]">
-              {getEntryTitle(entry)}
+          {#each headerCells as cell}
+            <div
+              class={`schedule-cell ${isHourMark(time) && !shouldHideFirstHourMarkWhenEarlyOff(time, $showEarlyTimeslots) ? 'schedule-hour-mark' : ''} ${cell.colIndex > 1 && cell.colIndex < totalColumns ? 'border-grid' : ''}`}
+              style="grid-column: {cell.colIndex} / span {cell.colSpan}; grid-row: {rowIndex + 2};"
+            ></div>
+          {/each}
+        {/each}
+
+        <!-- CURRENT TIME INDICATOR -->
+        {#if timeTrackingEnabled}
+          <div 
+            class="current-time-indicator" 
+            style="grid-column: 1 / span {totalColumns}; top: calc({currentTimePosition}% - 1px);"
+          >
+            <div class="current-time-bubble">
+              {formatTimeForDisplay($currentTime)}
             </div>
-            {#if visibility.showField}
-              <div class="event-field text-[1.12em] text-gray-600">
-                {getFieldName(entry.field_id!, $activeFields)}
-              </div>
-            {/if}
-            {#if visibility.showTime}
-              <div class="event-time text-[1.12em] text-gray-600">
-                {entry.start_time} - {entry.end_time}
-              </div>
-            {/if}
+            <div class="current-time-line"></div>
           </div>
         {/if}
-      {/each}
+
+        <!-- ENTRIES -->
+        {#each $processedEntries as entry (entry.ui_id)}
+          {#if entry.field_id != null && fieldToGridColMap.has(entry.field_id)}
+            {@const mapping = fieldToGridColMap.get(entry.field_id)!}
+            {@const startRow = getRowForTimeWithSlots(entry.start_time, $timeSlots)}
+            {@const endRow = getEntryRowEndWithSlots(entry.end_time, $timeSlots)}
+            {@const visibility = getEntryContentVisibility(startRow, endRow)}
+            <div class="schedule-event"
+               style="grid-row-start: {startRow}; grid-row-end: {endRow + 1}; grid-column-start: {mapping.colIndex}; grid-column-end: span {mapping.colSpan};"
+             >
+              <div class="event-team font-bold text-[1.15em]">
+                {getEntryTitle(entry)}
+              </div>
+              {#if visibility.showField}
+                <div class="event-field text-[1.12em] text-gray-600">
+                  {getFieldName(entry.field_id!, $activeFields)}
+                </div>
+              {/if}
+              {#if visibility.showTime}
+                <div class="event-time text-[1.12em] text-gray-600">
+                  {entry.start_time} - {entry.end_time}
+                </div>
+              {/if}
+            </div>
+          {/if}
+        {/each}
+      </div>
     </div>
+    {/if}
   </div>
-  {/if}
 </div>
 
 <style>
