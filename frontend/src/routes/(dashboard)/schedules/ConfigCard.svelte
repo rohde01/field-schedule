@@ -17,53 +17,112 @@
     let toastMessage = '';
     let toastType = 'success'; // 'success', 'warning', 'error'
 
-    async function generateModel() {
-        generating = true;
-        const schedule = get(selectedSchedule);
-        if (!schedule) return;
-        const facilityId = schedule.facility_id;
-        const allFields = get(fields);
-        const facilityFields = allFields.filter(f => f.facility_id === facilityId);
-        const parsedFields = fieldSchema.array().parse(facilityFields);
-        const constraintsList = get(selectedConstraints);
-        const parsedConstraints = constraintSchema.array().parse(constraintsList);
-        const payload = { fields: parsedFields, constraints: parsedConstraints, weekday_objective: fairWeekdays, 
-            start_time_objective: fairStartTimes
-         };
-        const response = await fetch(`${PUBLIC_API_URL}/schedules/generate`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        if (response.ok) {
-            const data = await response.json();
-            try {
-                const entries = scheduleEntrySchema.array().parse(data.entries);
+    async function pollJobStatus(jobId: string): Promise<boolean> {
+        const response = await fetch(`${PUBLIC_API_URL}/schedules/status/${jobId}`);
+        if (!response.ok) {
+            throw new Error('Failed to check job status');
+        }
+        
+        const data = await response.json();
+        console.log(`Job ${jobId} status:`, data.status);
+        
+        if (data.status === 'completed') {
+            if (data.result) {
+                const schedule = get(selectedSchedule);
+                if (!schedule) {
+                    toastMessage = 'Error: No schedule selected';
+                    toastType = 'error';
+                    return true;
+                }
+                const entries = scheduleEntrySchema.array().parse(data.result.entries);
                 setScheduleEntries(schedule.schedule_id!, entries);
-                toastMessage = data.message || 'Schedule generated successfully!';
+                toastMessage = data.result.message || 'Schedule generated successfully!';
                 
                 // Set toast color based on solution type
-                if (data.message?.includes('OPTIMAL')) {
-                    toastType = 'success'; // Green
-                } else if (data.message?.includes('FEASIBLE')) {
-                    toastType = 'warning'; // Orange
+                if (data.result.message?.includes('OPTIMAL')) {
+                    toastType = 'success';
+                } else if (data.result.message?.includes('FEASIBLE')) {
+                    toastType = 'warning';
                 } else {
-                    toastType = 'success'; // Default to green
+                    toastType = 'success';
                 }
                 
                 console.log('Schedule entries updated:', entries);
-            } catch (e) {
-                console.error('Invalid schedule entries response:', e);
-                toastMessage = 'Error: Invalid response format';
-                toastType = 'error';
             }
-        } else {
-            const err = await response.json();
-            console.error('Failed to generate schedule:', response.status, err);
-            toastMessage = `Error: ${err.detail || 'Failed to generate schedule'}`;
+            return true;
+        } else if (data.status === 'failed') {
+            toastMessage = `Error: ${data.error || 'Schedule generation failed'}`;
             toastType = 'error';
+            return true;
         }
-        generating = false;
+        
+        return false; // Still running
+    }
+
+    async function generateModel() {
+        generating = true;
+        const schedule = get(selectedSchedule);
+        if (!schedule) {
+            generating = false;
+            return;
+        }
+        
+        try {
+            const facilityId = schedule.facility_id;
+            const allFields = get(fields);
+            const facilityFields = allFields.filter(f => f.facility_id === facilityId);
+            const parsedFields = fieldSchema.array().parse(facilityFields);
+            const constraintsList = get(selectedConstraints);
+            const parsedConstraints = constraintSchema.array().parse(constraintsList);
+            const payload = { 
+                fields: parsedFields, 
+                constraints: parsedConstraints, 
+                weekday_objective: fairWeekdays, 
+                start_time_objective: fairStartTimes
+            };
+            
+            // Start the job
+            const response = await fetch(`${PUBLIC_API_URL}/schedules/generate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            if (!response.ok) {
+                const err = await response.json();
+                toastMessage = `Error: ${err.detail || 'Failed to start schedule generation'}`;
+                toastType = 'error';
+                generating = false;
+                return;
+            }
+            
+            const jobData = await response.json();
+            const jobId = jobData.job_id;
+            console.log('Job started with ID:', jobId);
+            
+            // Poll for results
+            const pollInterval = setInterval(async () => {
+                try {
+                    const isComplete = await pollJobStatus(jobId);
+                    if (isComplete) {
+                        clearInterval(pollInterval);
+                        generating = false;
+                    }
+                } catch (error) {
+                    console.error('Error polling job status:', error);
+                    clearInterval(pollInterval);
+                    toastMessage = 'Error: Failed to check job status';
+                    toastType = 'error';
+                    generating = false;
+                }
+            }, 2000); // Poll every 2 seconds
+            
+        } catch (error) {
+            console.error('Error generating schedule:', error);
+            toastMessage = 'Error: Failed to generate schedule';
+            toastType = 'error';
+            generating = false;
+        }
     }
 </script>
   
