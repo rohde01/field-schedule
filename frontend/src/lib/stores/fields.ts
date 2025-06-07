@@ -15,7 +15,6 @@ export const filteredFields = derived(
 );
 
 export function setFields(newFields: Field[]) {
-    console.log(`[Fields Store] Setting ${newFields.length} fields:`, newFields);
     fields.set(newFields);
 }
 

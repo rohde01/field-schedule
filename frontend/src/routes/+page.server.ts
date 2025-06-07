@@ -109,7 +109,6 @@ export const load: PageServerLoad = async ({ url, locals: { supabase } }) => {
         }
 
         const schedules: Schedule[] = rawSchedules || [];
-        console.log(`[Public View] Found ${schedules.length} schedules for club: ${club.name}`);
 
         // Fetch teams for this club
         const { data: teams, error: teamsError } = await supabase

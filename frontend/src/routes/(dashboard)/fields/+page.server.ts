@@ -49,11 +49,9 @@ export const load = async ({ locals }) => {
 export const actions: Actions = {
     create: async ({ request, locals: { supabase, user } }) => {
         const form = await superValidate(request, zod(facilityCreateSchema));
-        console.log('Form validation result:', form);
         
         const clubId = user?.club_id;
         if (!clubId || clubId <= 0) {
-            console.log('Invalid club_id:', clubId);
             form.message = 'Invalid club ID';
             return fail(400, { 
                 form,
@@ -91,7 +89,6 @@ export const actions: Actions = {
                 success: true
             };
         } catch (err) {
-            console.error('Error creating facility:', err);
             form.message = 'Failed to create facility';
             return fail(500, { 
                 form, 
@@ -102,7 +99,6 @@ export const actions: Actions = {
 
     // action for creating a field
     createField: async ({ request, locals: { supabase, user } }) => {
-        console.log('CreateField action started');
 
         // Use superValidate with the request directly to handle JSON data
         const form = await superValidate(request, zod(fieldCreateSchema));
@@ -131,7 +127,6 @@ export const actions: Actions = {
                 .single();
 
             if (mainFieldError) {
-                console.error('Failed to create field:', mainFieldError);
                 if (mainFieldError.code === '23505') {
                     form.message = 'A field with this name already exists for this facility. Choose a new name and try again.';
                 } else {
@@ -161,7 +156,6 @@ export const actions: Actions = {
                         .single();
 
                     if (halfFieldError) {
-                        console.error('Failed to create field hierarchy:', halfFieldError);
                         if (halfFieldError.code === '23505') {
                             form.message = 'A field with this name already exists for this facility. Choose a new name and try again.';
                         } else {
@@ -188,7 +182,6 @@ export const actions: Actions = {
                                 });
 
                             if (quarterFieldError) {
-                                console.error('Failed to create field hierarchy:', quarterFieldError);
                                 if (quarterFieldError.code === '23505') {
                                     form.message = 'A field with this name already exists for this facility. Choose a new name and try again.';
                                 } else {
@@ -216,7 +209,6 @@ export const actions: Actions = {
                     .insert(availabilitiesToInsert);
 
                 if (availabilityError) {
-                    console.error('Failed to create field availabilities:', availabilityError);
                     if (availabilityError.code === '23505') {
                         form.message = 'One or more availability slots already exist for this field. Please adjust duplicates and try again.';
                     } else {
@@ -234,7 +226,6 @@ export const actions: Actions = {
                 field: mainField
             };
         } catch (err) {
-            console.error('Error creating field:', err);
             form.message = 'Failed to create field, please try again.';
             return fail(500, { form });
         }
@@ -261,7 +252,6 @@ export const actions: Actions = {
                 .single();
 
             if (updateError) {
-                console.error('Failed to update field:', updateError);
                 form.message = 'Failed to update field, please try again.';
                 return fail(400, { form });
             }
@@ -275,7 +265,6 @@ export const actions: Actions = {
                 action: 'update'
             };
         } catch (err) {
-            console.error('Error updating field:', err);
             form.message = 'Failed to update field, please try again.';
             return fail(500, { form });
         }
@@ -296,7 +285,6 @@ export const actions: Actions = {
                 .eq('field_id', form.data.field_id);
 
             if (deleteError) {
-                console.error('Failed to delete field:', deleteError);
                 form.message = 'Failed to delete field, please try again.';
                 return fail(400, { form });
             }
@@ -310,7 +298,6 @@ export const actions: Actions = {
                 action: 'delete'
             };
         } catch (err) {
-            console.error('Error deleting field:', err);
             form.message = 'Failed to delete field, please try again.';
             return fail(500, { form });
         }

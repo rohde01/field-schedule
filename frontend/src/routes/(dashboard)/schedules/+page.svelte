@@ -17,18 +17,12 @@
     
     const updateForm = superForm(data.updateForm, {
         onResult: ({ result }) => {
-            console.log('Update schedule result:', result);
             if (result.type === 'success' && 'data' in result) {
-                console.log('Result data:', result.data);
             }
             if (result.type === 'success') {
                 hiddenDrawer = true;
-                // The message should be automatically handled by superforms
-                // since we set form.message in the server action
             }
             if (result.type === 'failure' && 'data' in result && result.data?.message) {
-                // Handle error messages from server
-                console.log('Error message:', result.data.message);
             }
         }
     });
@@ -49,7 +43,7 @@
     }
 </script>
 
-
+    <div id="main-content" class="relative mx-auto h-full w-full overflow-y-auto bg-gray-50 p-4 dark:bg-gray-900"></div>
     <div id="main-content" class="relative mx-auto h-full w-full overflow-y-auto bg-gray-50 p-4 dark:bg-gray-900">
         {#if $IsCreating}
             <div class="flex gap-4">
@@ -81,5 +75,4 @@
   <ScheduleDrawer title="Update schedule" bind:hidden={hiddenDrawer} form={updateForm} />
 </Drawer>
 
-<!-- Toast message -->
 <ToastMessage message={$updateMessage} />

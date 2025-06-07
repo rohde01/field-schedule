@@ -49,11 +49,7 @@
       dataType: 'json',
       validators: zodClient(fieldCreateSchema),
       resetForm: true,
-      onUpdate: ({ form }) => {
-          console.log('Form data being submitted:', form.data);
-      },
       onResult: ({ result }) => {
-          console.log('Form submission result:', result);
           if (result.type === 'success' && result.data?.field) {
               addField(result.data.field);
               openFieldModal = false;

@@ -67,10 +67,6 @@ export const constraints = derived(
   }
 );
 
-constraints.subscribe(values => {
-  console.log('constraints updated:', values);
-});
-
 // Add global selectedConstraints store
 export const selectedConstraints = writable<Constraint[]>([]);
 

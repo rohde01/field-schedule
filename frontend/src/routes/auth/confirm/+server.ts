@@ -7,7 +7,6 @@ export const GET: RequestHandler = async ({ url, locals: { supabase } }) => {
   const type = url.searchParams.get('type') as EmailOtpType | null
   const next = url.searchParams.get('next') ?? '/'
 
-  console.log('Auth confirmation attempt:', { token_hash, type, next })
 
   // Create base URL and ensure 'next' is treated as a path
   const redirectTo = new URL(url.origin)
@@ -17,7 +16,6 @@ export const GET: RequestHandler = async ({ url, locals: { supabase } }) => {
 
   if (token_hash && type) {
     const { error } = await supabase.auth.verifyOtp({ token_hash, type })
-    console.log('Verification result:', { error })
     if (!error) {
       // Redirect to settings page after successful validation
       redirectTo.pathname = '/settings'

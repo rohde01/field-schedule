@@ -265,7 +265,6 @@ if (browser) {
     ([$selectedSchedule, $currentDate]) => {
       if (!$selectedSchedule) return [];
       const entries = getAllEntriesForDate($selectedSchedule, $currentDate);
-      console.log('Processed Entries:', entries);
       return entries;
     }
   ).subscribe(val => processedEntries.set(val));

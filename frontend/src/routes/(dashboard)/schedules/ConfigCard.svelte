@@ -113,7 +113,6 @@
                         generating = false;
                     }
                 } catch (error) {
-                    console.error('Error polling job status:', error);
                     clearInterval(pollInterval);
                     toastMessage = 'Error: Failed to check job status';
                     toastType = 'error';
@@ -122,7 +121,6 @@
             }, 500); // Poll every 0.5 seconds
             
         } catch (error) {
-            console.error('Error generating schedule:', error);
             toastMessage = 'Error: Failed to generate schedule';
             toastType = 'error';
             generating = false;

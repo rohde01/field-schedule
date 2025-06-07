@@ -105,7 +105,6 @@
       teamToDelete = team;
       teamIdToDelete = team.team_id;
       openDelete = true;
-      console.log('Opening delete modal for team:', team.name, 'Modal state:', openDelete);
     }
 </script>
   

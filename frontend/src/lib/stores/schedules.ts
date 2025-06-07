@@ -29,7 +29,6 @@ export function setSchedules(newSchedules: Schedule[]) {
 export function addSchedule(schedule: LocalSchedule) {
     schedules.update(list => {
         const updated = [...list, schedule];
-        console.log('Added local schedule:', schedule);
         return updated;
     });
 }
@@ -39,7 +38,6 @@ export function addScheduleEntry(entry: ScheduleEntry) {
         const updatedSchedules = schedulesList.map(schedule => {
             if (schedule.schedule_id === entry.schedule_id) {
                 const updatedSchedule = { ...schedule, schedule_entries: [...schedule.schedule_entries, entry] };
-                console.log(`Added entry to schedule ${schedule.schedule_id}:`, entry);
                 return updatedSchedule;
             }
             return schedule;
@@ -75,7 +73,6 @@ export function updateScheduleEntry(updatedEntry: Partial<ScheduleEntry> & Pick<
                     const originalException = entries[existingExceptionIndex];
                     const mergedException = { ...originalException, ...updatedEntry };
                     updatedEntries[existingExceptionIndex] = mergedException;
-                    console.log(`Updated existing exception entry ${targetUid} for instance ${targetRecurrenceId}:`, mergedException);
                 } else {
                     // --- Case 2: No existing exception found - Create a new exception
                     const masterEntry = entries.find(e => e.uid === targetUid && !e.recurrence_id && e.recurrence_rule);
@@ -89,9 +86,7 @@ export function updateScheduleEntry(updatedEntry: Partial<ScheduleEntry> & Pick<
                             schedule_entry_id: null
                         };
                         updatedEntries.push(newExceptionData as ScheduleEntry);
-                        console.log(`Created new exception entry for ${targetUid} instance ${targetRecurrenceId}:`, newExceptionData);
                     } else {
-                        console.warn(`Cannot update instance ${targetRecurrenceId} for entry ${targetUid}: Master recurring entry not found or update data incomplete.`);
                         return schedule;
                     }
                 }
@@ -104,9 +99,7 @@ export function updateScheduleEntry(updatedEntry: Partial<ScheduleEntry> & Pick<
                     const mergedMaster = { ...originalMaster, ...updatedEntry };
 
                     updatedEntries[masterIndex] = mergedMaster;
-                    console.log(`Updated standalone entry ${targetUid}:`, mergedMaster);
                 } else {
-                    console.warn(`Cannot update standalone entry ${targetUid}: Entry not found.`);
                     return schedule;
                 }
             }
@@ -133,7 +126,6 @@ export function deleteScheduleEntry(uid: string, schedule_id: number, recurrence
                 if (id != null) deletedEntryIds.update(ids => [...ids, id]);
                 // Remove standalone master entry
                 updatedEntries = updatedEntries.filter(e => !(e.uid === uid && !e.recurrence_id));
-                console.log(`Deleted standalone entry ${uid}`);
             } else if (recurrence_id) {
                 // Remove existing exception if found
                 const exceptionIndex = updatedEntries.findIndex(e => e.uid === uid && e.recurrence_id instanceof Date && e.recurrence_id.getTime() === recurrence_id.getTime());
@@ -142,7 +134,6 @@ export function deleteScheduleEntry(uid: string, schedule_id: number, recurrence
                     const id2 = removed.schedule_entry_id;
                     if (id2 != null) deletedEntryIds.update(ids => [...ids, id2]);
                     updatedEntries.splice(exceptionIndex, 1);
-                    console.log(`Removed exception for ${uid} at ${recurrence_id}`);
                 }
                 // Add recurrence_id to master's exdate
                 if (masterEntry) {
@@ -150,7 +141,6 @@ export function deleteScheduleEntry(uid: string, schedule_id: number, recurrence
                     existingExdates.push(recurrence_id);
                     const updatedMaster = { ...masterEntry, exdate: existingExdates };
                     updatedEntries[masterIndex] = updatedMaster;
-                    console.log(`Added exdate ${recurrence_id} to master ${uid}`);
                 }
             }
 
@@ -167,7 +157,6 @@ export function removeSchedule(schedule: Schedule | LocalSchedule) {
     schedules.update(list => list.filter(s => s !== schedule));
     const remaining = get(schedules);
     selectedSchedule.set(remaining.length > 0 ? remaining[0] : null);
-    console.log('Removed schedule:', schedule);
 }
 
 export function setScheduleEntries(schedule_id: number, entries: ScheduleEntry[]) {
