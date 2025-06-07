@@ -18,6 +18,8 @@
     let toastType = 'success'; // 'success', 'warning', 'error'
 
     async function pollJobStatus(jobId: string): Promise<boolean> {
+        const schedule = get(selectedSchedule);
+        if (!schedule) return false;
         const response = await fetch(`${PUBLIC_API_URL}/schedules/status/${jobId}`);
         if (!response.ok) {
             throw new Error('Failed to check job status');
@@ -25,6 +27,13 @@
         
         const data = await response.json();
         console.log(`Job ${jobId} status:`, data.status);
+        // handle intermediate solutions
+        if (data.status === 'running' && data.result) {
+            console.log(`Job ${jobId}: received intermediate solution`, data.result.entries);
+            console.log('Intermediate solution payload:', data.result);
+            const entries = scheduleEntrySchema.array().parse(data.result.entries);
+            setScheduleEntries(schedule.schedule_id!, entries);
+        }
         
         if (data.status === 'completed') {
             if (data.result) {
@@ -115,7 +124,7 @@
                     toastType = 'error';
                     generating = false;
                 }
-            }, 2000); // Poll every 2 seconds
+            }, 500); // Poll every 0.5 seconds
             
         } catch (error) {
             console.error('Error generating schedule:', error);

@@ -22,7 +22,7 @@ class GenerateScheduleRequest(BaseModel):
     weekday_objective: bool
     start_time_objective: bool
 
-def generate_schedule(request: GenerateScheduleRequest) -> Optional[Dict]:
+def generate_schedule(request: GenerateScheduleRequest, solution_callback=None) -> Optional[Dict]:
     # profiler = cProfile.Profile()
     # profiler.enable()
 
@@ -262,7 +262,36 @@ def generate_schedule(request: GenerateScheduleRequest) -> Optional[Dict]:
     solver.parameters.log_search_progress = True
     solver.parameters.log_to_stdout = True
 
-    status = solver.Solve(model)
+    # Solve with optional solution callback to capture intermediate solutions
+    if solution_callback:
+        # define internal callback to extract current best solution
+        class IntermediateCallback(cp_model.CpSolverSolutionCallback):
+            def __init__(self):
+                super().__init__()
+            def OnSolutionCallback(self):
+                solution = []
+                # extract assignments for each session
+                for s in range(num_sessions):
+                    for (sess_id, res_id, d), pres in presence_var.items():
+                        if sess_id == s and self.Value(pres) == 1:
+                            start_blk = self.Value(start_var_main[(sess_id, res_id, d)])
+                            end_blk = self.Value(end_var_main[(sess_id, res_id, d)])
+                            solution.append({
+                                'session_id': sess_id,
+                                'team_id': all_sessions[s][1],
+                                'day_of_week': idx_to_day[d],
+                                'start_time': blocks_to_time_str(start_blk),
+                                'end_time': blocks_to_time_str(end_blk),
+                                'field_id': res_id,
+                                'required_cost': demands_capacity_main[(sess_id, res_id, d)],
+                                'required_field': all_sessions[s][5]
+                            })
+                # send partial solution
+                solution_callback(solution)
+        callback = IntermediateCallback()
+        status = solver.SolveWithSolutionCallback(model, callback)
+    else:
+        status = solver.Solve(model)
 
     # Print solver statistics
     print("\n===== Solver Statistics =====")

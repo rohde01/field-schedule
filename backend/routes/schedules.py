@@ -47,7 +47,13 @@ def background_generate_schedule(job_id: str, request: GenerateScheduleRequest):
     """Background task to generate schedule"""
     with job_lock:
         job_storage[job_id]["status"] = "running"
-    
+    # define callback to capture intermediate solutions
+    def partial_callback(solution):
+        print(f"[DEBUG] Job {job_id}: Received intermediate solution with {len(solution)} sessions")
+        entries = convert_response_to_schedule_entries(solution)
+        with job_lock:
+            job_storage[job_id]["result"] = ScheduleResponse(entries=entries, message="Intermediate solution")
+
     try:
         print(f"[DEBUG] Job {job_id}: Starting schedule generation")
         print(f"[DEBUG] Job {job_id}: Fields count: {len(request.fields)}")
@@ -56,7 +62,7 @@ def background_generate_schedule(job_id: str, request: GenerateScheduleRequest):
         print(f"[DEBUG] Job {job_id}: Start time objective: {request.start_time_objective}")
         
         # Call the generate_schedule function
-        result = generate_schedule(request)
+        result = generate_schedule(request, solution_callback=partial_callback)
         
         if result is None:
             with job_lock:
