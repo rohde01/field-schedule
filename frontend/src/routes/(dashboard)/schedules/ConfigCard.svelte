@@ -26,11 +26,8 @@
         }
         
         const data = await response.json();
-        console.log(`Job ${jobId} status:`, data.status);
         // handle intermediate solutions
         if (data.status === 'running' && data.result) {
-            console.log(`Job ${jobId}: received intermediate solution`, data.result.entries);
-            console.log('Intermediate solution payload:', data.result);
             const entries = scheduleEntrySchema.array().parse(data.result.entries);
             setScheduleEntries(schedule.schedule_id!, entries);
         }
@@ -56,7 +53,6 @@
                     toastType = 'success';
                 }
                 
-                console.log('Schedule entries updated:', entries);
             }
             return true;
         } else if (data.status === 'failed') {
@@ -107,7 +103,6 @@
             
             const jobData = await response.json();
             const jobId = jobData.job_id;
-            console.log('Job started with ID:', jobId);
             
             // Poll for results
             const pollInterval = setInterval(async () => {

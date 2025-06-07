@@ -49,18 +49,11 @@ def background_generate_schedule(job_id: str, request: GenerateScheduleRequest):
         job_storage[job_id]["status"] = "running"
     # define callback to capture intermediate solutions
     def partial_callback(solution):
-        print(f"[DEBUG] Job {job_id}: Received intermediate solution with {len(solution)} sessions")
         entries = convert_response_to_schedule_entries(solution)
         with job_lock:
             job_storage[job_id]["result"] = ScheduleResponse(entries=entries, message="Intermediate solution")
 
     try:
-        print(f"[DEBUG] Job {job_id}: Starting schedule generation")
-        print(f"[DEBUG] Job {job_id}: Fields count: {len(request.fields)}")
-        print(f"[DEBUG] Job {job_id}: Constraints count: {len(request.constraints)}")
-        print(f"[DEBUG] Job {job_id}: Weekday objective: {request.weekday_objective}")
-        print(f"[DEBUG] Job {job_id}: Start time objective: {request.start_time_objective}")
-        
         # Call the generate_schedule function
         result = generate_schedule(request, solution_callback=partial_callback)
         
@@ -82,21 +75,16 @@ def background_generate_schedule(job_id: str, request: GenerateScheduleRequest):
             job_storage[job_id]["result"] = schedule_response
             job_storage[job_id]["completed_at"] = datetime.utcnow().isoformat()
         
-        print(f"[DEBUG] Job {job_id}: Schedule generation completed successfully")
-        
     except ValueError as ve:
         with job_lock:
             job_storage[job_id]["status"] = "failed"
             job_storage[job_id]["error"] = str(ve)
             job_storage[job_id]["completed_at"] = datetime.utcnow().isoformat()
-        print(f"[ERROR] Job {job_id}: ValueError: {ve}")
     except Exception as e:
         with job_lock:
             job_storage[job_id]["status"] = "failed"
             job_storage[job_id]["error"] = str(e)
             job_storage[job_id]["completed_at"] = datetime.utcnow().isoformat()
-        print(f"[ERROR] Job {job_id}: Exception in background_generate_schedule:")
-        traceback.print_exc()
 
 @router.post("/generate", response_model=JobResponse)
 async def generate_schedule_route(
@@ -121,12 +109,9 @@ async def generate_schedule_route(
         # Add background task
         background_tasks.add_task(background_generate_schedule, job_id, request)
         
-        print(f"[DEBUG] Created job {job_id} for schedule generation")
-        
         return JobResponse(job_id=job_id, status="pending")
         
     except Exception as e:
-        print("[ERROR] Exception in generate_schedule_route:")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 

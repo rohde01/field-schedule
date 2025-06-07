@@ -91,7 +91,6 @@ def generate_schedule(request: GenerateScheduleRequest, solution_callback=None) 
             try:
                 d_idx = list(idx_to_day.values()).index(day_enum.value)
             except ValueError:
-                print(f"Warning: Invalid day '{day_enum.value}' in field {f.field_id} availability. Skipping.")
                 continue
             day_windows[d_idx] = (start_block, end_block)
 
@@ -110,11 +109,8 @@ def generate_schedule(request: GenerateScheduleRequest, solution_callback=None) 
             for (start_blk, end_blk) in field_info[f.field_id]['day_windows'].values():
                 all_starts.append(start_blk)
                 all_ends.append(end_blk)
-        else:
-             print(f"Warning: Field {f.field_id} not found in field_info during availability check.")
 
     if not all_starts:
-        print("No field availability found across all fields. No feasible solution possible.")
         # profiler.disable()
         return None
 
@@ -140,7 +136,6 @@ def generate_schedule(request: GenerateScheduleRequest, solution_callback=None) 
         if forced_field:
             possible_top_fields = [f for f in top_fields if f.field_id == forced_field]
             if not possible_top_fields:
-                 print(f"Warning: Forced field {forced_field} for session {sid} not found in top_fields list.")
                  continue
         else:
             possible_top_fields = top_fields
@@ -183,14 +178,12 @@ def generate_schedule(request: GenerateScheduleRequest, solution_callback=None) 
                             model.Add(s_var == fb).OnlyEnforceIf(pres)
                         else:
                             model.Add(pres == 0)
-                            print(f"Warning: Fixed start {c_start_time} for session {sid} on res {res_id} day {d} outside [{blocks_to_time_str(ws)}, {blocks_to_time_str(we-duration_main)}]")
 
     # Ensure each session is assigned exactly once
     for s in range(num_sessions):
         if session_presence_vars[s]:
              model.AddExactlyOne(session_presence_vars[s])
         else:
-             print(f"Error: Session {s} (Team {all_sessions[s][1]}) has no possible field/day assignments based on constraints and availability. Problem is infeasible.")
              # profiler.disable()
              return None
 
@@ -255,12 +248,10 @@ def generate_schedule(request: GenerateScheduleRequest, solution_callback=None) 
     elif objectives:
         model.Minimize(sum(objectives))
 
-    # Solve the model with verbose logging enabled
+    # Solve the model
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = 120
     solver.parameters.num_search_workers = 8
-    solver.parameters.log_search_progress = True
-    solver.parameters.log_to_stdout = True
 
     # Solve with optional solution callback to capture intermediate solutions
     if solution_callback:
@@ -293,15 +284,9 @@ def generate_schedule(request: GenerateScheduleRequest, solution_callback=None) 
     else:
         status = solver.Solve(model)
 
-    # Print solver statistics
-    print("\n===== Solver Statistics =====")
-    print(solver.ResponseStats())
-    print("================================\n")
-
     # Process solution if found
     if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
         solution_type = "OPTIMAL" if status == cp_model.OPTIMAL else "FEASIBLE (not optimal)"
-        print(f"Found a {solution_type} solution!")
         # profiler.disable()
         # stats = pstats.Stats(profiler).sort_stats('cumtime')
         # stats.print_stats(10)
@@ -342,7 +327,6 @@ def generate_schedule(request: GenerateScheduleRequest, solution_callback=None) 
                     break
 
             if chosen_field is None or chosen_day is None:
-                 print(f"Error: No assignment found for session {sid} (Team {team_id}) in the solution. This indicates an issue.")
                  continue
 
             start_str_main = blocks_to_time_str(assigned_start_main)
@@ -377,7 +361,6 @@ def generate_schedule(request: GenerateScheduleRequest, solution_callback=None) 
 
     else:
         status_str = solver.StatusName(status)
-        print(f"No feasible solution found. Solver status: {status_str}")
         # profiler.disable()
         # stats = pstats.Stats(profiler).sort_stats('cumtime')
         # stats.print_stats(10)
