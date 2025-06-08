@@ -146,7 +146,7 @@
   <Table>
     <TableHead class="border-y border-gray-200 bg-gray-100 dark:border-gray-700">
       <TableHeadCell class="w-4 p-4"><Checkbox /></TableHeadCell>
-      {#each ['Name','Year','Gender','Academy','Level','Min Field Size','Preferred Field Size','Weekly Trainings','Status','Actions'] as title}
+      {#each ['Name','Year','Gender','Academy','Level','Field Size','Weekly Trainings','Status','Actions'] as title}
         <TableHeadCell class="p-4 font-medium">{title}</TableHeadCell>
       {/each}
     </TableHead>
@@ -161,17 +161,8 @@
           <TableBodyCell class="p-4">{team.level}</TableBodyCell>
           <TableBodyCell class="p-4">
             {#each formatFieldSize(team.minimum_field_size).split(', ') as size}
-              <Badge border color="yellow" class="mr-2">{size}</Badge>
+              <Badge border color="green" class="mr-2">{size}</Badge>
             {/each}
-          </TableBodyCell>
-          <TableBodyCell class="p-4">
-            {#if team.preferred_field_size}
-              {#each formatFieldSize(team.preferred_field_size).split(', ') as size}
-                <Badge border color="green" class="mr-2">{size}</Badge>
-              {/each}
-            {:else}
-              –
-            {/if}
           </TableBodyCell>
           <TableBodyCell class="p-4">{team.weekly_trainings}</TableBodyCell>
           <TableBodyCell class="p-4">

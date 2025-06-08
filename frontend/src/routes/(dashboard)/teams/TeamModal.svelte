@@ -64,32 +64,24 @@
             <Helper class="mt-2" color="red">{$errors.gender}</Helper>
           {/if}
         </Label>
-        <Label class="col-span-6 space-y-2 sm:col-span-3 flex items-center">
-          <Checkbox name="is_academy" bind:checked={$formData.is_academy} /> <span class="ms-2">Academy</span>
-        </Label>
         <Label class="col-span-6 space-y-2 sm:col-span-3">
-          <span>Min Field Size</span>
-          <Select name="minimum_field_size" id="minimum_field_size" bind:value={$formData.minimum_field_size} required>
-            <option value={125}>125</option>
-            <option value={250}>250</option>
-            <option value={500}>500</option>
-            <option value={1000}>1000</option>
-          </Select>
-          {#if $errors.minimum_field_size}
-            <Helper class="mt-2" color="red">{$errors.minimum_field_size}</Helper>
+          <span>Weekly Trainings</span>
+          <Input name="weekly_trainings" id="weekly_trainings" type="number" min="1" max="7" 
+            bind:value={$formData.weekly_trainings} class="border outline-none" required />
+          {#if $errors.weekly_trainings}
+            <Helper class="mt-2" color="red">{$errors.weekly_trainings}</Helper>
           {/if}
         </Label>
         <Label class="col-span-6 space-y-2 sm:col-span-3">
-          <span>Preferred Field Size</span>
-          <Select name="preferred_field_size" id="preferred_field_size" bind:value={$formData.preferred_field_size}>
-            <option value={null}>None</option>
-            <option value={125}>125</option>
-            <option value={250}>250</option>
-            <option value={500}>500</option>
-            <option value={1000}>1000</option>
+          <span>Field Size</span>
+          <Select name="minimum_field_size" id="minimum_field_size" bind:value={$formData.minimum_field_size} required>
+            <option value={125}>3v3, Half 5v5, Quarter 8v8</option>
+            <option value={250}>5v5, Half 8v8, Quarter 11v11</option>
+            <option value={500}>8v8, Half 11v11</option>
+            <option value={1000}>11v11</option>
           </Select>
-          {#if $errors.preferred_field_size}
-            <Helper class="mt-2" color="red">{$errors.preferred_field_size}</Helper>
+          {#if $errors.minimum_field_size}
+            <Helper class="mt-2" color="red">{$errors.minimum_field_size}</Helper>
           {/if}
         </Label>
         <Label class="col-span-6 space-y-2 sm:col-span-3">
@@ -102,13 +94,8 @@
         <Label class="col-span-6 space-y-2 sm:col-span-3 flex items-center">
           <Checkbox name="is_active" bind:checked={$formData.is_active} /> <span class="ms-2">Active</span>
         </Label>
-        <Label class="col-span-6 space-y-2 sm:col-span-3">
-          <span>Weekly Trainings</span>
-          <Input name="weekly_trainings" id="weekly_trainings" type="number" min="1" max="7" 
-            bind:value={$formData.weekly_trainings} class="border outline-none" required />
-          {#if $errors.weekly_trainings}
-            <Helper class="mt-2" color="red">{$errors.weekly_trainings}</Helper>
-          {/if}
+        <Label class="col-span-6 space-y-2 sm:col-span-3 flex items-center">
+          <Checkbox name="is_academy" bind:checked={$formData.is_academy} /> <span class="ms-2">Academy</span>
         </Label>
       </div>
       {#if $message}
