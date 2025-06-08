@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Input, Checkbox, Label, Modal, Select, Helper } from 'flowbite-svelte';
+  import { Button, Input, Checkbox, Label, Modal, Select, Helper, Spinner } from 'flowbite-svelte';
   import type { Team } from '$lib/schemas/team';
   import type { SuperForm } from 'sveltekit-superforms';
   import { onMount } from 'svelte';
@@ -16,7 +16,12 @@
     actionPath: string;
   } = $props();
 
-  const { form: formData, enhance, errors, message } = form;
+  const { form: formData, enhance, errors, message, submitting } = form;
+  let saving = $state(false);
+  
+  $effect(() => {
+    saving = $submitting;
+  });
   
   $effect(() => {
     if (open && data && Object.keys(data).length > 0) {
@@ -114,8 +119,12 @@
 
   <!-- Modal footer -->
   <svelte:fragment slot="footer">
-    <Button type="submit" form="team-form">
-      {Object.keys(data).length ? 'Save all' : 'Add team'}
+    <Button type="submit" form="team-form" disabled={saving}>
+      {#if saving}
+        <Spinner class="me-3" size="4" color="white" />Saving...
+      {:else}
+        {Object.keys(data).length ? 'Save all' : 'Add team'}
+      {/if}
     </Button>
   </svelte:fragment>
 </Modal>

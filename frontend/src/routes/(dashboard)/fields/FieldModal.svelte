@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Button, Input, Label, Modal, Select, Helper, Timepicker } from 'flowbite-svelte';
+    import { Button, Input, Label, Modal, Select, Helper, Timepicker, Spinner } from 'flowbite-svelte';
     import { PlusOutline, MinusOutline, ClockOutline } from 'flowbite-svelte-icons';      
     import { selectedFacility } from '$lib/stores/facilities';
     import type { Field, FieldCreate } from '$lib/schemas/field';
@@ -18,7 +18,12 @@
       actionPath?: string;
     } = $props();
   
-    const { form: formData, enhance, errors, message } = serverForm;
+    const { form: formData, enhance, errors, message, submitting } = serverForm;
+    let saving = $state(false);
+    
+    $effect(() => {
+      saving = $submitting;
+    });
     
     // Check if we're in edit mode by checking if field_id exists in data
     // Using type guard to ensure TypeScript understands the type
@@ -243,8 +248,12 @@
   
     <!-- Modal footer -->
     <svelte:fragment slot="footer">
-      <Button type="submit" form="field-form">
-        {isEditMode() ? 'Save changes' : 'Add field'}
+      <Button type="submit" form="field-form" disabled={saving}>
+        {#if saving}
+          <Spinner class="me-3" size="4" color="white" />Saving...
+        {:else}
+          {isEditMode() ? 'Save changes' : 'Add field'}
+        {/if}
       </Button>
     </svelte:fragment>
   </Modal>

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Heading, P, Button, Dropdown, DropdownItem, DropdownHeader, Checkbox, Search } from 'flowbite-svelte';
+    import { Heading, P, Button, Dropdown, DropdownItem, DropdownHeader, Checkbox, Search, Spinner } from 'flowbite-svelte';
     import { ArrowRightOutline, ChevronDownOutline } from 'flowbite-svelte-icons';
     import { onMount } from 'svelte';
     import ClubSchedule from './ClubSchedule.svelte';
@@ -11,6 +11,7 @@
     let { data }: { data: PageData } = $props();
     
     let searchTerm = $state("");
+    let authLoading = $state(false);
     let filteredClubs = $derived(data.clubs.filter((club) => 
         club.name.toLowerCase().indexOf(searchTerm?.toLowerCase()) !== -1
     ));
@@ -139,9 +140,13 @@
                     <P class="mb-4 text-2xl lg:text-3xl sm:px-16 xl:px-40 dark:text-gray-400 text-center">
                         Administrerer du en klub?
                     </P>
-                    <Button outline size="sm" href="/auth" class="px-6 py-2">
-                        Opret/login
-                        <ArrowRightOutline class="w-4 h-4 ms-2" />
+                    <Button outline size="sm" href="/auth" class="px-6 py-2" disabled={authLoading} onclick={() => authLoading = true}>
+                        {#if authLoading}
+                            <Spinner class="me-3" size="4" />Var check...
+                        {:else}
+                            Opret/login
+                            <ArrowRightOutline class="w-4 h-4 ms-2" />
+                        {/if}
                     </Button>
                 </div>
             </div>

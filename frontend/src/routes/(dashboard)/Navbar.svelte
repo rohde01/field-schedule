@@ -1,9 +1,11 @@
 <script lang="ts">
-  import { DarkMode, NavBrand, Navbar, DropdownDivider, DropdownItem, Button } from 'flowbite-svelte';
+  import { DarkMode, NavBrand, Navbar, DropdownDivider, DropdownItem, Button, Spinner } from 'flowbite-svelte';
   import UserMenu from './UserMenu.svelte';
   import { ArrowUpRightFromSquareSolid } from 'flowbite-svelte-icons';
   
-  export let session: App.PageData['session'] = null;
+  let { session = null }: { session?: App.PageData['session'] } = $props();
+  
+  let signingOut = $state(false);
   
   const menuItems = [
     { text: 'My club', href: '/schedules' },
@@ -31,7 +33,7 @@
 </script>
 
 <Navbar fluid class="w-full px-6 py-3.75 text-black justify-between" color="default">
-  <button on:click={handleLogoClick} class="flex items-center">
+  <button onclick={handleLogoClick} class="flex items-center">
     <img src="/favicon.png" 
          class="me-3 h-8 sm:h-10" 
          alt="My Logo" />
@@ -43,10 +45,14 @@
       <UserMenu name="Welcome!" avatar="" email="" {menuItems}>
         <DropdownDivider />
         <DropdownItem>
-          <form action="/schedules?/logout" method="post">
-            <Button size="xs" type="submit">
-              <ArrowUpRightFromSquareSolid class="w-4 h-4 me-2" />
-              Sign out
+          <form action="/schedules?/logout" method="post" onsubmit={() => signingOut = true}>
+            <Button size="xs" type="submit" disabled={signingOut}>
+              {#if signingOut}
+                <Spinner class="me-2" size="3" />Signing out...
+              {:else}
+                <ArrowUpRightFromSquareSolid class="w-4 h-4 me-2" />
+                Sign out
+              {/if}
             </Button>
           </form>
         </DropdownItem>

@@ -7,7 +7,7 @@
 
     import NameModal from './NameModal.svelte';
     import ClubModal from './ClubModal.svelte';
-    import { Label, Select, Card, Heading, Button, Input, Helper } from 'flowbite-svelte';
+    import { Label, Select, Card, Heading, Button, Input, Helper, Spinner } from 'flowbite-svelte';
     import { Breadcrumb, BreadcrumbItem } from 'flowbite-svelte';
     import ToastMessage from '$lib/components/Toast.svelte';
 
@@ -38,8 +38,19 @@
     let openClubModal = $state(data.user?.first_name && data.user?.last_name && !data.hasClub);
   
     // Destructure the form objects and explicitly type the errors
-    const { form: userData, enhance: userEnhance, errors: userErrors, message: userMessage } = nameForm;
-    const { form: clubUpdateData, enhance: clubUpdateEnhance, errors: clubUpdateErrors, message: clubUpdateMessage } = updateClubForm;
+    const { form: userData, enhance: userEnhance, errors: userErrors, message: userMessage, submitting: userSubmitting } = nameForm;
+    const { form: clubUpdateData, enhance: clubUpdateEnhance, errors: clubUpdateErrors, message: clubUpdateMessage, submitting: clubSubmitting } = updateClubForm;
+    
+    let userSaving = $state(false);
+    let clubSaving = $state(false);
+    
+    $effect(() => {
+        userSaving = $userSubmitting;
+    });
+    
+    $effect(() => {
+        clubSaving = $clubSubmitting;
+    });
 </script>
 
 <!-- Modals -->
@@ -78,7 +89,13 @@
             <Input name="name" id="name" type="text" bind:value={$clubUpdateData.name} class="border font-normal outline-none" />
             {#if $clubUpdateErrors?.name}<Helper class="mt-2" color="red">{$clubUpdateErrors.name}</Helper>{/if}
           </Label>
-          <Button type="submit" form="club-form" class="w-fit whitespace-nowrap">Save all</Button>
+          <Button type="submit" form="club-form" class="w-fit whitespace-nowrap" disabled={clubSaving}>
+            {#if clubSaving}
+              <Spinner class="me-3" size="4" color="white" />Saving...
+            {:else}
+              Save all
+            {/if}
+          </Button>
         </form>
       </Card>
     </div>
@@ -114,7 +131,13 @@
             <Input name="role" id="role" type="text" bind:value={$userData.role} class="border font-normal outline-none" />
             {#if $userErrors?.role}<Helper class="mt-2" color="red">{$userErrors.role}</Helper>{/if}
           </Label>
-          <Button type="submit"  form="user-form" class="w-fit whitespace-nowrap">Save all</Button>
+          <Button type="submit" form="user-form" class="w-fit whitespace-nowrap" disabled={userSaving}>
+            {#if userSaving}
+              <Spinner class="me-3" size="4" color="white" />Saving...
+            {:else}
+              Save all
+            {/if}
+          </Button>
         </form>
       </Card>
       

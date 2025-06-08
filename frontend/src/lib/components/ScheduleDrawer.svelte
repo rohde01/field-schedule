@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Button, CloseButton, Heading, Input, Label, Textarea, Toggle, Helper } from 'flowbite-svelte';
+    import { Button, CloseButton, Heading, Input, Label, Textarea, Toggle, Helper, Spinner } from 'flowbite-svelte';
     import { CloseOutline } from 'flowbite-svelte-icons';
     import type { SuperForm } from 'sveltekit-superforms';
     import ToastMessage from '$lib/components/Toast.svelte';
@@ -10,7 +10,12 @@
         form: SuperForm<any, any>
     } = $props();
     
-    const { form: formData, enhance, errors, message } = form;
+    const { form: formData, enhance, errors, message, submitting } = form;
+    let saving = $state(false);
+    
+    $effect(() => {
+      saving = $submitting;
+    });
     
 </script>
   
@@ -56,7 +61,13 @@
     {/if}
 
     <div class="bottom-0 left-0 flex w-full justify-center space-x-4 pb-4 md:absolute md:px-4">
-      <Button type="submit" form="schedule-form" class="w-full">Update Schedule</Button>
+      <Button type="submit" form="schedule-form" class="w-full" disabled={saving}>
+        {#if saving}
+          <Spinner class="me-3" size="4" color="white" />Saving...
+        {:else}
+          Update Schedule
+        {/if}
+      </Button>
       <Button color="alternative" class="w-full" onclick={() => (hidden = true)}>
         <CloseOutline /> Cancel
       </Button>

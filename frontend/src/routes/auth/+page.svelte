@@ -4,14 +4,14 @@
     import { createUserSchema, loginSchema } from '$lib/schemas/user';
     import { goto } from '$app/navigation';
     import type { PageData } from './$types';
-    import { A, Button, Card, Checkbox } from 'flowbite-svelte';
+    import { A, Button, Card, Checkbox, Spinner } from 'flowbite-svelte';
 
     let { data } = $props<{ data: PageData }>();
     let isLogin = $state(true);
     let showConfirmation = $state(false);
     let userEmail = $state('');
     
-    const { form: signupForm, errors: signupErrors, enhance: signupEnhance, message: signupMessage } = superForm(data.signupForm, {
+    const { form: signupForm, errors: signupErrors, enhance: signupEnhance, message: signupMessage, submitting: signupSubmitting } = superForm(data.signupForm, {
         validators: zodClient(createUserSchema),
         resetForm: false,
         taintedMessage: null,
@@ -28,7 +28,7 @@
         }
     });
 
-    const { form: loginForm, errors: loginErrors, enhance: loginEnhance, message: loginMessage } = superForm(data.loginForm, {
+    const { form: loginForm, errors: loginErrors, enhance: loginEnhance, message: loginMessage, submitting: loginSubmitting } = superForm(data.loginForm, {
         validators: zodClient(loginSchema),
         resetForm: false,
         taintedMessage: null,
@@ -38,6 +38,17 @@
             }
             return result;
         }
+    });
+
+    let signupSaving = $state(false);
+    let loginSaving = $state(false);
+    
+    $effect(() => {
+        signupSaving = $signupSubmitting;
+    });
+    
+    $effect(() => {
+        loginSaving = $loginSubmitting;
     });
 
     function toggleMode() {
@@ -132,8 +143,13 @@
                             size="lg" 
                             formaction="?/login"
                             class="w-full"
+                            disabled={loginSaving}
                         >
-                            Login to your account
+                            {#if loginSaving}
+                                <Spinner class="me-3" size="4" color="white" />Logging in...
+                            {:else}
+                                Login to your account
+                            {/if}
                         </Button>
 
                         <div class="text-sm font-medium text-gray-500 dark:text-gray-300">
@@ -211,8 +227,13 @@
                             size="lg" 
                             formaction="?/signup"
                             class="w-full"
+                            disabled={signupSaving}
                         >
-                            Create account
+                            {#if signupSaving}
+                                <Spinner class="me-3" size="4" color="white" />Creating account...
+                            {:else}
+                                Create account
+                            {/if}
                         </Button>
 
                         <div class="text-sm font-medium text-gray-500 dark:text-gray-300">
