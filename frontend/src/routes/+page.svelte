@@ -13,17 +13,17 @@
     let searchTerm = $state("");
     let authLoading = $state(false);
     let filteredClubs = $derived(data.clubs.filter((club) => 
-        club.name.toLowerCase().indexOf(searchTerm?.toLowerCase()) !== -1
+        club.club_url != null && club.name.toLowerCase().includes(searchTerm.toLowerCase())
     ));
 
-    function navigateToClub(clubName: string) {
+    function navigateToClub(clubUrl: string) {
         const currentUrl = new URL(window.location.href);
         const protocol = currentUrl.protocol;
         const hostname = currentUrl.hostname;
         
         // Handle localhost and production domains
         if (hostname === 'localhost') {
-            window.location.href = `${protocol}//${clubName}.localhost:${currentUrl.port}`;
+            window.location.href = `${protocol}//${clubUrl}.localhost:${currentUrl.port}`;
         } else {
             // For production, determine the main domain
             let mainDomain;
@@ -35,7 +35,7 @@
                 // Fallback: extract main domain by removing subdomain
                 mainDomain = hostname.replace(/^[^.]+\./, '');
             }
-            window.location.href = `${protocol}//${clubName}.${mainDomain}`;
+            window.location.href = `${protocol}//${clubUrl}.${mainDomain}`;
         }
     }
 
@@ -77,7 +77,7 @@
                                 <button 
                                     type="button"
                                     class="w-full text-left rounded-sm p-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer focus:bg-gray-100 dark:focus:bg-gray-600 focus:outline-none" 
-                                    onclick={() => navigateToClub(club.name)}>
+                                    onclick={() => navigateToClub(club.club_url!)}>
                                     <div class="px-2 py-1 text-sm text-gray-900 dark:text-white">
                                         {club.name}
                                     </div>
@@ -119,7 +119,7 @@
                                 <button 
                                     type="button"
                                     class="w-full text-left rounded-sm p-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer focus:bg-gray-100 dark:focus:bg-gray-600 focus:outline-none" 
-                                    onclick={() => navigateToClub(club.name)}>
+                                    onclick={() => navigateToClub(club.club_url!)}>
                                     <div class="px-2 py-1 text-sm text-gray-900 dark:text-white">
                                         {club.name}
                                     </div>

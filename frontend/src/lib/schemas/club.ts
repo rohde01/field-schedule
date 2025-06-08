@@ -5,7 +5,8 @@ export const clubSchema = z.object({
     name: z.string(),
     owner_id: z.string(),
     created_at: z.string().nullable(),
-    updated_at: z.string().nullable()
+    updated_at: z.string().nullable(),
+    club_url: z.string().min(2).max(5).optional(),
 });
 
 export const createClubSchema = z.object({
