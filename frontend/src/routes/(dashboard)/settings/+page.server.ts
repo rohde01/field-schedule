@@ -27,7 +27,7 @@ export const load: PageServerLoad = async (event) => {
         if (!error && club) {
             clubData = club;
             updateClubForm = await superValidate(event, zod(updateClubSchema), {
-                defaults: { name: club.name }
+                defaults: { name: club.name, club_url: club.club_url }
             });
         }
     }
@@ -119,7 +119,8 @@ export const actions: Actions = {
             .from('clubs')
             .insert({ 
                 name: form.data.name,
-                owner_id: user.user_id
+                owner_id: user.user_id,
+                club_url: form.data.club_url
             })
             .select()
             .single();

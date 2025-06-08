@@ -10,10 +10,12 @@ export const clubSchema = z.object({
 
 export const createClubSchema = z.object({
     name: z.string().min(3, "Club name must be at least 3 characters"),
+    club_url: z.string().min(2).max(5).optional(),
 });
 
 export const updateClubSchema = z.object({
     name: z.string().min(3, "Club name must be at least 3 characters"),
+    club_url: z.string().min(2).max(5).optional(),
 });
 
 export type Club = z.infer<typeof clubSchema>;

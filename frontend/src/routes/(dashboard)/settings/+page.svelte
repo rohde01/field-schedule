@@ -89,6 +89,11 @@
             <Input name="name" id="name" type="text" bind:value={$clubUpdateData.name} class="border font-normal outline-none" />
             {#if $clubUpdateErrors?.name}<Helper class="mt-2" color="red">{$clubUpdateErrors.name}</Helper>{/if}
           </Label>
+          <Label class="col-span-6 space-y-2 sm:col-span-3">
+            <span>Club URL</span>
+            <Input name="club_url" id="club_url" type="text" bind:value={$clubUpdateData.club_url} class="border font-normal outline-none" />
+            {#if $clubUpdateErrors?.club_url}<Helper class="mt-2" color="red">{$clubUpdateErrors.club_url}</Helper>{/if}
+          </Label>
           <Button type="submit" form="club-form" class="w-fit whitespace-nowrap" disabled={clubSaving}>
             {#if clubSaving}
               <Spinner class="me-3" size="4" color="white" />Saving...
