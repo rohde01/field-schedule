@@ -13,6 +13,7 @@
     import DeleteModal from '$lib/components/DeleteModal.svelte';
     import TeamModal from './TeamModal.svelte';
     import ToastMessage from '$lib/components/Toast.svelte';
+    import { exportTeamsToExcel } from '$lib/utils/teams-excel';
     
     // Initialize superForms with client-side options
     const createForm = superForm(data.createForm, {
@@ -121,25 +122,11 @@
 
     <Toolbar embedded class="w-full py-4 text-gray-500  dark:text-gray-300">
       <Input bind:value={searchTerm} placeholder="Search for teams" class="me-4 w-80 border xl:w-96" />
-      <div class="border-l border-gray-100 pl-2 dark:border-gray-700">
-        <ToolbarButton color="dark" class="m-0 rounded p-1 hover:bg-gray-100 focus:ring-0 dark:hover:bg-gray-700">
-          <CogSolid size="lg" />
-        </ToolbarButton>
-        <ToolbarButton color="dark" class="m-0 rounded p-1 hover:bg-gray-100 focus:ring-0 dark:hover:bg-gray-700">
-          <TrashBinSolid size="lg" />
-        </ToolbarButton>
-        <ToolbarButton color="dark" class="m-0 rounded p-1 hover:bg-gray-100 focus:ring-0 dark:hover:bg-gray-700">
-          <ExclamationCircleSolid size="lg" />
-        </ToolbarButton>
-        <ToolbarButton color="dark" class="m-0 rounded p-1 hover:bg-gray-100 focus:ring-0 dark:hover:bg-gray-700">
-          <DotsVerticalOutline size="lg" />
-        </ToolbarButton>
-      </div>
-      <div class="flex items-center space-x-2">
+      <div class="flex items-center space-x-2 ml-auto">
         <Button size="sm" class="gap-2 px-3 whitespace-nowrap" onclick={() => addNewTeam()}>
           <PlusOutline size="sm" />Add team
         </Button>
-        <Button size="sm" color="alternative" class="gap-2 px-3">
+        <Button size="sm" color="alternative" class="gap-2 px-3" onclick={() => exportTeamsToExcel(filteredTeams)}>
           <DownloadSolid size="md" class="-ml-1" />Export
         </Button>
       </div>
