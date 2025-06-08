@@ -81,6 +81,8 @@
     let teamToDelete: Team | null = null;
     let teamIdToDelete: number | undefined;
     let isEditMode: boolean = false;
+    let searchTerm: string = '';
+    $: filteredTeams = $teams.filter(team => team.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
     // Function to prepare form for adding a new team
     function addNewTeam() {
@@ -118,7 +120,7 @@
     <Heading tag="h1" class="text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white">Teams</Heading>
 
     <Toolbar embedded class="w-full py-4 text-gray-500  dark:text-gray-300">
-      <Input placeholder="Search for teams" class="me-4 w-80 border xl:w-96" />
+      <Input bind:value={searchTerm} placeholder="Search for teams" class="me-4 w-80 border xl:w-96" />
       <div class="border-l border-gray-100 pl-2 dark:border-gray-700">
         <ToolbarButton color="dark" class="m-0 rounded p-1 hover:bg-gray-100 focus:ring-0 dark:hover:bg-gray-700">
           <CogSolid size="lg" />
@@ -151,7 +153,7 @@
       {/each}
     </TableHead>
     <TableBody>
-      {#each $teams as team}
+      {#each filteredTeams as team}
         <TableBodyRow class="text-base">
           <TableBodyCell class="w-4 p-4"><Checkbox /></TableBodyCell>
           <TableBodyCell class="p-4 font-medium">{team.name}</TableBodyCell>

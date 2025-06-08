@@ -80,6 +80,8 @@
   let openFieldModal: boolean = $state(false);
   let currentField: Field | any = $state({});
   let isEditMode: boolean = $state(false);
+  let searchTerm = $state('');
+  let searchedFields = $state<Field[]>([]);
 
   $effect(() => {
       hiddenDrawer = !$showCreateFacility;
@@ -91,6 +93,12 @@
       } else {
           toggleCreateFacility(false);
       }
+  });
+
+  $effect(() => {
+      searchedFields = $filteredFields.filter(field =>
+          field.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
   });
 
   function addNewField() {
@@ -155,7 +163,7 @@
     <Heading tag="h1" class="text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white">Fields</Heading>
 
     <Toolbar embedded class="w-full py-4 text-gray-500 dark:text-gray-300">
-      <Input placeholder="Search for fields" class="me-4 w-80 border xl:w-96" />
+      <Input bind:value={searchTerm} placeholder="Search for fields" class="me-4 w-80 border xl:w-96" />
       <div class="border-l border-gray-100 pl-2 dark:border-gray-700">
         <ToolbarButton color="dark" class="m-0 rounded p-1 hover:bg-gray-100 focus:ring-0 dark:hover:bg-gray-700">
           <CogSolid size="lg" />
@@ -206,7 +214,7 @@
         <TableHeadCell class="p-4">Actions</TableHeadCell>
       </TableHead>
       <TableBody>
-        {#each $filteredFields as field}
+        {#each searchedFields as field}
           <TableBodyRow class="text-base">
             <TableBodyCell class="w-4 p-4"><Checkbox /></TableBodyCell>
             <TableBodyCell class="p-4 font-medium">{field.name}</TableBodyCell>
