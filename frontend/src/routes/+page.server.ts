@@ -17,7 +17,7 @@ export const load: PageServerLoad = async ({ url, locals: { supabase } }) => {
         // Fetch all clubs for the dropdown
         const { data: clubs, error: clubsError } = await supabase
             .from('clubs')
-            .select('club_id, name, club_url')
+            .select('club_id, name, club_url, logo_url')
             .not('club_url', 'is', null)
             .order('name');
 
@@ -44,7 +44,7 @@ export const load: PageServerLoad = async ({ url, locals: { supabase } }) => {
         // First, find the club by matching subdomain to club_url
         const { data: clubs, error: clubError } = await supabase
             .from('clubs')
-            .select('club_id, name, club_url')
+            .select('club_id, name, club_url, logo_url')
             .eq('club_url', subdomain)
             .limit(1);
 
@@ -149,7 +149,7 @@ export const load: PageServerLoad = async ({ url, locals: { supabase } }) => {
 
         return {
             hasSubdomain: true,
-            club: null,
+            club,
             schedules,
             user: null,
             clubs: [],

@@ -3,9 +3,11 @@
     import { ArrowRightOutline, ChevronDownOutline } from 'flowbite-svelte-icons';
     import { onMount } from 'svelte';
     import ClubSchedule from './ClubSchedule.svelte';
+    import Navbar from './(dashboard)/Navbar.svelte';
     import { setSchedules } from '$lib/stores/schedules';
     import { setTeams } from '$lib/stores/teams';
     import { setFields } from '$lib/stores/fields';
+    import { setClubs } from '$lib/stores/clubs';
     import type { PageData } from './$types';
 
     let { data }: { data: PageData } = $props();
@@ -40,6 +42,9 @@
     }
 
     onMount(() => {
+        // Always set clubs data since it's available regardless of subdomain
+        setClubs(data.clubs);
+        
         if (data.hasSubdomain && data.schedules) {
             setSchedules(data.schedules);
         }
@@ -78,7 +83,8 @@
                                     type="button"
                                     class="w-full text-left rounded-sm p-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer focus:bg-gray-100 dark:focus:bg-gray-600 focus:outline-none" 
                                     onclick={() => navigateToClub(club.club_url!)}>
-                                    <div class="px-2 py-1 text-sm text-gray-900 dark:text-white">
+                                    <div class="flex items-center px-2 py-1 text-sm text-gray-900 dark:text-white">
+                                        <img src={club.logo_url || '/favicon.png'} class="me-3 h-6 w-6 rounded-sm" alt="{club.name} logo" />
                                         {club.name}
                                     </div>
                                 </button>
@@ -120,7 +126,8 @@
                                     type="button"
                                     class="w-full text-left rounded-sm p-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer focus:bg-gray-100 dark:focus:bg-gray-600 focus:outline-none" 
                                     onclick={() => navigateToClub(club.club_url!)}>
-                                    <div class="px-2 py-1 text-sm text-gray-900 dark:text-white">
+                                    <div class="flex items-center px-2 py-1 text-sm text-gray-900 dark:text-white">
+                                        <img src={club.logo_url || '/favicon.png'} class="me-3 h-6 w-6 rounded-sm" alt="{club.name} logo" />
                                         {club.name}
                                     </div>
                                 </button>

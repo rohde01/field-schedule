@@ -55,16 +55,16 @@
 
   function getPublicClubUrl() {
     if ($clubs.length > 0) {
-      const clubName = $clubs[0].name;
+      const clubUrl = $clubs[0].club_url || $clubs[0].name;
       const currentHost = window.location.host;
       const isLocalhost = currentHost.includes('localhost');
       
       if (isLocalhost) {
-        return `http://${clubName}.localhost:5173`;
+        return `http://${clubUrl}.localhost:5173`;
       } else {
         // For production, construct the subdomain URL
         const baseDomain = currentHost.split('.').slice(-2).join('.');
-        return `https://${clubName}.${baseDomain}`;
+        return `https://${clubUrl}.${baseDomain}`;
       }
     }
     return '/';
