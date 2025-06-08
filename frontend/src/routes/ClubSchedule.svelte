@@ -16,7 +16,7 @@
           shouldHideHourLabel, isHourMark, timeTrackingEnabled } from '$lib/utils/dateUtils';
   import { getFieldColumns, buildFieldToGridColumnMap, generateHeaderCells, getFieldName } from '$lib/utils/fieldUtils';
   import { selectedSchedule, schedules } from '$lib/stores/schedules';
-  import { Heading, Button, Toggle, Tooltip, Input } from 'flowbite-svelte';
+  import { Heading, Button, Toggle, Tooltip, Input, DarkMode } from 'flowbite-svelte';
   import { AngleLeftOutline, AngleRightOutline } from 'flowbite-svelte-icons';
   import { page } from '$app/stores';
 
@@ -126,15 +126,38 @@
         $teamNameLookup.get(entry.team_id)?.toLowerCase().includes(teamSearchTerm.toLowerCase())
       )
     : $processedEntries;
+
+  // Navigate to root domain without subdomain
+  function navigateHome() {
+    if (!browser) return;
+    const { protocol, hostname, port } = window.location;
+    const portSegment = port ? `:${port}` : '';
+    let mainDomain;
+    if (hostname === 'localhost') {
+      mainDomain = `localhost${portSegment}`;
+    } else if (hostname === 'baneplanen.info' || hostname === 'www.baneplanen.info') {
+      mainDomain = 'baneplanen.info';
+    } else if (hostname.endsWith('.baneplanen.info')) {
+      mainDomain = 'baneplanen.info';
+    } else {
+      mainDomain = hostname.replace(/^[^.]+\./, '');
+    }
+    window.location.href = `${protocol}//${mainDomain}${portSegment}/`;
+  }
 </script>
 
 
 <!-- make container focusable and keyboard-operable -->
-<div id="main-content" class="relative mx-auto h-full w-full overflow-y-auto bg-gray-50 dark:bg-gray-900 mt-4 px-4 py-2">
+<div id="main-content" class="relative mx-auto h-full w-full overflow-y-auto bg-gray-50 dark:bg-gray-900 px-4 py-4">
   <div class="schedule-container">
     {#if $selectedSchedule}
-      <img src={$logoUrl} class="h-26 mb-4" alt="Club logo" />
-      <div class="flex items-center gap-2 mb-4">
+      <div class="flex items-center justify-between mb-4">
+        <a href="/" on:click|preventDefault={navigateHome}>
+          <img src={$logoUrl} class="h-26 mb-3" alt="Club logo" />
+        </a>
+        <DarkMode class="text-primary-500 dark:text-primary-600 border dark:border-gray-800" />
+      </div>
+      <div class="mb-4">
         <Heading tag="h1">{$selectedSchedule.name}</Heading>
       </div>
     {/if}
