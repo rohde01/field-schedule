@@ -150,5 +150,34 @@ export const actions: Actions = {
         }
 
         throw redirect(303, '/schedules');
+    },
+    uploadLogo: async ({ request, locals: { supabase, user } }) => {
+        if (!user) throw redirect(303, '/auth/login');
+        const formData = await request.formData();
+        const file = formData.get('logo');
+        if (!file || !(file instanceof Blob)) {
+            console.error('No file provided or invalid type');
+            return fail(400, { message: 'No file provided' });
+        }
+        const name = (file as File).name;
+        const ext = name.split('.').pop();
+        const filePath = `${user.user_id}/${Date.now()}.${ext}`;
+        const { error: uploadError } = await supabase.storage.from('logos').upload(filePath, file as File, { upsert: true });
+        if (uploadError) {
+            console.error('Supabase upload error:', uploadError);
+            return fail(400, { message: `Failed to upload logo: ${uploadError.message}` });
+        }
+        const { data: urlData } = supabase.storage.from('logos').getPublicUrl(filePath);
+        const publicUrl = urlData.publicUrl;
+        const { error: updateError } = await supabase
+            .from('clubs')
+            .update({ logo_url: publicUrl })
+            .eq('club_id', user.club_id)
+            .select()
+            .single();
+        if (updateError) {
+            return fail(400, { message: `Failed to update club logo: ${updateError.message}` });
+        }
+        throw redirect(303, '/settings');
     }
 };

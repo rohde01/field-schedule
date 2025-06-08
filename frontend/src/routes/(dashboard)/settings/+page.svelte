@@ -7,7 +7,7 @@
 
     import NameModal from './NameModal.svelte';
     import ClubModal from './ClubModal.svelte';
-    import { Label, Select, Card, Heading, Button, Input, Helper, Spinner } from 'flowbite-svelte';
+    import { Label, Select, Card, Heading, Button, Input, Helper, Spinner, Fileupload } from 'flowbite-svelte';
     import { Breadcrumb, BreadcrumbItem } from 'flowbite-svelte';
     import ToastMessage from '$lib/components/Toast.svelte';
 
@@ -100,6 +100,26 @@
             {:else}
               Save all
             {/if}
+          </Button>
+        </form>
+      </Card>
+      <Card size="xl" class="max-w-none shadow-sm -mt-px max-w-none p-4 sm:p-6">
+        <div class="mt-px mb-4 lg:mb-0">
+          <Heading tag="h3" class="mb-2 -ml-0.25 text-xl font-semibold dark:text-white">
+            Club Logo
+          </Heading>
+        </div>
+        {#if data.clubData?.logo_url}
+          <img src={data.clubData.logo_url} alt="Club Logo" class="mb-4 w-40 h-30 object-cover rounded" />
+        {/if}
+        <form method="POST" action="?/uploadLogo" enctype="multipart/form-data" class="grid grid-cols-6 gap-6 items-end">
+          <Label for="logo" class="col-span-6 space-y-2 sm:col-span-3">
+            <span>Upload Logo</span>
+            <Fileupload id="logo" name="logo" class="mb-2" />
+            <Helper>SVG, PNG, JPG or GIF (MAX. 800x400px).</Helper>
+          </Label>
+          <Button type="submit" class="col-span-6 sm:col-span-3 w-fit">
+            Upload
           </Button>
         </form>
       </Card>
