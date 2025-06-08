@@ -63,8 +63,8 @@
 </script>
 
 <Navbar fluid class="w-full px-6 py-3.75 text-black justify-between {transparent ? 'bg-transparent' : ''}" color={transparent ? "none" : "default"}>
-  <button aria-label="Home" onclick={handleLogoClick} class="flex items-center">
-    <img src={logoUrl} class="me-3 h-8 sm:h-10" alt="Club logo" />
+  <button aria-label="Home" onclick={handleLogoClick} class="flex items-center h-8 relative overflow-visible">
+    <img src={logoUrl} class="me-3 h-12 sm:h-15 z-10" alt="Club logo" />
   </button>
 
   <div class="ms-auto flex items-center text-gray-500 sm:order-2 dark:text-gray-300">
