@@ -131,46 +131,57 @@
         </Button>
       </div>
     </Toolbar>
+    {#if filteredTeams.length === 0}
+      <div class="flex items-center justify-center p-8">
+        <div class="text-center">
+          <p class="text-gray-500 dark:text-gray-400 text-lg">
+            To get started here, create your first team using the "Add team" button.
+          </p>
+        </div>
+      </div>
+    {:else}
+      <Table>
+        <TableHead class="border-y border-gray-200 bg-gray-100 dark:border-gray-700">
+          {#each ['Name','Year','Gender','Academy','Level','Field Size','Weekly Trainings','Status','Actions'] as title}
+            <TableHeadCell class="p-4 font-medium">{title}</TableHeadCell>
+          {/each}
+        </TableHead>
+        <TableBody>
+          {#each filteredTeams as team}
+            <TableBodyRow class="text-base">
+              <TableBodyCell class="p-4 font-medium">{team.name}</TableBodyCell>
+              <TableBodyCell class="p-4">{team.year}</TableBodyCell>
+              <TableBodyCell class="p-4">{team.gender}</TableBodyCell>
+              <TableBodyCell class="p-4">
+                <Checkbox checked={team.is_academy} disabled />
+              </TableBodyCell>
+              <TableBodyCell class="p-4">{team.level}</TableBodyCell>
+              <TableBodyCell class="p-4">
+                {#each formatFieldSize(team.minimum_field_size).split(', ') as size}
+                  <Badge border color="green" class="mr-2">{size}</Badge>
+                {/each}
+              </TableBodyCell>
+              <TableBodyCell class="p-4">{team.weekly_trainings}</TableBodyCell>
+              <TableBodyCell class="p-4">
+                <div class="flex items-center gap-2">
+                  <Indicator color={team.is_active ? 'green' : 'red'} />
+                  {team.is_active ? 'Active' : 'Inactive'}
+                </div>
+              </TableBodyCell>
+              <TableBodyCell class="space-x-2 p-4">
+                <Button size="sm" class="gap-2 px-3" onclick={() => editTeam(team)}>
+                  <EditOutline size="sm" /> Edit team
+                </Button>
+                <Button color="red" size="sm" class="gap-2 px-3" onclick={() => prepareDeleteTeam(team)}>
+                  <TrashBinSolid size="sm" /> Delete team
+                </Button>
+              </TableBodyCell>
+            </TableBodyRow>
+          {/each}
+        </TableBody>
+      </Table>
+    {/if}
   </div>
-  <Table>
-    <TableHead class="border-y border-gray-200 bg-gray-100 dark:border-gray-700">
-      {#each ['Name','Year','Gender','Academy','Level','Field Size','Weekly Trainings','Status','Actions'] as title}
-        <TableHeadCell class="p-4 font-medium">{title}</TableHeadCell>
-      {/each}
-    </TableHead>
-    <TableBody>
-      {#each filteredTeams as team}
-        <TableBodyRow class="text-base">
-          <TableBodyCell class="p-4 font-medium">{team.name}</TableBodyCell>
-          <TableBodyCell class="p-4">{team.year}</TableBodyCell>
-          <TableBodyCell class="p-4">{team.gender}</TableBodyCell>
-          <TableBodyCell class="p-4">
-            <Checkbox checked={team.is_academy} disabled />
-          </TableBodyCell>
-          <TableBodyCell class="p-4">{team.level}</TableBodyCell>
-          <TableBodyCell class="p-4">
-            {#each formatFieldSize(team.minimum_field_size).split(', ') as size}
-              <Badge border color="green" class="mr-2">{size}</Badge>
-            {/each}
-          </TableBodyCell>
-          <TableBodyCell class="p-4">{team.weekly_trainings}</TableBodyCell>
-          <TableBodyCell class="p-4">
-            <div class="flex items-center gap-2">
-              <Indicator color={team.is_active ? 'green' : 'red'} />
-              {team.is_active ? 'Active' : 'Inactive'}
-            </TableBodyCell>
-          <TableBodyCell class="space-x-2 p-4">
-            <Button size="sm" class="gap-2 px-3" onclick={() => editTeam(team)}>
-              <EditOutline size="sm" /> Edit team
-            </Button>
-            <Button color="red" size="sm" class="gap-2 px-3" onclick={() => prepareDeleteTeam(team)}>
-              <TrashBinSolid size="sm" /> Delete team
-            </Button>
-          </TableBodyCell>
-        </TableBodyRow>
-      {/each}
-    </TableBody>
-  </Table>
 </main>
   
 <!-- Modals -->

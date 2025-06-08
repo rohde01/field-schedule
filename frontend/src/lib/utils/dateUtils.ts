@@ -73,13 +73,11 @@ export function isSameDay(date1: Date, date2: Date): boolean {
 }
 
 export function formatDate(date: Date): string {
-  // Format as "25 April 2025"
-  return date.getDate() + ' ' + date.toLocaleString('en-US', { month: 'long' }) + ' ' + date.getFullYear();
+  return date.toLocaleDateString('da-DK', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 export function formatWeekdayOnly(date: Date): string {
-  // Get the weekday name (e.g., "Monday")
-  return date.toLocaleString('en-US', { weekday: 'long' });
+  return date.toLocaleDateString('da-DK', { weekday: 'long' });
 }
 
 export function nextDay() {

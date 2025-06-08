@@ -140,7 +140,7 @@
       <div class="navigation-controls flex-1 flex items-center gap-2 justify-end">
         <div class="toggle-container">
           <Toggle bind:checked={$showEarlyTimeslots}></Toggle>
-          <Tooltip placement="top">Show entire day</Tooltip>
+          <Tooltip placement="top">Vis hele dagen</Tooltip>
         </div>
         <Button outline={true} class="p-2!" on:click={previousDay}>
           <AngleLeftOutline class="w-5 h-5" />

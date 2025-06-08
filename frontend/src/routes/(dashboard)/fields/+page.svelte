@@ -185,57 +185,67 @@
       </div>
     </div>
   {:else}
-    <Table>
-      <TableHead class="border-y border-gray-200 bg-gray-100 dark:border-gray-700">
-        <TableHeadCell class="p-4 font-medium">Name</TableHeadCell>
-        <TableHeadCell class="p-4">Size</TableHeadCell>
-        <TableHeadCell class="p-4">Field Type</TableHeadCell>
-        {#if $showHalfFields}
-          <TableHeadCell class="p-4">Half Fields</TableHeadCell>
-        {/if}
-        {#if $showQuarterFields}
-          <TableHeadCell class="p-4">Quarter Fields</TableHeadCell>
-        {/if}
-        <TableHeadCell class="p-4">Status</TableHeadCell>
-        <TableHeadCell class="p-4">Actions</TableHeadCell>
-      </TableHead>
-      <TableBody>
-        {#each searchedFields as field}
-          <TableBodyRow class="text-base">
-            <TableBodyCell class="p-4 font-medium">{field.name}</TableBodyCell>
-            <TableBodyCell class="p-4">{field.size}</TableBodyCell>
-            <TableBodyCell class="p-4">{field.field_type}</TableBodyCell>
-            {#if $showHalfFields}
+    {#if searchedFields.length === 0}
+      <div class="flex items-center justify-center p-8">
+        <div class="text-center">
+          <p class="text-gray-500 dark:text-gray-400 text-lg">
+            Add fields to this facility using the "Add field" button
+          </p>
+        </div>
+      </div>
+    {:else}
+      <Table>
+        <TableHead class="border-y border-gray-200 bg-gray-100 dark:border-gray-700">
+          <TableHeadCell class="p-4 font-medium">Name</TableHeadCell>
+          <TableHeadCell class="p-4">Size</TableHeadCell>
+          <TableHeadCell class="p-4">Field Type</TableHeadCell>
+          {#if $showHalfFields}
+            <TableHeadCell class="p-4">Half Fields</TableHeadCell>
+          {/if}
+          {#if $showQuarterFields}
+            <TableHeadCell class="p-4">Quarter Fields</TableHeadCell>
+          {/if}
+          <TableHeadCell class="p-4">Status</TableHeadCell>
+          <TableHeadCell class="p-4">Actions</TableHeadCell>
+        </TableHead>
+        <TableBody>
+          {#each searchedFields as field}
+            <TableBodyRow class="text-base">
+              <TableBodyCell class="p-4 font-medium">{field.name}</TableBodyCell>
+              <TableBodyCell class="p-4">{field.size}</TableBodyCell>
+              <TableBodyCell class="p-4">{field.field_type}</TableBodyCell>
+              {#if $showHalfFields}
+                <TableBodyCell class="p-4">
+                  {#each field.half_subfields ?? [] as h (h.field_id)}
+                    <Badge border color="blue" class="mr-2">{h.name}</Badge>
+                  {/each}
+                </TableBodyCell>
+              {/if}
+              {#if $showQuarterFields}
+                <TableBodyCell class="p-4">
+                  {#each [...(field.quarter_subfields ?? []), ...((field.half_subfields?.flatMap(h => h.quarter_subfields ?? [])) ?? [])] as q (q.field_id)}
+                    <Badge border color="blue" class="mr-2">{q.name}</Badge>
+                  {/each}
+                </TableBodyCell>
+              {/if}
               <TableBodyCell class="p-4">
-                {#each field.half_subfields ?? [] as h (h.field_id)}
-                  <Badge border color="blue" class="mr-2">{h.name}</Badge>
-                {/each}
+                <div class="flex items-center gap-2">
+                  <Indicator color={field.is_active ? 'green' : 'red'} />
+                  {field.is_active ? 'Active' : 'Inactive'}
+                </TableBodyCell>
+              <TableBodyCell class="space-x-2 p-4">
+                <Button size="sm" class="gap-2 px-3" onclick={() => editField(field)}>
+                  <EditOutline size="sm" /> Edit
+                </Button>
+                <Button color="red" size="sm" class="gap-2 px-3" onclick={() => prepareDeleteField(field)}>
+                  <TrashBinSolid size="sm" /> Delete Field
+                </Button>
               </TableBodyCell>
-            {/if}
-            {#if $showQuarterFields}
-              <TableBodyCell class="p-4">
-                {#each [...(field.quarter_subfields ?? []), ...((field.half_subfields?.flatMap(h => h.quarter_subfields ?? [])) ?? [])] as q (q.field_id)}
-                  <Badge border color="blue" class="mr-2">{q.name}</Badge>
-                {/each}
-              </TableBodyCell>
-            {/if}
-            <TableBodyCell class="p-4">
-              <div class="flex items-center gap-2">
-                <Indicator color={field.is_active ? 'green' : 'red'} />
-                {field.is_active ? 'Active' : 'Inactive'}
-              </TableBodyCell>
-            <TableBodyCell class="space-x-2 p-4">
-              <Button size="sm" class="gap-2 px-3" onclick={() => editField(field)}>
-                <EditOutline size="sm" /> Edit
-              </Button>
-              <Button color="red" size="sm" class="gap-2 px-3" onclick={() => prepareDeleteField(field)}>
-                <TrashBinSolid size="sm" /> Delete Field
-              </Button>
-            </TableBodyCell>
-          </TableBodyRow>
-        {/each}
-      </TableBody>
-    </Table>
+            </TableBodyRow>
+          {/each}
+        </TableBody>
+      </Table>
+    {/if}
   {/if}
 </main>
 

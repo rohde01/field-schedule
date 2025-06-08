@@ -5,11 +5,15 @@
     import ConfigCard from './ConfigCard.svelte'
     import { Datepicker, P, Card, Drawer } from 'flowbite-svelte';
     import { Heading, Button } from 'flowbite-svelte';
-    import { PenOutline } from 'flowbite-svelte-icons';
+    import { PenOutline, LightbulbOutline } from 'flowbite-svelte-icons';
     import { selectedSchedule, IsCreating } from '$lib/stores/schedules';
     import ScheduleDrawer from '$lib/components/ScheduleDrawer.svelte';
     import { superForm } from 'sveltekit-superforms/client';
     import ToastMessage from '$lib/components/Toast.svelte';
+    import { selectedFacility } from '$lib/stores/facilities';
+    import { filteredFields } from '$lib/stores/fields';
+    import { teams } from '$lib/stores/teams';
+    import { schedules } from '$lib/stores/schedules';
     
     let { data } = $props();
     
@@ -43,33 +47,52 @@
     }
 </script>
 
-    <div id="main-content" class="relative mx-auto h-full w-full overflow-y-auto bg-gray-50 p-4 dark:bg-gray-900"></div>
-    <div id="main-content" class="relative mx-auto h-full w-full overflow-y-auto bg-gray-50 p-4 dark:bg-gray-900">
-        {#if $IsCreating}
-            <div class="flex gap-4">
-                <div style="flex: 2">
-                    <CreateCard />
-                </div>
-                <div style="flex: 7">
-                    <TeamCard />
-                </div>
-                <div style="flex: 1">
-                    <ConfigCard />
-                </div>
+{#if !$selectedFacility}
+  <div class="flex items-center justify-center p-8">
+    <p class="text-gray-500 dark:text-gray-400 text-lg">
+      <LightbulbOutline class="inline mr-2" />To get started creating schedules, start off by setting up your club in the fields and teams pages.
+    </p>
+  </div>
+{:else if $teams.length === 0 || $filteredFields.length === 0}
+  <div class="flex items-center justify-center p-8">
+    <p class="text-gray-500 dark:text-gray-400 text-lg">
+      <LightbulbOutline class="inline mr-2" />Create at least one team and one field before creating a schedule.
+    </p>
+  </div>
+{:else if $schedules.length === 0}
+  <div class="flex items-center justify-center p-8">
+    <p class="text-gray-500 dark:text-gray-400 text-lg">
+      <LightbulbOutline class="inline mr-2" />Click Create Schedule to create your first schedule.
+    </p>
+  </div>
+{:else}
+  <div id="main-content" class="relative mx-auto h-full w-full overflow-y-auto bg-gray-50 p-4 dark:bg-gray-900">
+    {#if $IsCreating}
+        <div class="flex gap-4">
+            <div style="flex: 2">
+                <CreateCard />
             </div>
-        {/if}
-      {#if $selectedSchedule}
-        <div class="flex items-center gap-2">
-          <Heading tag="h1">{$selectedSchedule.name}</Heading>
-          {#if !$IsCreating}
-            <Button size="sm" outline class="p-2!" on:click={editSchedule}>
-              <PenOutline class="w-6 h-6" />
-            </Button>
-          {/if}
+            <div style="flex: 7">
+                <TeamCard />
+            </div>
+            <div style="flex: 1">
+                <ConfigCard />
+            </div>
         </div>
-      {/if}
-        <Schedule />
-    </div>
+    {/if}
+    {#if $selectedSchedule}
+        <div class="flex items-center gap-2">
+            <Heading tag="h1">{$selectedSchedule.name}</Heading>
+            {#if !$IsCreating}
+                <Button size="sm" outline class="p-2!" on:click={editSchedule}>
+                    <PenOutline class="w-6 h-6" />
+                </Button>
+            {/if}
+        </div>
+    {/if}
+    <Schedule />
+  </div>
+{/if}
 
 <Drawer placement="right" bind:hidden={hiddenDrawer}>
   <ScheduleDrawer title="Update schedule" bind:hidden={hiddenDrawer} form={updateForm} />
