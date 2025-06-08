@@ -16,8 +16,9 @@
           shouldHideHourLabel, isHourMark, timeTrackingEnabled } from '$lib/utils/dateUtils';
   import { getFieldColumns, buildFieldToGridColumnMap, generateHeaderCells, getFieldName } from '$lib/utils/fieldUtils';
   import { selectedSchedule, schedules } from '$lib/stores/schedules';
-  import { Heading, Button, Toggle, Tooltip } from 'flowbite-svelte';
+  import { Heading, Button, Toggle, Tooltip, Input } from 'flowbite-svelte';
   import { AngleLeftOutline, AngleRightOutline } from 'flowbite-svelte-icons';
+  import { page } from '$app/stores';
 
   // Function to find the active schedule for a given date
   function findActiveScheduleForDate(date: Date): number | null {
@@ -101,6 +102,8 @@
     return lookup;
   }) : derived(teams, () => new Map());
 
+  const logoUrl = derived(page, $page => $page.data.club?.logo_url || '/favicon.png');
+
   // Function to get the best title for an entry, prioritizing summary
   function getEntryTitle(entry: ProcessedScheduleEntry): string {
     if (entry.summary) {
@@ -116,13 +119,21 @@
   function shouldHideFirstHourMarkWhenEarlyOff(time: string, earlyTimeslotsOn: boolean): boolean {
     return time === '12:00' && !earlyTimeslotsOn;
   }
+
+  let teamSearchTerm = "";
+  $: filteredEntries = teamSearchTerm
+    ? $processedEntries.filter(entry =>
+        $teamNameLookup.get(entry.team_id)?.toLowerCase().includes(teamSearchTerm.toLowerCase())
+      )
+    : $processedEntries;
 </script>
 
 
 <!-- make container focusable and keyboard-operable -->
-<div id="main-content" class="relative mx-auto h-full w-full overflow-y-auto bg-gray-50 p-4 dark:bg-gray-900 mt-16">
+<div id="main-content" class="relative mx-auto h-full w-full overflow-y-auto bg-gray-50 dark:bg-gray-900 mt-4 px-4 py-2">
   <div class="schedule-container">
     {#if $selectedSchedule}
+      <img src={$logoUrl} class="h-26 mb-4" alt="Club logo" />
       <div class="flex items-center gap-2 mb-4">
         <Heading tag="h1">{$selectedSchedule.name}</Heading>
       </div>
@@ -137,17 +148,22 @@
         </Heading>
       </div>
 
-      <div class="navigation-controls flex-1 flex items-center gap-2 justify-end">
+      <div class="navigation-controls flex-1 flex items-center gap-8 justify-end">
+        <div class="team-filter flex items-center ms-4">
+          <Input size="md" bind:value={teamSearchTerm} placeholder="Find dit hold" />
+        </div>
         <div class="toggle-container">
           <Toggle bind:checked={$showEarlyTimeslots}></Toggle>
           <Tooltip placement="top">Vis hele dagen</Tooltip>
         </div>
-        <Button outline={true} class="p-2!" on:click={previousDay}>
-          <AngleLeftOutline class="w-5 h-5" />
-        </Button>
-        <Button outline={true} class="p-2!" on:click={nextDay}>
-          <AngleRightOutline class="w-5 h-5" />
-        </Button>
+        <div class="day-nav flex items-center gap-2">
+          <Button outline={true} class="p-2!" on:click={previousDay}>
+            <AngleLeftOutline class="w-5 h-5" />
+          </Button>
+          <Button outline={true} class="p-2!" on:click={nextDay}>
+            <AngleRightOutline class="w-5 h-5" />
+          </Button>
+        </div>
       </div>
     </div>
 
@@ -210,7 +226,7 @@
         {/if}
 
         <!-- ENTRIES -->
-        {#each $processedEntries as entry (entry.ui_id)}
+        {#each filteredEntries as entry (entry.ui_id)}
           {#if entry.field_id != null && fieldToGridColMap.has(entry.field_id)}
             {@const mapping = fieldToGridColMap.get(entry.field_id)!}
             {@const startRow = getRowForTimeWithSlots(entry.start_time, $timeSlots)}
