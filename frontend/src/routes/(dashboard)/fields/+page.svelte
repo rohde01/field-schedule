@@ -12,11 +12,11 @@
   import FieldModal from './FieldModal.svelte';
   import ToastMessage from '$lib/components/Toast.svelte';
 
-  import { Breadcrumb, BreadcrumbItem, Button, Checkbox, Heading, Indicator } from 'flowbite-svelte';
+  import { Breadcrumb, BreadcrumbItem, Button, Heading, Indicator } from 'flowbite-svelte';
   import { Input, Table, TableBody, TableBodyCell, TableBodyRow, TableHead, Badge } from 'flowbite-svelte';
-  import { TableHeadCell, Toolbar, ToolbarButton } from 'flowbite-svelte';
-  import { CogSolid, DotsVerticalOutline, DownloadSolid } from 'flowbite-svelte-icons';
-  import { EditOutline, ExclamationCircleSolid, PlusOutline, TrashBinSolid } from 'flowbite-svelte-icons';
+  import { TableHeadCell, Toolbar } from 'flowbite-svelte';
+  import { DownloadSolid } from 'flowbite-svelte-icons';
+  import { EditOutline, PlusOutline, TrashBinSolid } from 'flowbite-svelte-icons';
   import { derived } from 'svelte/store';
   import { exportFieldsToExcel } from '$lib/utils/fields-excel';
 
@@ -187,7 +187,6 @@
   {:else}
     <Table>
       <TableHead class="border-y border-gray-200 bg-gray-100 dark:border-gray-700">
-        <TableHeadCell class="w-4 p-4"><Checkbox /></TableHeadCell>
         <TableHeadCell class="p-4 font-medium">Name</TableHeadCell>
         <TableHeadCell class="p-4">Size</TableHeadCell>
         <TableHeadCell class="p-4">Field Type</TableHeadCell>
@@ -203,7 +202,6 @@
       <TableBody>
         {#each searchedFields as field}
           <TableBodyRow class="text-base">
-            <TableBodyCell class="w-4 p-4"><Checkbox /></TableBodyCell>
             <TableBodyCell class="p-4 font-medium">{field.name}</TableBodyCell>
             <TableBodyCell class="p-4">{field.size}</TableBodyCell>
             <TableBodyCell class="p-4">{field.field_type}</TableBodyCell>

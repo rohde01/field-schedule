@@ -5,9 +5,9 @@
     export let data: { createForm: any; updateForm: any; deleteForm: any };
     import { Breadcrumb, BreadcrumbItem, Button, Checkbox, Heading, Indicator } from 'flowbite-svelte';
     import { Input, Table, TableBody, TableBodyCell, TableBodyRow, TableHead, Badge } from 'flowbite-svelte';
-    import { TableHeadCell, Toolbar, ToolbarButton } from 'flowbite-svelte';
-    import { CogSolid, DotsVerticalOutline, DownloadSolid } from 'flowbite-svelte-icons';
-    import { EditOutline, ExclamationCircleSolid, PlusOutline, TrashBinSolid } from 'flowbite-svelte-icons';
+    import { TableHeadCell, Toolbar } from 'flowbite-svelte';
+    import { DownloadSolid } from 'flowbite-svelte-icons';
+    import { EditOutline, PlusOutline, TrashBinSolid } from 'flowbite-svelte-icons';
     import { teams, updateTeam, deleteTeam } from '$lib/stores/teams';
     import type { Team } from '$lib/schemas/team';
     import DeleteModal from '$lib/components/DeleteModal.svelte';
@@ -134,7 +134,6 @@
   </div>
   <Table>
     <TableHead class="border-y border-gray-200 bg-gray-100 dark:border-gray-700">
-      <TableHeadCell class="w-4 p-4"><Checkbox /></TableHeadCell>
       {#each ['Name','Year','Gender','Academy','Level','Field Size','Weekly Trainings','Status','Actions'] as title}
         <TableHeadCell class="p-4 font-medium">{title}</TableHeadCell>
       {/each}
@@ -142,11 +141,12 @@
     <TableBody>
       {#each filteredTeams as team}
         <TableBodyRow class="text-base">
-          <TableBodyCell class="w-4 p-4"><Checkbox /></TableBodyCell>
           <TableBodyCell class="p-4 font-medium">{team.name}</TableBodyCell>
           <TableBodyCell class="p-4">{team.year}</TableBodyCell>
           <TableBodyCell class="p-4">{team.gender}</TableBodyCell>
-          <TableBodyCell class="p-4"><Checkbox checked={team.is_academy} disabled /></TableBodyCell>
+          <TableBodyCell class="p-4">
+            <Checkbox checked={team.is_academy} disabled />
+          </TableBodyCell>
           <TableBodyCell class="p-4">{team.level}</TableBodyCell>
           <TableBodyCell class="p-4">
             {#each formatFieldSize(team.minimum_field_size).split(', ') as size}
