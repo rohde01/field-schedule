@@ -86,6 +86,9 @@
                 Save Changes
             {/if}
         </Button>
+        <Button outline size="sm" type="button" on:click={() => window.location.reload()}>
+            Cancel
+        </Button>
         
         {#if message}
             <div class={result?.type === 'success' ? 'alert alert-success' : 'alert alert-error'}>
