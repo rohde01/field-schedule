@@ -54,7 +54,7 @@
 
 {#if data.hasSubdomain}
     {#if data.invalidSubdomain}
-        <div class="flex items-center justify-center min-h-screen dark:bg-gray-900 pt-0 -mt-32">
+        <div class="flex items-center justify-center min-h-screen dark:bg-gray-900 pt-16">
             <div class="container max-w-4xl mx-auto px-8 py-24 text-center">
                 <Heading tag="h1" class="mb-6 text-center" customSize="text-5xl font-extrabold md:text-6xl lg:text-7xl">Ups!</Heading>
                 
@@ -99,7 +99,7 @@
         <ClubSchedule />
     {/if}
 {:else}
-    <div class="flex items-center justify-center min-h-screen dark:bg-gray-900 pt-0 -mt-32">
+    <div class="flex items-center justify-center min-h-screen dark:bg-gray-900 pt-16">
         <div class="container max-w-6xl mx-auto px-8 py-24">
             <div class="text-center">
                 <Heading tag="h1" class="mb-10" customSize="text-6xl font-extrabold md:text-7xl lg:text-8xl">Baneplanen.</Heading>
