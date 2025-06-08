@@ -145,7 +145,7 @@
 </script>
 
 
-<main class="relative h-full w-full overflow-y-auto bg-white dark:bg-gray-800 pt-16">
+<main class="relative h-full w-full overflow-y-auto bg-white dark:bg-gray-800">
   <h1 class="hidden">Fields</h1>
   <div class="p-4">
     <Breadcrumb class="mb-5">
