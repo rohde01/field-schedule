@@ -8,6 +8,7 @@
     import { fields, getFlattenedFields } from '$lib/stores/fields';
     import { Badge } from 'flowbite-svelte';
     import { Select } from 'flowbite-svelte';
+    import { selectedSchedule } from '$lib/stores/schedules';
     
     let teamItems: Team[] = [];
     let openTeam: number | null = null;
@@ -165,6 +166,9 @@
       { value: 500, label: '8v8 / Half 11v11' },
       { value: 1000, label: '11v11' }
     ];
+
+    $: facilityId = $selectedSchedule?.facility_id ?? null;
+    $: availableFields = getFlattenedFields().filter(f => f.facility_id === facilityId);
 </script>
 
 
@@ -218,7 +222,7 @@
                       <TableHeadCell class="text-xs"></TableHeadCell>
                       <TableHeadCell class="text-xs">Start Time</TableHeadCell>
                       <TableHeadCell class="text-xs">Day</TableHeadCell>
-                      <TableHeadCell class="text-xs">Field ID</TableHeadCell>
+                      <TableHeadCell class="text-xs">Field</TableHeadCell>
                       <TableHeadCell class="text-xs">Length</TableHeadCell>
                       <TableHeadCell class="text-xs">Required Cost</TableHeadCell>
                     </TableHead>
@@ -245,7 +249,7 @@
                           <TableBodyCell>
                             <Select size="sm" value={(($selectedConstraints.find(sc => sc.uid === c.uid)?.field_id) ?? c.field_id) ?? ""} on:change={(e) => handleConstraintFieldChange(c, (e.target as HTMLSelectElement).value ? parseInt((e.target as HTMLSelectElement).value) : null)}>
                               <option value="">—</option>
-                              {#each getFlattenedFields() as field}
+                              {#each availableFields as field}
                                 <option value={field.field_id}>{field.name}</option>
                               {/each}
                             </Select>

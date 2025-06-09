@@ -134,7 +134,7 @@
     </h3>
     <Toggle color=purple bind:checked={fairWeekdays} class="mb-6">Fair weekdays</Toggle>
 
-    <Toggle color=purple bind:checked={fairStartTimes} class="mb-6">Fair start times</Toggle>
+    <Toggle color=purple bind:checked={fairStartTimes} class="mb-6">Age grouping</Toggle>
 
     <GradientButton outline color="purpleToBlue" class="mt-auto" on:click={generateModel} disabled={generating}>
         {#if generating}
