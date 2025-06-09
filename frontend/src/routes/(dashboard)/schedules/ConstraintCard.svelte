@@ -224,7 +224,7 @@
                       <TableHeadCell class="text-xs">Day</TableHeadCell>
                       <TableHeadCell class="text-xs">Field</TableHeadCell>
                       <TableHeadCell class="text-xs">Length</TableHeadCell>
-                      <TableHeadCell class="text-xs">Required Cost</TableHeadCell>
+                      <TableHeadCell class="text-xs">Size</TableHeadCell>
                     </TableHead>
                     <TableBody tableBodyClass="divide-y">
                       {#each $constraints.filter(c => c.team_id === team.team_id) as c}
