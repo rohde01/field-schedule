@@ -11,9 +11,7 @@
           getEntryContentVisibility, 
           processedEntries, showEarlyTimeslots } from '$lib/utils/calendarUtils';
   import { currentDate, formatDate, formatWeekdayOnly,
-          nextDay, previousDay, currentTime, updateCurrentTime,
-          getCurrentTimePosition, formatTimeForDisplay,
-          shouldHideHourLabel, isHourMark, timeTrackingEnabled,
+          nextDay, previousDay, isHourMark,
           combineDateAndTime } from '$lib/utils/dateUtils';
   import { getFieldColumns, buildFieldToGridColumnMap, generateHeaderCells, getFieldName } from '$lib/utils/fieldUtils';
   import InfoCard from './InfoCard.svelte';
@@ -60,32 +58,6 @@
       return;
     }
     closeInfoCard();
-  }
-
-  // Time tracking variables
-  let currentTimePosition = 0;
-  let timeTrackingInterval: ReturnType<typeof setInterval>;
-
-  // Initialize time tracking on component mount
-  onMount(() => {
-    updateCurrentTime();
-    timeTrackingInterval = setInterval(() => {
-      updateCurrentTime();
-      currentTimePosition = getCurrentTimePosition();
-    }, 60000); // Update every minute
-    
-    return () => {
-      clearInterval(timeTrackingInterval);
-    };
-  });
-  
-  // Update time tracking when date changes
-  $: {
-    $currentDate;
-    if (browser) {
-      updateCurrentTime();
-      currentTimePosition = getCurrentTimePosition();
-    }
   }
 
   const activeFields = browser ? derived([fields, selectedSchedule], ([$fields, $selectedSchedule]) => {
@@ -137,11 +109,6 @@
       recurrence_id: null,
       exdate: null
     });
-  }
-
-  // Function to check if time should be hidden when early timeslots are off
-  function shouldHideFirstHourMarkWhenEarlyOff(time: string, earlyTimeslotsOn: boolean): boolean {
-    return time === '12:00' && !earlyTimeslotsOn;
   }
 </script>
 
@@ -198,14 +165,14 @@
           class="schedule-time text-gray-900 dark:text-white"
           style="grid-column: 1; grid-row: {rowIndex + 2}; justify-content: flex-end;"
         >
-          {#if isHourMark(time) && !shouldHideHourLabel(time) && !shouldHideFirstHourMarkWhenEarlyOff(time, $showEarlyTimeslots)}
+          {#if isHourMark(time)}
             <span style="position:absolute; bottom:50%; right:5;">{time}</span>
           {/if}
         </div>
 
         {#each headerCells as cell}
           <div
-            class={`schedule-cell ${isHourMark(time) && !shouldHideFirstHourMarkWhenEarlyOff(time, $showEarlyTimeslots) ? 'schedule-hour-mark' : ''} ${cell.colIndex > 1 && cell.colIndex < totalColumns ? 'border-grid' : ''}`}
+            class={`schedule-cell ${isHourMark(time) ? 'schedule-hour-mark' : ''} ${cell.colIndex > 1 && cell.colIndex < totalColumns ? 'border-grid' : ''}`}
             role="button"
             tabindex="0"
             style="grid-column: {cell.colIndex} / span {cell.colSpan}; grid-row: {rowIndex + 2};"
@@ -213,19 +180,6 @@
           ></div>
         {/each}
       {/each}
-
-      <!-- CURRENT TIME INDICATOR -->
-      {#if timeTrackingEnabled}
-        <div 
-          class="current-time-indicator" 
-          style="grid-column: 1 / span {totalColumns}; top: calc({currentTimePosition}% - 1px);"
-        >
-          <div class="current-time-bubble">
-            {formatTimeForDisplay($currentTime)}
-          </div>
-          <div class="current-time-line"></div>
-        </div>
-      {/if}
 
       <!-- ENTRIES -->
       {#each $processedEntries as entry (entry.ui_id)}
@@ -340,35 +294,6 @@
     .event-field {
       display: none;
     }
-  }
-
-  .current-time-indicator {
-    position: absolute;
-    display: flex;
-    align-items: center;
-    z-index: 100;
-    pointer-events: none;
-    width: 100%;
-    left: 0;
-  }
-
-  .current-time-bubble {
-    background-color: #ff3b30;
-    color: white;
-    font-size: 14px;
-    font-weight: 500;
-    border-radius: 6px;
-    padding: 2px 6px;
-    line-height: 1.2;
-    margin-left: 0;
-    min-width: 50px;
-    text-align: center;
-  }
-
-  .current-time-line {
-    flex: 1;
-    height: 2.5px;
-    background-color: #ff3b30;
   }
 
   .resize-handle {
