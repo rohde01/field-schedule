@@ -232,7 +232,8 @@
                 <div class="flex items-center gap-2">
                   <Indicator color={field.is_active ? 'green' : 'red'} />
                   {field.is_active ? 'Active' : 'Inactive'}
-                </TableBodyCell>
+                </div>
+              </TableBodyCell>
               <TableBodyCell class="space-x-2 p-4">
                 <Button size="sm" class="gap-2 px-3" onclick={() => editField(field)}>
                   <EditOutline size="sm" /> Edit

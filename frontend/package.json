@@ -17,9 +17,9 @@
 		"@event-calendar/interaction": "^3.10.0",
 		"@event-calendar/resource-timeline": "^3.7.2",
 		"@event-calendar/time-grid": "^3.10.0",
-		"@sveltejs/adapter-vercel": "^5.5.2",
+		"@sveltejs/adapter-vercel": "^5.8.2",
 		"@sveltejs/kit": "^2.0.0",
-		"@sveltejs/vite-plugin-svelte": "^4.0.0",
+		"@sveltejs/vite-plugin-svelte": "^5.1.1",
 		"@tailwindcss/postcss": "^4.1.4",
 		"@types/event-calendar__core": "^3.7.0",
 		"@types/event-calendar__day-grid": "^3.4.1",
@@ -34,11 +34,11 @@
 		"svelte-check": "^4.0.0",
 		"tailwindcss": "^4.1.4",
 		"typescript": "^5.0.0",
-		"vite": "^5.0.3"
+		"vite": "^6.3.5"
 	},
 	"dependencies": {
 		"@event-calendar/resource-time-grid": "^3.7.2",
-		"@supabase/auth-helpers-sveltekit": "^0.13.0",
+		"@supabase/auth-helpers-sveltekit": "^0.8.7",
 		"@supabase/ssr": "^0.6.1",
 		"@supabase/supabase-js": "^2.49.4",
 		"@tailwindcss/forms": "^0.5.9",
