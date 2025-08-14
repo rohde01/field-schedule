@@ -86,6 +86,20 @@
     return "Untitled Event";
   }
 
+  // Function to get CSS class based on category
+  function getCategoryClass(entry: ProcessedScheduleEntry): string {
+    const category = entry.categories && entry.categories.length > 0 ? entry.categories[0] : 'Training';
+    switch (category) {
+      case 'Match':
+        return 'category-match';
+      case 'Event':
+        return 'category-event';
+      case 'Training':
+      default:
+        return 'category-training';
+    }
+  }
+
   let teamSearchTerm = "";
   $: filteredEntries = teamSearchTerm
     ? $processedEntries.filter(entry =>
@@ -208,7 +222,7 @@
             {@const startRow = getRowForTimeWithSlots(entry.start_time, $timeSlots)}
             {@const endRow = getEntryRowEndWithSlots(entry.end_time, $timeSlots)}
             {@const visibility = getEntryContentVisibility(startRow, endRow)}
-            <div class="schedule-event"
+            <div class="schedule-event {getCategoryClass(entry)}"
                style="grid-row-start: {startRow}; grid-row-end: {endRow + 1}; grid-column-start: {mapping.colIndex}; grid-column-end: span {mapping.colSpan};"
              >
               <div class="event-team font-bold text-[1.15em]">
@@ -279,6 +293,29 @@
     position: absolute;
     inset: 0;
     margin: 2px;
+    transition:
+      transform 0.15s ease-out,
+      box-shadow 0.15s ease-out,
+      border-left 0.15s ease-out;
+  }
+
+  /* Category-specific colors */
+  .category-training {
+    background-color: #dbeafe; /* blue-100 */
+    color: #1e40af; /* blue-800 */
+    border-left: 4px solid #3b82f6; /* blue-500 */
+  }
+
+  .category-match {
+    background-color: #fecaca; /* red-100 */
+    color: #991b1b; /* red-800 */
+    border-left: 4px solid #ef4444; /* red-500 */
+  }
+
+  .category-event {
+    background-color: #dcfce7; /* green-100 */
+    color: #166534; /* green-800 */
+    border-left: 4px solid #22c55e; /* green-500 */
   }
 
   .event-team {
