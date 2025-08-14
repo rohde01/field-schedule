@@ -299,3 +299,14 @@ export function commitUpdate(entry: any, originalRecurrence: string | null) {
       : (entry.recurrence_id ? new Date(entry.recurrence_id) : null)
   });
 }
+
+// Function to get the best title for an entry, prioritizing summary
+export function getEntryTitle(entry: ProcessedScheduleEntry, teamNameLookup: Map<number, string>): string {
+  if (entry.summary) {
+    return entry.summary;
+  }
+  if (entry.team_id != null) {
+    return teamNameLookup.get(entry.team_id) ?? `Team ${entry.team_id}`;
+  }
+  return "Untitled Event";
+}

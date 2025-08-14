@@ -5,15 +5,15 @@
   import { fields } from '$lib/stores/fields';
   import { teams } from '$lib/stores/teams';
   import { derived } from 'svelte/store';
-  import { onMount } from 'svelte';
   import { buildResources, timeSlots, 
           getRowForTimeWithSlots, getEntryRowEndWithSlots,
           getEntryContentVisibility, 
-          processedEntries, showEarlyTimeslots } from '$lib/utils/calendarUtils';
+          processedEntries, showEarlyTimeslots, getEntryTitle } from '$lib/utils/calendarUtils';
   import { currentDate, formatDate, formatWeekdayOnly,
           nextDay, previousDay, isHourMark,
           combineDateAndTime } from '$lib/utils/dateUtils';
   import { getFieldColumns, buildFieldToGridColumnMap, generateHeaderCells, getFieldName } from '$lib/utils/fieldUtils';
+  import { getCategoryClass } from '$lib/utils/CalendarStyling';
   import InfoCard from './InfoCard.svelte';
   import { resizeHandle, horizontalDrag, moveHandle } from '$lib/utils/dndUtils';
   import { addScheduleEntry, selectedSchedule } from '$lib/stores/schedules';
@@ -79,31 +79,6 @@
     }
     return lookup;
   }) : derived(teams, () => new Map());
-
-  // Function to get the best title for an entry, prioritizing summary
-  function getEntryTitle(entry: ProcessedScheduleEntry): string {
-    if (entry.summary) {
-      return entry.summary;
-    }
-    if (entry.team_id != null) {
-      return $teamNameLookup.get(entry.team_id) ?? `Team ${entry.team_id}`;
-    }
-    return "Untitled Event";
-  }
-
-  // Function to get CSS class based on category
-  function getCategoryClass(entry: ProcessedScheduleEntry): string {
-    const category = entry.categories && entry.categories.length > 0 ? entry.categories[0] : 'Training';
-    switch (category) {
-      case 'Match':
-        return 'category-match';
-      case 'Event':
-        return 'category-event';
-      case 'Training':
-      default:
-        return 'category-training';
-    }
-  }
 
   // create new entry on double-click
   function handleSlotDoubleClick(event: MouseEvent, cell: any, time: string) {
@@ -218,7 +193,7 @@
             <div class="horizontal-handle left" use:horizontalDrag={{ ui_id: entry.ui_id, direction: 'left', totalColumns, headerCells, activeFields: $activeFields, fieldToGridColMap }}></div>
             <div class="horizontal-handle right" use:horizontalDrag={{ ui_id: entry.ui_id, direction: 'right', totalColumns, headerCells, activeFields: $activeFields, fieldToGridColMap }}></div>
             <div class="event-team font-bold text-[1.15em]">
-              {getEntryTitle(entry)}
+              {getEntryTitle(entry, $teamNameLookup)}
             </div>
             {#if visibility.showField}
               <div class="event-field text-[1.12em] text-gray-600">
@@ -241,123 +216,3 @@
     </div>
   </div>
 </div>
-
-<style>
-  .schedule-cell {
-    background: transparent;
-    padding: 0.5rem 1rem;
-    position: relative;
-    height: 1.5rem;
-    border-bottom: 0;
-  }
-  
-  .schedule-hour-mark {
-    border-top: 1px solid #e5e5e5;
-  }
-  
-  .schedule-grid {
-    width: 100%;
-    border-radius: 0.5rem;
-    overflow: hidden;
-    position: relative;
-    display: grid !important;
-    grid-template-columns: 50px repeat(auto-fit, minmax(0, 1fr)) !important;
-    grid-template-rows: auto repeat(var(--total-rows) - 1, minmax(2.5rem, auto));
-  }
-
-  .border-grid {
-    border-right: 1px solid #e5e5e5;
-  }
-
-  .schedule-time {
-    position: relative;
-  }
-  
-  .schedule-event {
-    container-type: inline-size;
-    container-name: entry;
-    background-color: var(--color-primary-200);
-    color: var(--color-primary-700);
-    padding: 0.375rem;
-    border-radius: 0.125rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    position: absolute;
-    inset: 0;
-    margin: 2px;
-    transition:
-      transform 0.15s ease-out,
-      box-shadow 0.15s ease-out,
-      border-left 0.15s ease-out;
-  }
-
-  /* Category-specific colors */
-  .category-match {
-    background-color: #dbeafe; /* blue-100 */
-    color: #1e40af; /* blue-800 */
-    border-left: 3px solid #3b82f6; /* blue-500 */
-  }
-
-  .category-event {
-    background-color: #fecaca; /* red-100 */
-    color: #991b1b; /* red-800 */
-    border-left: 3px solid #ef4444; /* red-500 */
-  }
-
-  .category-training {
-    background-color: #dcfce7; /* green-100 */
-    color: #166534; /* green-800 */
-    border-left: 3px solid #22c55e; /* green-500 */
-  }
-
-  .event-team {
-    /* graphite title for both light and dark mode */
-    color: #444;
-  }
-
-  @container entry (max-width: 120px) {
-    .event-time {
-      display: none;
-    }
-  }
-
-  @container entry (max-width: 80px) {
-    .event-field {
-      display: none;
-    }
-  }
-
-  .resize-handle {
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 6px;
-    background: transparent;
-    z-index: 2;
-  }
-  .resize-handle.top {
-    top: 0;
-  }
-  .resize-handle.bottom {
-    bottom: 0;
-  }
-  .horizontal-handle {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 6px;
-    background: transparent;
-    z-index: 2;
-    cursor: ew-resize;
-  }
-  .horizontal-handle.left {
-    left: 0;
-  }
-  .horizontal-handle.right {
-    right: 0;
-  }
-
-</style>
