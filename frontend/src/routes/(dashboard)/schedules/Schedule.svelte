@@ -107,7 +107,8 @@
       field_id: cell.fieldId,
       recurrence_rule: null,
       recurrence_id: null,
-      exdate: null
+      exdate: null,
+      categories: ["Training"]
     });
   }
 </script>

@@ -145,6 +145,25 @@
       />
     </div>
 
+    <div class="mb-3">
+      <Select
+        class="text-s border-gray-200 h-8 py-0"
+        size="sm"
+        items={[
+          { value: "Training", name: "Training" },
+          { value: "Match", name: "Match" },
+          { value: "Event", name: "Event" }
+        ]}
+        bind:value={entry.categories[0]}
+        required
+        placeholder="Select category"
+        on:change={() => {
+          processedEntries.update(es => es.map(e => e.ui_id === entryUiId ? { ...e, categories: [entry.categories[0]] } : e));
+          commitUpdate({ ...entry, categories: [entry.categories[0]] }, getOriginalRecurrenceStart(entry));
+        }}
+      />
+    </div>
+
     <Datepicker
       bind:value={selectedDate}
       on:select={handleDateChange}

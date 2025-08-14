@@ -5,7 +5,6 @@
   import { fields } from '$lib/stores/fields';
   import { teams } from '$lib/stores/teams';
   import { derived } from 'svelte/store';
-  import { onMount } from 'svelte';
   import { buildResources, timeSlots, 
           getRowForTimeWithSlots, getEntryRowEndWithSlots,
           getEntryContentVisibility, 
