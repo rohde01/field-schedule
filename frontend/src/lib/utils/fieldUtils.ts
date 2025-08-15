@@ -109,7 +109,15 @@ export function buildFieldToGridColumnMap(fields: Field[]) {
       // For fields with same column count, sort by number of subfields (more subfields first)
       const aSubfieldCount = a.half_subfields.length + a.quarter_subfields.length;
       const bSubfieldCount = b.half_subfields.length + b.quarter_subfields.length;
-      return bSubfieldCount - aSubfieldCount;
+      if (aSubfieldCount !== bSubfieldCount) {
+        return bSubfieldCount - aSubfieldCount;
+      }
+      
+      // Finally, sort alphabetically/numerically by name
+      return a.name.localeCompare(b.name, undefined, { 
+        numeric: true, 
+        sensitivity: 'base' 
+      });
     });
   
     for (const field of sortedFields) {
@@ -172,7 +180,15 @@ export function generateHeaderCells(activeFields: Field[], fieldToGridColMap: Ma
     // For fields with same column count, sort by number of subfields (more subfields first)
     const aSubfieldCount = a.half_subfields.length + a.quarter_subfields.length;
     const bSubfieldCount = b.half_subfields.length + b.quarter_subfields.length;
-    return bSubfieldCount - aSubfieldCount;
+    if (aSubfieldCount !== bSubfieldCount) {
+      return bSubfieldCount - aSubfieldCount;
+    }
+    
+    // Finally, sort alphabetically/numerically by name
+    return a.name.localeCompare(b.name, undefined, { 
+      numeric: true, 
+      sensitivity: 'base' 
+    });
   });
 
   for (const field of sortedFields) {
