@@ -158,7 +158,6 @@ export interface HeaderCell {
 
 export function generateHeaderCells(activeFields: Field[], fieldToGridColMap: Map<number, { colIndex: number; colSpan: number }>): HeaderCell[] {
   const headerCells: HeaderCell[] = [];
-  let colIndex = 2;  // col 1 is "Time"
 
   // Sort fields by size (larger first) and then by number of subfields (more subfields first)
   const sortedFields = [...activeFields].sort((a, b) => {
@@ -177,37 +176,14 @@ export function generateHeaderCells(activeFields: Field[], fieldToGridColMap: Ma
   });
 
   for (const field of sortedFields) {
-    if (!field.half_subfields.length) {
+    const fieldMapping = fieldToGridColMap.get(field.field_id);
+    if (fieldMapping) {
       headerCells.push({
         label: field.name,
-        colIndex,
-        colSpan: 1,
+        colIndex: fieldMapping.colIndex,
+        colSpan: fieldMapping.colSpan,
         fieldId: field.field_id
       });
-      colIndex += 1;
-    } else {
-      for (const half of field.half_subfields) {
-        const quarterFields = getQuarterFieldsForHalf(field, half.field_id);
-        if (quarterFields.length === 0) {
-          headerCells.push({
-            label: half.name,
-            colIndex,
-            colSpan: 1,
-            fieldId: half.field_id
-          });
-          colIndex += 1;
-        } else {
-          for (const q of quarterFields) {
-            headerCells.push({
-              label: q.name,
-              colIndex,
-              colSpan: 1,
-              fieldId: q.field_id
-            });
-            colIndex += 1;
-          }
-        }
-      }
     }
   }
   
