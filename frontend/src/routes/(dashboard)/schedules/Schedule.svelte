@@ -138,15 +138,21 @@
     </div>
     {#each headerCells as cell}
       <div
-        class="p-4 font-medium text-gray-900 dark:text-white text-center"
+        class="p-4 font-medium text-gray-900 dark:text-white text-center {cell.logoUrl ? 'field-header-with-logo' : ''}"
         style="grid-column: {cell.colIndex} / span {cell.colSpan}; border-right: none;"
       >
-        <div class="flex items-center justify-center gap-2">
-          {#if cell.logoUrl}
-            <img src={cell.logoUrl} alt="{cell.label} logo" class="w-12 h-12 rounded object-cover" />
-          {/if}
-          {cell.label}
-        </div>
+        {#if cell.logoUrl}
+          <div class="header-content">
+            <div class="flex items-center justify-center gap-2">
+              <img src={cell.logoUrl} alt="{cell.label} logo" class="w-8 h-8 rounded object-cover" />
+              {cell.label}
+            </div>
+          </div>
+        {:else}
+          <div class="flex items-center justify-center gap-2">
+            {cell.label}
+          </div>
+        {/if}
       </div>
     {/each}
   </div>
