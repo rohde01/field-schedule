@@ -96,7 +96,23 @@ export function buildFieldToGridColumnMap(fields: Field[]) {
     const map = new Map<number, { colIndex: number; colSpan: number }>();
     let currentColIndex = 2;  // col 1 is reserved for Time
   
-    for (const field of fields) {
+    // Sort fields by size (larger first) and then by number of subfields (more subfields first)
+    const sortedFields = [...fields].sort((a, b) => {
+      const aColumns = getFieldColumns(a);
+      const bColumns = getFieldColumns(b);
+      
+      // First sort by total columns (larger fields first)
+      if (aColumns !== bColumns) {
+        return bColumns - aColumns;
+      }
+      
+      // For fields with same column count, sort by number of subfields (more subfields first)
+      const aSubfieldCount = a.half_subfields.length + a.quarter_subfields.length;
+      const bSubfieldCount = b.half_subfields.length + b.quarter_subfields.length;
+      return bSubfieldCount - aSubfieldCount;
+    });
+  
+    for (const field of sortedFields) {
       const totalColumnsForField = getFieldColumns(field);
       map.set(field.field_id, {
         colIndex: currentColIndex,
@@ -144,7 +160,23 @@ export function generateHeaderCells(activeFields: Field[], fieldToGridColMap: Ma
   const headerCells: HeaderCell[] = [];
   let colIndex = 2;  // col 1 is "Time"
 
-  for (const field of activeFields) {
+  // Sort fields by size (larger first) and then by number of subfields (more subfields first)
+  const sortedFields = [...activeFields].sort((a, b) => {
+    const aColumns = getFieldColumns(a);
+    const bColumns = getFieldColumns(b);
+    
+    // First sort by total columns (larger fields first)
+    if (aColumns !== bColumns) {
+      return bColumns - aColumns;
+    }
+    
+    // For fields with same column count, sort by number of subfields (more subfields first)
+    const aSubfieldCount = a.half_subfields.length + a.quarter_subfields.length;
+    const bSubfieldCount = b.half_subfields.length + b.quarter_subfields.length;
+    return bSubfieldCount - aSubfieldCount;
+  });
+
+  for (const field of sortedFields) {
     if (!field.half_subfields.length) {
       headerCells.push({
         label: field.name,
