@@ -141,7 +141,12 @@
         class="p-4 font-medium text-gray-900 dark:text-white text-center"
         style="grid-column: {cell.colIndex} / span {cell.colSpan}; border-right: none;"
       >
-        {cell.label}
+        <div class="flex items-center justify-center gap-2">
+          {#if cell.logoUrl}
+            <img src={cell.logoUrl} alt="{cell.label} logo" class="w-12 h-12 rounded object-cover" />
+          {/if}
+          {cell.label}
+        </div>
       </div>
     {/each}
   </div>

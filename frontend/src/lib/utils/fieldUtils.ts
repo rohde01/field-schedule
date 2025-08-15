@@ -162,6 +162,7 @@ export interface HeaderCell {
   colIndex: number;
   colSpan: number;
   fieldId: number;
+  logoUrl?: string;
 }
 
 export function generateHeaderCells(activeFields: Field[], fieldToGridColMap: Map<number, { colIndex: number; colSpan: number }>): HeaderCell[] {
@@ -198,7 +199,8 @@ export function generateHeaderCells(activeFields: Field[], fieldToGridColMap: Ma
         label: field.name,
         colIndex: fieldMapping.colIndex,
         colSpan: fieldMapping.colSpan,
-        fieldId: field.field_id
+        fieldId: field.field_id,
+        logoUrl: field.logo_url
       });
     }
   }
