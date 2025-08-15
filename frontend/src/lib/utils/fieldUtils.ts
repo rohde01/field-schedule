@@ -96,7 +96,31 @@ export function buildFieldToGridColumnMap(fields: Field[]) {
     const map = new Map<number, { colIndex: number; colSpan: number }>();
     let currentColIndex = 2;  // col 1 is reserved for Time
   
-    for (const field of fields) {
+    // Sort fields by size (larger first) and then by number of subfields (more subfields first)
+    const sortedFields = [...fields].sort((a, b) => {
+      const aColumns = getFieldColumns(a);
+      const bColumns = getFieldColumns(b);
+      
+      // First sort by total columns (larger fields first)
+      if (aColumns !== bColumns) {
+        return bColumns - aColumns;
+      }
+      
+      // For fields with same column count, sort by number of subfields (more subfields first)
+      const aSubfieldCount = a.half_subfields.length + a.quarter_subfields.length;
+      const bSubfieldCount = b.half_subfields.length + b.quarter_subfields.length;
+      if (aSubfieldCount !== bSubfieldCount) {
+        return bSubfieldCount - aSubfieldCount;
+      }
+      
+      // Finally, sort alphabetically/numerically by name
+      return a.name.localeCompare(b.name, undefined, { 
+        numeric: true, 
+        sensitivity: 'base' 
+      });
+    });
+  
+    for (const field of sortedFields) {
       const totalColumnsForField = getFieldColumns(field);
       map.set(field.field_id, {
         colIndex: currentColIndex,
@@ -138,44 +162,46 @@ export interface HeaderCell {
   colIndex: number;
   colSpan: number;
   fieldId: number;
+  logoUrl?: string;
 }
 
 export function generateHeaderCells(activeFields: Field[], fieldToGridColMap: Map<number, { colIndex: number; colSpan: number }>): HeaderCell[] {
   const headerCells: HeaderCell[] = [];
-  let colIndex = 2;  // col 1 is "Time"
 
-  for (const field of activeFields) {
-    if (!field.half_subfields.length) {
+  // Sort fields by size (larger first) and then by number of subfields (more subfields first)
+  const sortedFields = [...activeFields].sort((a, b) => {
+    const aColumns = getFieldColumns(a);
+    const bColumns = getFieldColumns(b);
+    
+    // First sort by total columns (larger fields first)
+    if (aColumns !== bColumns) {
+      return bColumns - aColumns;
+    }
+    
+    // For fields with same column count, sort by number of subfields (more subfields first)
+    const aSubfieldCount = a.half_subfields.length + a.quarter_subfields.length;
+    const bSubfieldCount = b.half_subfields.length + b.quarter_subfields.length;
+    if (aSubfieldCount !== bSubfieldCount) {
+      return bSubfieldCount - aSubfieldCount;
+    }
+    
+    // Finally, sort alphabetically/numerically by name
+    return a.name.localeCompare(b.name, undefined, { 
+      numeric: true, 
+      sensitivity: 'base' 
+    });
+  });
+
+  for (const field of sortedFields) {
+    const fieldMapping = fieldToGridColMap.get(field.field_id);
+    if (fieldMapping) {
       headerCells.push({
         label: field.name,
-        colIndex,
-        colSpan: 1,
-        fieldId: field.field_id
+        colIndex: fieldMapping.colIndex,
+        colSpan: fieldMapping.colSpan,
+        fieldId: field.field_id,
+        logoUrl: field.logo_url
       });
-      colIndex += 1;
-    } else {
-      for (const half of field.half_subfields) {
-        const quarterFields = getQuarterFieldsForHalf(field, half.field_id);
-        if (quarterFields.length === 0) {
-          headerCells.push({
-            label: half.name,
-            colIndex,
-            colSpan: 1,
-            fieldId: half.field_id
-          });
-          colIndex += 1;
-        } else {
-          for (const q of quarterFields) {
-            headerCells.push({
-              label: q.name,
-              colIndex,
-              colSpan: 1,
-              fieldId: q.field_id
-            });
-            colIndex += 1;
-          }
-        }
-      }
     }
   }
   

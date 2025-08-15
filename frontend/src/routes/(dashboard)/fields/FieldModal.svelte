@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Button, Input, Label, Modal, Select, Helper, Timepicker, Spinner } from 'flowbite-svelte';
+    import { Button, Input, Label, Modal, Select, Helper, Timepicker, Spinner, Fileupload } from 'flowbite-svelte';
     import { PlusOutline, MinusOutline, ClockOutline } from 'flowbite-svelte-icons';      
     import { selectedFacility } from '$lib/stores/facilities';
     import type { Field, FieldCreate } from '$lib/schemas/field';
@@ -244,6 +244,27 @@
           <div class="mt-4 text-sm text-red-600">{$message}</div>
         {/if}
       </form>
+      
+      <!-- Field Logo section -->
+      {#if isEditMode()}
+        <div class="mt-6 pt-6 border-t border-gray-200">
+          <h3 class="text-lg font-medium mb-3">Field Logo</h3>
+          {#if (data as Field).logo_url}
+            <img src={(data as Field).logo_url} alt="Field Logo" class="mb-4 w-40 h-30 object-cover rounded" />
+          {/if}
+          <form method="POST" action="?/uploadFieldLogo" enctype="multipart/form-data" class="grid grid-cols-6 gap-6 items-end">
+            <input type="hidden" name="field_id" value={(data as Field).field_id} />
+            <Label for="field-logo" class="col-span-6 space-y-2 sm:col-span-3">
+              <span>Upload Logo</span>
+              <Fileupload id="field-logo" name="logo" class="mb-2" />
+              <Helper>SVG, PNG, JPG or GIF (MAX. 800x400px).</Helper>
+            </Label>
+            <Button type="submit" class="col-span-6 sm:col-span-3 w-fit">
+              Upload
+            </Button>
+          </form>
+        </div>
+      {/if}
     </div>
   
     <!-- Modal footer -->

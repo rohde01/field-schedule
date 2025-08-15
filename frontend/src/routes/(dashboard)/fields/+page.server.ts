@@ -1,5 +1,5 @@
 import type { Actions } from './$types';
-import { fail } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import { superValidate } from 'sveltekit-superforms/server';
 import { zod } from 'sveltekit-superforms/adapters';
 import { facilityCreateSchema } from '$lib/schemas/facility';
@@ -7,7 +7,7 @@ import { deleteFieldSchema, fieldCreateSchema, updateFieldSchema } from '$lib/sc
 export const ssr = false
 
 export const load = async ({ locals }) => {
-    const [facilityForm, deleteForm, createFieldForm, updateFieldForm] = await Promise.all([
+    const [facilityForm, deleteForm, createFieldForm, updateFieldForm, uploadFieldLogoForm] = await Promise.all([
         superValidate(zod(facilityCreateSchema), {
             id: 'facility-form',
             defaults: {
@@ -22,7 +22,7 @@ export const load = async ({ locals }) => {
             id: 'delete-field-form'
         }), 
         superValidate(zod(fieldCreateSchema), {
-            id: 'field-form',
+            id: 'create-field-form',
             defaults: {
                 facility_id: 0,
                 name: '',
@@ -34,6 +34,9 @@ export const load = async ({ locals }) => {
         }),
         superValidate(zod(updateFieldSchema), {
             id: 'update-field-form'
+        }),
+        superValidate(zod(updateFieldSchema), {
+            id: 'upload-field-logo-form'
         })
     ]);
         return {
@@ -41,6 +44,7 @@ export const load = async ({ locals }) => {
             createFieldForm,
             updateFieldForm,
             deleteForm,
+            uploadFieldLogoForm,
         };
  
 };
@@ -295,11 +299,58 @@ export const actions: Actions = {
                 form,
                 success: true,
                 message: 'Field successfully deleted.',
-                action: 'delete'
+                action: 'deleted field'
             };
         } catch (err) {
             form.message = 'Failed to delete field, please try again.';
             return fail(500, { form });
         }
+    },
+
+    uploadFieldLogo: async ({ request, locals: { supabase, user } }) => {
+        if (!user) throw redirect(303, '/auth/login');
+        
+        const formData = await request.formData();
+        const file = formData.get('logo');
+        const fieldId = formData.get('field_id');
+        
+        if (!file || !(file instanceof Blob)) {
+            console.error('No file provided or invalid type');
+            return fail(400, { message: 'No file provided' });
+        }
+        
+        if (!fieldId) {
+            return fail(400, { message: 'Field ID is required' });
+        }
+        
+        const name = (file as File).name;
+        const ext = name.split('.').pop();
+        const filePath = `${user.user_id}/fields/${fieldId}/${Date.now()}.${ext}`;
+
+        
+        const { error: uploadError } = await supabase.storage
+            .from('logos')
+            .upload(filePath, file as File, { upsert: true });
+            
+        if (uploadError) {
+            console.error('Supabase upload error:', uploadError);
+            return fail(400, { message: `Failed to upload field logo: ${uploadError.message}` });
+        }
+        
+        const { data: urlData } = supabase.storage.from('logos').getPublicUrl(filePath);
+        const publicUrl = urlData.publicUrl;
+        
+        const { error: updateError } = await supabase
+            .from('fields')
+            .update({ logo_url: publicUrl })
+            .eq('field_id', parseInt(fieldId as string))
+            .select()
+            .single();
+            
+        if (updateError) {
+            return fail(400, { message: `Failed to update field logo: ${updateError.message}` });
+        }
+        
+        throw redirect(303, '/fields');
     }
 } satisfies Actions;

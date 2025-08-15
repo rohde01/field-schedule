@@ -71,6 +71,28 @@
   }
 }
 
+/* Field header with logo styling */
+.field-header-with-logo {
+  position: relative;
+  padding: 4px;
+}
+
+.field-header-with-logo .header-content {
+  border: 2px solid #8b5cf6; /* purple-500 */
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(139, 92, 246, 0.05));
+  transition: all 0.2s ease-in-out;
+  box-sizing: border-box;
+}
+
+.field-header-with-logo:hover .header-content {
+  border-color: #7c3aed; /* purple-600 */
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.08));
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(139, 92, 246, 0.2);
+}
+
 /* Shared Schedule Grid Styles */
 .schedule-cell {
   background: transparent;
@@ -87,7 +109,7 @@
 .schedule-grid {
   width: 100%;
   border-radius: 0.5rem;
-  overflow: hidden;
+  overflow: visible;
   position: relative;
   display: grid !important;
   grid-template-columns: 50px repeat(auto-fit, minmax(0, 1fr)) !important;
