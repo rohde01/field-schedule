@@ -5,17 +5,15 @@
   import { fields } from '$lib/stores/fields';
   import { teams } from '$lib/stores/teams';
   import { derived } from 'svelte/store';
-  import { onMount } from 'svelte';
   import { buildResources, timeSlots, 
           getRowForTimeWithSlots, getEntryRowEndWithSlots,
           getEntryContentVisibility, 
-          processedEntries, showEarlyTimeslots } from '$lib/utils/calendarUtils';
+          processedEntries, showEarlyTimeslots, getEntryTitle } from '$lib/utils/calendarUtils';
   import { currentDate, formatDate, formatWeekdayOnly,
-          nextDay, previousDay, currentTime, updateCurrentTime,
-          getCurrentTimePosition, formatTimeForDisplay,
-          shouldHideHourLabel, isHourMark, timeTrackingEnabled,
+          nextDay, previousDay, isHourMark,
           combineDateAndTime } from '$lib/utils/dateUtils';
   import { getFieldColumns, buildFieldToGridColumnMap, generateHeaderCells, getFieldName } from '$lib/utils/fieldUtils';
+  import { getCategoryClass } from '$lib/utils/CalendarStyling';
   import InfoCard from './InfoCard.svelte';
   import { resizeHandle, horizontalDrag, moveHandle } from '$lib/utils/dndUtils';
   import { addScheduleEntry, selectedSchedule } from '$lib/stores/schedules';
@@ -62,32 +60,6 @@
     closeInfoCard();
   }
 
-  // Time tracking variables
-  let currentTimePosition = 0;
-  let timeTrackingInterval: ReturnType<typeof setInterval>;
-
-  // Initialize time tracking on component mount
-  onMount(() => {
-    updateCurrentTime();
-    timeTrackingInterval = setInterval(() => {
-      updateCurrentTime();
-      currentTimePosition = getCurrentTimePosition();
-    }, 60000); // Update every minute
-    
-    return () => {
-      clearInterval(timeTrackingInterval);
-    };
-  });
-  
-  // Update time tracking when date changes
-  $: {
-    $currentDate;
-    if (browser) {
-      updateCurrentTime();
-      currentTimePosition = getCurrentTimePosition();
-    }
-  }
-
   const activeFields = browser ? derived([fields, selectedSchedule], ([$fields, $selectedSchedule]) => {
     return buildResources($fields, $selectedSchedule);
   }) : derived(fields, () => []);
@@ -108,17 +80,6 @@
     return lookup;
   }) : derived(teams, () => new Map());
 
-  // Function to get the best title for an entry, prioritizing summary
-  function getEntryTitle(entry: ProcessedScheduleEntry): string {
-    if (entry.summary) {
-      return entry.summary;
-    }
-    if (entry.team_id != null) {
-      return $teamNameLookup.get(entry.team_id) ?? `Team ${entry.team_id}`;
-    }
-    return "Untitled Event";
-  }
-
   // create new entry on double-click
   function handleSlotDoubleClick(event: MouseEvent, cell: any, time: string) {
     event.stopPropagation();
@@ -135,13 +96,9 @@
       field_id: cell.fieldId,
       recurrence_rule: null,
       recurrence_id: null,
-      exdate: null
+      exdate: null,
+      categories: ["Training"]
     });
-  }
-
-  // Function to check if time should be hidden when early timeslots are off
-  function shouldHideFirstHourMarkWhenEarlyOff(time: string, earlyTimeslotsOn: boolean): boolean {
-    return time === '12:00' && !earlyTimeslotsOn;
   }
 </script>
 
@@ -181,10 +138,21 @@
     </div>
     {#each headerCells as cell}
       <div
-        class="p-4 font-medium text-gray-900 dark:text-white text-center"
+        class="p-4 font-medium text-gray-900 dark:text-white text-center {cell.logoUrl ? 'field-header-with-logo' : ''}"
         style="grid-column: {cell.colIndex} / span {cell.colSpan}; border-right: none;"
       >
-        {cell.label}
+        {#if cell.logoUrl}
+          <div class="header-content">
+            <div class="flex items-center justify-center gap-2">
+              <img src={cell.logoUrl} alt="{cell.label} logo" class="w-8 h-8 rounded object-cover" />
+              {cell.label}
+            </div>
+          </div>
+        {:else}
+          <div class="flex items-center justify-center gap-2">
+            {cell.label}
+          </div>
+        {/if}
       </div>
     {/each}
   </div>
@@ -198,14 +166,14 @@
           class="schedule-time text-gray-900 dark:text-white"
           style="grid-column: 1; grid-row: {rowIndex + 2}; justify-content: flex-end;"
         >
-          {#if isHourMark(time) && !shouldHideHourLabel(time) && !shouldHideFirstHourMarkWhenEarlyOff(time, $showEarlyTimeslots)}
+          {#if isHourMark(time)}
             <span style="position:absolute; bottom:50%; right:5;">{time}</span>
           {/if}
         </div>
 
         {#each headerCells as cell}
           <div
-            class={`schedule-cell ${isHourMark(time) && !shouldHideFirstHourMarkWhenEarlyOff(time, $showEarlyTimeslots) ? 'schedule-hour-mark' : ''} ${cell.colIndex > 1 && cell.colIndex < totalColumns ? 'border-grid' : ''}`}
+            class={`schedule-cell ${isHourMark(time) ? 'schedule-hour-mark' : ''} ${cell.colIndex > 1 && cell.colIndex < totalColumns ? 'border-grid' : ''}`}
             role="button"
             tabindex="0"
             style="grid-column: {cell.colIndex} / span {cell.colSpan}; grid-row: {rowIndex + 2};"
@@ -213,19 +181,6 @@
           ></div>
         {/each}
       {/each}
-
-      <!-- CURRENT TIME INDICATOR -->
-      {#if timeTrackingEnabled}
-        <div 
-          class="current-time-indicator" 
-          style="grid-column: 1 / span {totalColumns}; top: calc({currentTimePosition}% - 1px);"
-        >
-          <div class="current-time-bubble">
-            {formatTimeForDisplay($currentTime)}
-          </div>
-          <div class="current-time-line"></div>
-        </div>
-      {/if}
 
       <!-- ENTRIES -->
       {#each $processedEntries as entry (entry.ui_id)}
@@ -236,7 +191,7 @@
           {@const visibility = getEntryContentVisibility(startRow, endRow)}
           <div use:moveHandle={{ ui_id: entry.ui_id, totalColumns, activeFields: $activeFields, fieldToGridColMap }}
              on:dragend={(e) => recentDrag = !!e.detail}
-             class="schedule-event"
+             class="schedule-event {getCategoryClass(entry)}"
              role="button"
              tabindex="0"
              style="grid-row-start: {startRow}; grid-row-end: {endRow + 1}; grid-column-start: {mapping.colIndex}; grid-column-end: span {mapping.colSpan};
@@ -249,7 +204,7 @@
             <div class="horizontal-handle left" use:horizontalDrag={{ ui_id: entry.ui_id, direction: 'left', totalColumns, headerCells, activeFields: $activeFields, fieldToGridColMap }}></div>
             <div class="horizontal-handle right" use:horizontalDrag={{ ui_id: entry.ui_id, direction: 'right', totalColumns, headerCells, activeFields: $activeFields, fieldToGridColMap }}></div>
             <div class="event-team font-bold text-[1.15em]">
-              {getEntryTitle(entry)}
+              {getEntryTitle(entry, $teamNameLookup)}
             </div>
             {#if visibility.showField}
               <div class="event-field text-[1.12em] text-gray-600">
@@ -272,133 +227,3 @@
     </div>
   </div>
 </div>
-
-<style>
-  .schedule-cell {
-    background: transparent;
-    padding: 0.5rem 1rem;
-    position: relative;
-    height: 1.5rem;
-    border-bottom: 0;
-  }
-  
-  .schedule-hour-mark {
-    border-top: 1px solid #e5e5e5;
-  }
-  
-  .schedule-grid {
-    width: 100%;
-    border-radius: 0.5rem;
-    overflow: hidden;
-    position: relative;
-    display: grid !important;
-    grid-template-columns: 50px repeat(auto-fit, minmax(0, 1fr)) !important;
-    grid-template-rows: auto repeat(var(--total-rows) - 1, minmax(2.5rem, auto));
-  }
-
-  .border-grid {
-    border-right: 1px solid #e5e5e5;
-  }
-
-  .schedule-time {
-    position: relative;
-  }
-  
-  .schedule-event {
-    container-type: inline-size;
-    container-name: entry;
-    background-color: var(--color-primary-200);
-    color: var(--color-primary-700);
-    padding: 0.375rem;
-    border-radius: 0.125rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    position: absolute;
-    inset: 0;
-    margin: 2px;
-    transition:
-      transform 0.15s ease-out,
-      box-shadow 0.15s ease-out,
-      border-left 0.15s ease-out;
-  }
-
-  .event-team {
-    /* graphite title for both light and dark mode */
-    color: #444;
-  }
-
-  @container entry (max-width: 120px) {
-    .event-time {
-      display: none;
-    }
-  }
-
-  @container entry (max-width: 80px) {
-    .event-field {
-      display: none;
-    }
-  }
-
-  .current-time-indicator {
-    position: absolute;
-    display: flex;
-    align-items: center;
-    z-index: 100;
-    pointer-events: none;
-    width: 100%;
-    left: 0;
-  }
-
-  .current-time-bubble {
-    background-color: #ff3b30;
-    color: white;
-    font-size: 14px;
-    font-weight: 500;
-    border-radius: 6px;
-    padding: 2px 6px;
-    line-height: 1.2;
-    margin-left: 0;
-    min-width: 50px;
-    text-align: center;
-  }
-
-  .current-time-line {
-    flex: 1;
-    height: 2.5px;
-    background-color: #ff3b30;
-  }
-
-  .resize-handle {
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 6px;
-    background: transparent;
-    z-index: 2;
-  }
-  .resize-handle.top {
-    top: 0;
-  }
-  .resize-handle.bottom {
-    bottom: 0;
-  }
-  .horizontal-handle {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 6px;
-    background: transparent;
-    z-index: 2;
-    cursor: ew-resize;
-  }
-  .horizontal-handle.left {
-    left: 0;
-  }
-  .horizontal-handle.right {
-    right: 0;
-  }
-
-</style>

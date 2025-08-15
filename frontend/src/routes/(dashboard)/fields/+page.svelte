@@ -196,7 +196,7 @@
     {:else}
       <Table>
         <TableHead class="border-y border-gray-200 bg-gray-100 dark:border-gray-700">
-          <TableHeadCell class="p-4 font-medium">Name</TableHeadCell>
+          <TableHeadCell class="p-4 font-medium">Field</TableHeadCell>
           <TableHeadCell class="p-4">Size</TableHeadCell>
           <TableHeadCell class="p-4">Field Type</TableHeadCell>
           {#if $showHalfFields}
@@ -211,7 +211,14 @@
         <TableBody>
           {#each searchedFields as field}
             <TableBodyRow class="text-base">
-              <TableBodyCell class="p-4 font-medium">{field.name}</TableBodyCell>
+              <TableBodyCell class="p-4 font-medium">
+                <div class="flex items-center gap-3">
+                  {#if field.logo_url}
+                    <img src={field.logo_url} alt="{field.name} logo" class="w-8 h-8 rounded object-cover" />
+                  {/if}
+                  {field.name}
+                </div>
+              </TableBodyCell>
               <TableBodyCell class="p-4">{field.size}</TableBodyCell>
               <TableBodyCell class="p-4">{field.field_type}</TableBodyCell>
               {#if $showHalfFields}

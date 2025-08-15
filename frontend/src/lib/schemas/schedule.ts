@@ -30,6 +30,9 @@ export const scheduleEntrySchema = z.object({
   
     summary: z.string().max(255).nullable().optional(), // A short, user-visible title or summary for the event (e.g., "U12 Practice").
     description: z.string().nullable().optional(), // A longer, user-visible description or notes field for the event.
+    categories: z
+    .array(z.enum(["Training", "Match", "Event"]))
+    .length(1, { message: "categories must contain exactly one value" }),
   
   }).refine(data => data.dtend > data.dtstart, {
     message: "dtend must be after dtstart",

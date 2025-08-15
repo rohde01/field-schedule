@@ -13,7 +13,9 @@ const timeFormatErrorMsg = "Time must be in 15-minute increments (00, 15, 30, 45
 const baseFieldProps = {
   name: z.string().trim().min(1, "Name is required").max(255),
   size: fieldSizeEnum,
-  field_type: fieldTypeEnum
+  field_type: fieldTypeEnum,
+  logo_url: z.string().optional()
+  
 };
 
 // Base entity properties with IDs

@@ -42,6 +42,7 @@ export function processFields(rawFields: any[], availabilities: any[]): Field[] 
                     field_type: field.field_type,
                     parent_field_id: field.parent_field_id,
                     is_active: field.is_active,
+                    logo_url: field.logo_url || undefined,
                     availability: fieldAvailability,
                     half_subfields: halfSubfields,
                     quarter_subfields: quarterSubfields

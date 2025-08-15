@@ -45,7 +45,8 @@ export const actions: Actions = {
             const { error: insertError } = await locals.supabase.from('schedule_entries').insert(
                 toInsert.map((e: ScheduleEntry) => {
                     const { schedule_entry_id, ...payload } = e;
-                    return { ...payload, schedule_id: scheduleId };
+                    const categories = Array.isArray(payload.categories) ? payload.categories : ['Training'];
+                    return { ...payload, categories, schedule_id: scheduleId };
                 })
             );
             if (insertError) {
@@ -63,7 +64,10 @@ export const actions: Actions = {
         const toUpdate = entries.filter((e: ScheduleEntry) => e.schedule_entry_id);
         if (toUpdate.length) {
             const { error: updateError } = await locals.supabase.from('schedule_entries').upsert(
-                toUpdate.map((e: ScheduleEntry) => ({ ...e, schedule_id: scheduleId })),
+                toUpdate.map((e: ScheduleEntry) => {
+                    const categories = Array.isArray(e.categories) ? e.categories : ['Training'];
+                    return { ...e, categories, schedule_id: scheduleId };
+                }),
                 { onConflict: 'schedule_entry_id' }
             );
             if (updateError) return fail(500, { message: 'Update failed', error: updateError });
@@ -109,7 +113,9 @@ export const actions: Actions = {
             // Add schedule_id to each entry
             const entriesToInsert = scheduleEntries.map((entry: ScheduleEntry) => {
                 const { schedule_entry_id, ...entryData } = entry;
-                return { ...entryData, schedule_id: newSchedule.schedule_id };
+                // Ensure categories is properly formatted as an array
+                const categories = Array.isArray(entryData.categories) ? entryData.categories : ['Training'];
+                return { ...entryData, categories, schedule_id: newSchedule.schedule_id };
             });
             
             // Insert the entries

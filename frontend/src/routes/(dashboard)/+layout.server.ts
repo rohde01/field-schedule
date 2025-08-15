@@ -101,7 +101,8 @@ export const load: LayoutServerLoad = async ({ locals, locals: { safeGetSession,
                     recurrence_id,
                     exdate,
                     summary,
-                    description
+                    description,
+                    categories
                 )
             `)
             .eq('club_id', locals.user.club_id);

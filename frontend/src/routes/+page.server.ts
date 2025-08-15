@@ -100,7 +100,8 @@ export const load: PageServerLoad = async ({ url, locals: { supabase } }) => {
                     recurrence_id,
                     exdate,
                     summary,
-                    description
+                    description,
+                    categories
                 )
             `)
             .eq('club_id', club.club_id);
