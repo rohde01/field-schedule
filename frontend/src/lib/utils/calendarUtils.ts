@@ -23,7 +23,7 @@ if (browser) {
   derived(
     [showEarlyTimeslots],
     ([$showEarlyTimeslots]) => {
-      const earliestStart = $showEarlyTimeslots ? "05:45" : "11:45";
+      const earliestStart = $showEarlyTimeslots ? "05:45" : "13:45";
       const latestEnd = "23:45";
       const intervalMinutes = 15;
       return generateTimeSlots(earliestStart, latestEnd, intervalMinutes);
