@@ -14,8 +14,8 @@
   import { getFieldColumns, buildFieldToGridColumnMap, generateHeaderCells, getFieldName } from '$lib/utils/fieldUtils';
   import { getCategoryClass } from '$lib/utils/CalendarStyling';
   import { selectedSchedule, schedules } from '$lib/stores/schedules';
-  import { Heading, Button, Toggle, Tooltip, Input, DarkMode } from 'flowbite-svelte';
-  import { AngleLeftOutline, AngleRightOutline } from 'flowbite-svelte-icons';
+  import { Heading, Button, Toggle, Tooltip, DarkMode, Dropdown, DropdownItem, Search, Checkbox } from 'flowbite-svelte';
+  import { AngleLeftOutline, AngleRightOutline, ChevronDownOutline } from 'flowbite-svelte-icons';
   import { page } from '$app/stores';
 
   // Function to find the active schedule for a given date
@@ -77,11 +77,37 @@
   const logoUrl = derived(page, $page => $page.data.club?.logo_url || '/favicon.png');
 
   let teamSearchTerm = "";
-  $: filteredEntries = teamSearchTerm
-    ? $processedEntries.filter(entry =>
-        $teamNameLookup.get(entry.team_id)?.toLowerCase().includes(teamSearchTerm.toLowerCase())
-      )
-    : $processedEntries;
+  let selectedTeamIds = new Set<number>();
+  
+  $: teamList = Array.from($teamNameLookup.entries()).map(([id, name]) => ({
+    id,
+    name,
+    checked: selectedTeamIds.has(id)
+  }));
+  
+  $: filteredTeams = teamList.filter(team => 
+    team.name.toLowerCase().includes(teamSearchTerm.toLowerCase())
+  );
+  
+  $: filteredEntries = selectedTeamIds.size === 0 
+    ? $processedEntries 
+    : $processedEntries.filter(entry => 
+        entry.team_id != null && selectedTeamIds.has(entry.team_id)
+      );
+
+  function toggleTeam(teamId: number) {
+    if (selectedTeamIds.has(teamId)) {
+      selectedTeamIds.delete(teamId);
+    } else {
+      selectedTeamIds.add(teamId);
+    }
+    selectedTeamIds = selectedTeamIds; // Trigger reactivity
+  }
+
+  function clearTeamFilter() {
+    selectedTeamIds.clear();
+    selectedTeamIds = selectedTeamIds; // Trigger reactivity
+  }
 
   // Navigate to root domain without subdomain
   function navigateHome() {
@@ -129,7 +155,34 @@
 
       <div class="navigation-controls flex-1 flex items-center gap-8 justify-end">
         <div class="team-filter flex items-center ms-4">
-          <Input size="md" bind:value={teamSearchTerm} placeholder="Find dit hold" />
+          <Button>Find dit hold<ChevronDownOutline class="ms-2 h-4 w-4" /></Button>
+          <Dropdown class="w-64">
+            <div class="p-3">
+              <Search size="md" bind:value={teamSearchTerm} placeholder="Søg efter hold" />
+            </div>
+            <div class="max-h-48 overflow-y-auto">
+              {#each filteredTeams as team (team.id)}
+                <DropdownItem class="p-2 whitespace-nowrap overflow-hidden text-ellipsis">
+                  <Checkbox 
+                    checked={team.checked} 
+                    on:change={() => toggleTeam(team.id)}
+                  >
+                    {team.name}
+                  </Checkbox>
+                </DropdownItem>
+              {/each}
+            </div>
+            {#if selectedTeamIds.size > 0}
+              <div class="border-t border-gray-200 dark:border-gray-600">
+                <button
+                  class="w-full p-3 text-sm font-medium text-red-600 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-red-500"
+                  on:click={clearTeamFilter}
+                >
+                  Ryd filter
+                </button>
+              </div>
+            {/if}
+          </Dropdown>
         </div>
         <div class="toggle-container">
           <Toggle bind:checked={$showEarlyTimeslots}></Toggle>
