@@ -4,7 +4,7 @@
   import type { ProcessedScheduleEntry } from '$lib/utils/calendarUtils';
   import { fields } from '$lib/stores/fields';
   import { teams } from '$lib/stores/teams';
-  import { derived } from 'svelte/store';
+  import { derived, writable } from 'svelte/store';
   import { buildResources, timeSlots, 
           getRowForTimeWithSlots, getEntryRowEndWithSlots,
           getEntryContentVisibility, 
@@ -54,9 +54,43 @@
     }
   }
 
-  const activeFields = browser ? derived([fields, selectedSchedule], ([$fields, $selectedSchedule]) => {
+  let teamSearchTerm = "";
+  const selectedTeamIds = writable(new Set<number>());
+
+  const allActiveFields = browser ? derived([fields, selectedSchedule], ([$fields, $selectedSchedule]) => {
     return buildResources($fields, $selectedSchedule);
   }) : derived(fields, () => []);
+
+  // Filter fields based on selected teams - only show fields that have entries for selected teams
+  const activeFields = browser ? derived([allActiveFields, processedEntries, selectedTeamIds], ([$allActiveFields, $processedEntries, $selectedTeamIds]) => {
+    if ($selectedTeamIds.size === 0) {
+      return $allActiveFields;
+    }
+    
+    // Get field IDs that are being used by selected teams
+    const fieldsInUse = new Set<number>();
+    $processedEntries
+      .filter(entry => entry.team_id != null && $selectedTeamIds.has(entry.team_id))
+      .forEach(entry => {
+        if (entry.field_id != null) {
+          fieldsInUse.add(entry.field_id);
+        }
+      });
+    
+    // Filter fields to only include those being used
+    return $allActiveFields.filter(field => {
+      // Check if main field is in use
+      if (fieldsInUse.has(field.field_id)) return true;
+      
+      // Check if any half subfields are in use
+      if (field.half_subfields.some(half => fieldsInUse.has(half.field_id))) return true;
+      
+      // Check if any quarter subfields are in use
+      if (field.quarter_subfields.some(quarter => fieldsInUse.has(quarter.field_id))) return true;
+      
+      return false;
+    });
+  }) : derived(allActiveFields, ($allActiveFields) => $allActiveFields);
 
   $: headerCells = $activeFields.length > 0 
     ? generateHeaderCells($activeFields, fieldToGridColMap)
@@ -76,37 +110,35 @@
 
   const logoUrl = derived(page, $page => $page.data.club?.logo_url || '/favicon.png');
 
-  let teamSearchTerm = "";
-  let selectedTeamIds = new Set<number>();
-  
   $: teamList = Array.from($teamNameLookup.entries()).map(([id, name]) => ({
     id,
     name,
-    checked: selectedTeamIds.has(id)
+    checked: $selectedTeamIds.has(id)
   }));
   
   $: filteredTeams = teamList.filter(team => 
     team.name.toLowerCase().includes(teamSearchTerm.toLowerCase())
   );
   
-  $: filteredEntries = selectedTeamIds.size === 0 
+  $: filteredEntries = $selectedTeamIds.size === 0 
     ? $processedEntries 
     : $processedEntries.filter(entry => 
-        entry.team_id != null && selectedTeamIds.has(entry.team_id)
+        entry.team_id != null && $selectedTeamIds.has(entry.team_id)
       );
 
   function toggleTeam(teamId: number) {
-    if (selectedTeamIds.has(teamId)) {
-      selectedTeamIds.delete(teamId);
-    } else {
-      selectedTeamIds.add(teamId);
-    }
-    selectedTeamIds = selectedTeamIds; // Trigger reactivity
+    selectedTeamIds.update(ids => {
+      if (ids.has(teamId)) {
+        ids.delete(teamId);
+      } else {
+        ids.add(teamId);
+      }
+      return new Set(ids);
+    });
   }
 
   function clearTeamFilter() {
-    selectedTeamIds.clear();
-    selectedTeamIds = selectedTeamIds; // Trigger reactivity
+    selectedTeamIds.set(new Set<number>());
   }
 
   // Navigate to root domain without subdomain
@@ -172,7 +204,7 @@
                 </DropdownItem>
               {/each}
             </div>
-            {#if selectedTeamIds.size > 0}
+            {#if $selectedTeamIds.size > 0}
               <div class="border-t border-gray-200 dark:border-gray-600">
                 <button
                   class="w-full p-3 text-sm font-medium text-red-600 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-red-500"
@@ -203,6 +235,10 @@
     {#if !$selectedSchedule}
       <div class="no-schedule-message bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-8 text-center my-4">
         <p class="text-gray-600 dark:text-gray-400 text-lg">No active schedule on this day</p>
+      </div>
+    {:else if $selectedTeamIds.size > 0 && filteredEntries.length === 0}
+      <div class="no-schedule-message bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-8 text-center my-4">
+        <p class="text-gray-600 dark:text-gray-400 text-lg">Ingen træning i dag</p>
       </div>
     {:else}
     <!-- HEADER ROW OUTSIDE SCROLLABLE CONTAINER -->
