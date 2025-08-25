@@ -134,7 +134,7 @@
       </div>
 
       <button class="text-gray-400 text-sm hover:text-gray-600 focus:outline-none text-left mb-2" onclick={() => hiddenDrawer = false}>
-        + more
+        + expand
       </button>
 
       <!-- Delete button -->
