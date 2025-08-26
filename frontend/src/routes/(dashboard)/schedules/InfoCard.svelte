@@ -7,10 +7,11 @@
   import { fields, getFlattenedFields } from '../../../lib/stores/fields';
   import type { FlattenedField } from '$lib/schemas/field';
   import { deleteScheduleEntry } from '../../../lib/stores/schedules';
-  import { commitUpdate, getOriginalRecurrenceStart } from '$lib/utils/calendarUtils';
+  import { getOriginalRecurrenceStart } from '$lib/utils/calendarUtils';
   import { Card } from 'flowbite-svelte';
   import { onMount } from 'svelte';
   import EntryDrawer from '$lib/components/EntryDrawer.svelte';
+  import { updateEntryField, applyEntryChanges } from '$lib/utils/entryEditUtils';
 
   let { entryUiId }: { entryUiId: string } = $props();
 
@@ -24,11 +25,9 @@
       const parent = wrapperElement.parentElement as HTMLElement;
       const rect = parent.getBoundingClientRect();
       const spaceRight = window.innerWidth - (rect.left + rect.width);
-      if (spaceRight > cardWidth + offset) {
-        wrapperStyle = `top:0px; left:${rect.width + offset}px;`;
-      } else {
-        wrapperStyle = `top:0px; left:-${cardWidth + offset}px;`;
-      }
+      wrapperStyle = spaceRight > cardWidth + offset
+        ? `top:0px; left:${rect.width + offset}px;`
+        : `top:0px; left:-${cardWidth + offset}px;`;
     }
   });
 
@@ -42,13 +41,8 @@
   let hiddenDrawer = $state(true);
   let isDeleting = $state(false);
 
-  teams.subscribe(data => {
-    teamsData = data;
-  });
-
-  fields.subscribe(() => {
-    fieldsData = getFlattenedFields();
-  });
+  teams.subscribe(data => { teamsData = data; });
+  fields.subscribe(() => { fieldsData = getFlattenedFields(); });
 
   function handleDelete() {
     if (!entry) return;
@@ -64,7 +58,7 @@
   bind:this={wrapperElement}
   role="button"
   tabindex="0"
-  onkeydown={(e) => { if(e.key === "Enter" || e.key === " ") e.stopPropagation(); }}
+  onkeydown={(e) => { if(e.key === 'Enter' || e.key === ' ') e.stopPropagation(); }}
   onclick={(e) => e.stopPropagation()}
   class="absolute z-20 w-[300px]"
   style={wrapperStyle}
@@ -79,10 +73,7 @@
         class="text-xl font-semibold text-black dark:text-white mb-3 bg-transparent dark:bg-transparent border-none focus:ring-0 focus:border-none px-0 py-0.5 placeholder:text-gray-400 dark:placeholder:text-gray-500"
         on:focus={() => summaryEditing = true}
         on:blur={() => summaryEditing = false}
-        on:change={() => {
-          processedEntries.update(es => es.map(e => e.ui_id === entryUiId ? { ...e, summary: entry!.summary } : e));
-          commitUpdate({ ...entry, summary: entry!.summary }, getOriginalRecurrenceStart(entry));
-        }}
+        on:change={() => updateEntryField(entryUiId, 'summary', entry.summary)}
       />
 
       <div class="grid grid-cols-2 gap-3 mb-3">
@@ -93,11 +84,8 @@
           bind:value={entry.field_id}
           required
           on:focus={() => fieldEditing = true}
-          on:blur={() => fieldEditing = false}
-          on:change={() => {
-            processedEntries.update(es => es.map(e => e.ui_id === entryUiId ? { ...e, field_id: entry!.field_id } : e));
-            commitUpdate({ ...entry, field_id: entry!.field_id }, getOriginalRecurrenceStart(entry));
-          }}
+            on:blur={() => fieldEditing = false}
+          on:change={() => updateEntryField(entryUiId, 'field_id', entry.field_id)}
         />
         <Select
           class="text-s border-gray-200 h-8 py-0"
@@ -107,10 +95,7 @@
           required
           on:focus={() => teamEditing = true}
           on:blur={() => teamEditing = false}
-          on:change={() => {
-            processedEntries.update(es => es.map(e => e.ui_id === entryUiId ? { ...e, team_id: entry!.team_id } : e));
-            commitUpdate({ ...entry, team_id: entry!.team_id }, getOriginalRecurrenceStart(entry));
-          }}
+          on:change={() => updateEntryField(entryUiId, 'team_id', entry.team_id)}
         />
       </div>
 
@@ -118,18 +103,11 @@
         <Select
           class="text-s border-gray-200 h-8 py-0"
           size="sm"
-          items={[
-            { value: "Training", name: "Training" },
-            { value: "Match", name: "Match" },
-            { value: "Event", name: "Event" }
-          ]}
+          items={[{ value: 'Training', name: 'Training' }, { value: 'Match', name: 'Match' }, { value: 'Event', name: 'Event' }]}
           bind:value={entry.categories[0]}
           required
           placeholder="Select category"
-          on:change={() => {
-            processedEntries.update(es => es.map(e => e.ui_id === entryUiId ? { ...e, categories: [entry!.categories[0]] } : e));
-            commitUpdate({ ...entry, categories: [entry!.categories[0]] }, getOriginalRecurrenceStart(entry));
-          }}
+          on:change={() => applyEntryChanges(entryUiId, { categories: [entry.categories[0]] })}
         />
       </div>
 
@@ -137,7 +115,6 @@
         + expand
       </button>
 
-      <!-- Delete button -->
       <button class="absolute bottom-2 right-2 text-red-500 hover:text-red-600" onclick={handleDelete} disabled={isDeleting}>
         <TrashBinSolid />
       </button>

@@ -1,15 +1,16 @@
 <!-- filepath: /Users/rohdee/Github/field-schedule/frontend/src/lib/components/EntryDrawer.svelte -->
 <script lang="ts">
-  import { Button, CloseButton, Heading, Datepicker, Timepicker, Helper, Label, Input, Select, Checkbox } from 'flowbite-svelte';
+  import { Button, CloseButton, Heading, Datepicker, Timepicker, Label, Input, Select, Checkbox } from 'flowbite-svelte';
   import { CloseOutline, ClockSolid, TrashBinSolid } from 'flowbite-svelte-icons';
   import { processedEntries, parseRecurrenceFrequency, createRecurrenceRule, canEditRecurrence } from '$lib/utils/calendarUtils';
   import { deleteScheduleEntry } from '$lib/stores/schedules';
-  import { computeDateUTC, currentDate } from '$lib/utils/dateUtils';
-  import { commitUpdate, getOriginalRecurrenceStart } from '$lib/utils/calendarUtils';
+  import { currentDate } from '$lib/utils/dateUtils';
+  import { getOriginalRecurrenceStart } from '$lib/utils/calendarUtils';
   import { teams } from '$lib/stores/teams';
   import type { Team } from '$lib/schemas/team';
   import { fields, getFlattenedFields } from '$lib/stores/fields';
   import type { FlattenedField } from '$lib/schemas/field';
+  import { applyEntryChanges, updateEntryField, updateEntryDate, updateEntryTimeRange, toggleRecurrence } from '$lib/utils/entryEditUtils';
 
   let { hidden = $bindable(true), entryUiId }: { 
     hidden: boolean; 
@@ -29,11 +30,7 @@
   $effect(() => {
     if (entry) {
       selectedDate = entry.dtstart;
-      const oldStart = entry.dtstart.toISOString().slice(11,16);
-      const oldEnd = entry.dtend.toISOString().slice(11,16);
-      selectedTimerange = { time: oldStart, endTime: oldEnd };
-      
-      // Initialize recurrence state using helper function
+      selectedTimerange = { time: entry.start_time, endTime: entry.end_time };
       if (canEditRecurrence(entry)) {
         hasRecurrence = !!entry.recurrence_rule;
         recurrenceFrequency = parseRecurrenceFrequency(entry.recurrence_rule);
@@ -41,34 +38,20 @@
     }
   });
 
-  teams.subscribe(data => {
-    teamsData = data;
-  });
-
-  fields.subscribe(() => {
-    fieldsData = getFlattenedFields();
-  });
+  teams.subscribe(data => { teamsData = data; });
+  fields.subscribe(() => { fieldsData = getFlattenedFields(); });
 
   function handleDateChange(event: any) {
     if (!entry) return;
     const date = selectedDate || new Date(event.target.value);
-    const start = entry.start_time;
-    const end = entry.end_time;
-    const newStart = computeDateUTC(date, start);
-    const newEnd = computeDateUTC(date, end);
-    processedEntries.update(es => es.map(e => e.ui_id === entryUiId ? { ...e, dtstart: newStart, dtend: newEnd } : e));
-    commitUpdate({ ...entry, dtstart: newStart, dtend: newEnd }, getOriginalRecurrenceStart(entry));
-    currentDate.set(newStart);
+    updateEntryDate(entryUiId, date);
+    currentDate.set(date);
   }
 
   function handleTimeChange(event: CustomEvent<{ time: string; endTime?: string }>) {
     if (!entry || !selectedDate) return;
-    const { time, endTime: rawEndTime } = event.detail;
-    const endTime = rawEndTime!;
-    const newStart = computeDateUTC(selectedDate, time);
-    const newEnd = computeDateUTC(selectedDate, endTime);
-    processedEntries.update(es => es.map(e => e.ui_id === entryUiId ? { ...e, dtstart: newStart, dtend: newEnd, start_time: time, end_time: endTime } : e));
-    commitUpdate({ ...entry, dtstart: newStart, dtend: newEnd, start_time: time, end_time: endTime }, getOriginalRecurrenceStart(entry));
+    const { time, endTime: rawEndTime } = event.detail; if (!rawEndTime) return;
+    updateEntryTimeRange(entryUiId, time, rawEndTime);
   }
 
   function handleDelete() {
@@ -82,27 +65,15 @@
 
   function handleRecurrenceToggle() {
     if (!entry) return;
-    
     hasRecurrence = !hasRecurrence;
-    
     const recurrenceRule = hasRecurrence ? createRecurrenceRule(recurrenceFrequency) : null;
-    console.log('Recurrence toggle - hasRecurrence:', hasRecurrence, 'rule:', recurrenceRule);
-    
-    // Update the entry first, preserving the ui_id
-    const updatedEntry = { ...entry, recurrence_rule: recurrenceRule, ui_id: entryUiId };
-    
-    processedEntries.update(es => es.map(e => e.ui_id === entryUiId ? updatedEntry : e));
-    commitUpdate(updatedEntry, getOriginalRecurrenceStart(entry));
+    toggleRecurrence(entryUiId, hasRecurrence, recurrenceRule);
   }
 
   function handleRecurrenceFrequencyChange() {
     if (!entry || !hasRecurrence) return;
-    
     const recurrenceRule = createRecurrenceRule(recurrenceFrequency);
-    const updatedEntry = { ...entry, recurrence_rule: recurrenceRule, ui_id: entryUiId };
-    
-    processedEntries.update(es => es.map(e => e.ui_id === entryUiId ? updatedEntry : e));
-    commitUpdate(updatedEntry, getOriginalRecurrenceStart(entry));
+    toggleRecurrence(entryUiId, true, recurrenceRule);
   }
 </script>
 
@@ -118,10 +89,7 @@
         placeholder="Event name"
         bind:value={entry.summary}
         required
-        on:change={() => {
-          processedEntries.update(es => es.map(e => e.ui_id === entryUiId ? { ...e, summary: entry!.summary } : e));
-          commitUpdate({ ...entry, summary: entry!.summary }, getOriginalRecurrenceStart(entry));
-        }}
+        on:change={() => updateEntryField(entryUiId, 'summary', entry.summary)}
       />
     </Label>
 
@@ -132,10 +100,7 @@
           items={fieldsData.filter(f => f.field_id !== undefined).map(f => ({ value: f.field_id, name: f.name }))}
           bind:value={entry.field_id}
           required
-          on:change={() => {
-            processedEntries.update(es => es.map(e => e.ui_id === entryUiId ? { ...e, field_id: entry!.field_id } : e));
-            commitUpdate({ ...entry, field_id: entry!.field_id }, getOriginalRecurrenceStart(entry));
-          }}
+          on:change={() => updateEntryField(entryUiId, 'field_id', entry.field_id)}
         />
       </Label>
       <Label class="space-y-2">
@@ -144,10 +109,7 @@
           items={teamsData.filter(t => t.team_id !== undefined).map(t => ({ value: t.team_id, name: t.name }))}
           bind:value={entry.team_id}
           required
-          on:change={() => {
-            processedEntries.update(es => es.map(e => e.ui_id === entryUiId ? { ...e, team_id: entry!.team_id } : e));
-            commitUpdate({ ...entry, team_id: entry!.team_id }, getOriginalRecurrenceStart(entry));
-          }}
+          on:change={() => updateEntryField(entryUiId, 'team_id', entry.team_id)}
         />
       </Label>
     </div>
@@ -155,64 +117,35 @@
     <Label class="space-y-2">
       <span>Category</span>
       <Select
-        items={[
-          { value: "Training", name: "Training" },
-          { value: "Match", name: "Match" },
-          { value: "Event", name: "Event" }
-        ]}
+        items={[{ value: 'Training', name: 'Training' }, { value: 'Match', name: 'Match' }, { value: 'Event', name: 'Event' }]}
         bind:value={entry.categories[0]}
         required
         placeholder="Select category"
-        on:change={() => {
-          processedEntries.update(es => es.map(e => e.ui_id === entryUiId ? { ...e, categories: [entry!.categories[0]] } : e));
-          commitUpdate({ ...entry, categories: [entry!.categories[0]] }, getOriginalRecurrenceStart(entry));
-        }}
+        on:change={() => applyEntryChanges(entryUiId, { categories: [entry.categories[0]] })}
       />
     </Label>
 
     <Label class="space-y-2">
       <span>Date</span>
-      <Datepicker
-        bind:value={selectedDate}
-        on:select={handleDateChange}
-        inputClass="text-s border-gray-200 h-10 py-2"
-      />
+      <Datepicker bind:value={selectedDate} on:select={handleDateChange} inputClass="text-s border-gray-200 h-10 py-2" />
     </Label>
 
     <Label class="space-y-2">
       <span>Time</span>
-      <Timepicker
-        type="range"
-        size="sm"
-        icon={ClockSolid as any}
-        value={selectedTimerange.time}
-        endValue={selectedTimerange.endTime}
-        on:select={handleTimeChange} 
-      />
+      <Timepicker type="range" size="sm" icon={ClockSolid as any} value={selectedTimerange.time} endValue={selectedTimerange.endTime} on:select={handleTimeChange} />
     </Label>
 
-    <!-- Recurrence Controls - only show for entries that can edit recurrence -->
     {#if canEditRecurrence(entry)}
       <div class="space-y-3 border-t pt-4">
         <div class="flex items-center space-x-3">
-          <Checkbox 
-            checked={hasRecurrence}
-            on:click={handleRecurrenceToggle}
-          />
-          <span class="text-sm font-medium">
-            Repeats {hasRecurrence ? recurrenceFrequency.toLowerCase() : ''}
-          </span>
+          <Checkbox checked={hasRecurrence} on:click={handleRecurrenceToggle} />
+          <span class="text-sm font-medium">Repeats {hasRecurrence ? recurrenceFrequency.toLowerCase() : ''}</span>
         </div>
-        
         {#if hasRecurrence}
           <Label class="space-y-2">
             <span>Frequency</span>
             <Select
-              items={[
-                { value: "DAILY", name: "Daily" },
-                { value: "WEEKLY", name: "Weekly" },
-                { value: "MONTHLY", name: "Monthly" }
-              ]}
+              items={[{ value: 'DAILY', name: 'Daily' }, { value: 'WEEKLY', name: 'Weekly' }, { value: 'MONTHLY', name: 'Monthly' }]}
               bind:value={recurrenceFrequency}
               on:change={handleRecurrenceFrequencyChange}
             />
