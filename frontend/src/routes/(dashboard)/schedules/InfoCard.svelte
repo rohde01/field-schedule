@@ -12,6 +12,7 @@
   import { onMount } from 'svelte';
   import EntryDrawer from '$lib/components/EntryDrawer.svelte';
   import { updateEntryField, applyEntryChanges } from '$lib/utils/entryEditUtils';
+  import RecurringDialog from '$lib/components/Recurring.svelte';
 
   let { entryUiId }: { entryUiId: string } = $props();
 
@@ -125,3 +126,4 @@
 <Drawer placement="right" bind:hidden={hiddenDrawer}>
   <EntryDrawer bind:hidden={hiddenDrawer} {entryUiId} />
 </Drawer>
+<RecurringDialog />

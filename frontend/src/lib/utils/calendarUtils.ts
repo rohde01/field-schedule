@@ -350,6 +350,14 @@ export function getOriginalRecurrenceStart(entry: any): string | null {
 
 // Commit schedule update using processed entry and original recurrence
 export function commitUpdate(entry: any, originalRecurrence: string | null) {
+  console.log('🔧 commitUpdate called:', {
+    entry_uid: entry.uid,
+    entry_schedule_id: entry.schedule_id,
+    originalRecurrence,
+    entry_field_id: entry.field_id,
+    entry_summary: entry.summary
+  });
+  
   updateScheduleEntry({
     uid: entry.uid,
     schedule_id: entry.schedule_id,

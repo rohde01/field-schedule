@@ -11,6 +11,7 @@
   import { fields, getFlattenedFields } from '$lib/stores/fields';
   import type { FlattenedField } from '$lib/schemas/field';
   import { applyEntryChanges, updateEntryField, updateEntryDate, updateEntryTimeRange, toggleRecurrence } from '$lib/utils/entryEditUtils';
+  import RecurringDialog from '$lib/components/Recurring.svelte';
 
   let { hidden = $bindable(true), entryUiId }: { 
     hidden: boolean; 
@@ -165,3 +166,4 @@
     </Button>
   </div>
 </div>
+<RecurringDialog />
