@@ -121,11 +121,25 @@ export function deleteScheduleEntry(uid: string, schedule_id: number, recurrence
             const masterIndex = updatedEntries.findIndex(e => e.uid === uid && !e.recurrence_id);
             const masterEntry = masterIndex !== -1 ? updatedEntries[masterIndex] : undefined;
 
-            if (recurrence_id === null && masterEntry && !masterEntry.recurrence_rule) {
+            if (recurrence_id === null && masterEntry) {
                 const id = masterEntry.schedule_entry_id;
                 if (id != null) deletedEntryIds.update(ids => [...ids, id]);
-                // Remove standalone master entry
+                // Remove master entry (both standalone and recurring)
                 updatedEntries = updatedEntries.filter(e => !(e.uid === uid && !e.recurrence_id));
+                
+                // If it's a recurring master, also remove all its exceptions
+                if (masterEntry.recurrence_rule) {
+                    const exceptionsToRemove = updatedEntries.filter(e => 
+                        e.uid === uid && e.recurrence_id
+                    );
+                    exceptionsToRemove.forEach(exception => {
+                        const exceptionId = exception.schedule_entry_id;
+                        if (exceptionId != null) deletedEntryIds.update(ids => [...ids, exceptionId]);
+                    });
+                    updatedEntries = updatedEntries.filter(e => 
+                        !(e.uid === uid && e.recurrence_id)
+                    );
+                }
             } else if (recurrence_id) {
                 // Remove existing exception if found
                 const exceptionIndex = updatedEntries.findIndex(e => e.uid === uid && e.recurrence_id instanceof Date && e.recurrence_id.getTime() === recurrence_id.getTime());

@@ -1,8 +1,8 @@
 <!-- filepath: /Users/rohdee/Github/field-schedule/frontend/src/lib/components/EntryDrawer.svelte -->
 <script lang="ts">
-  import { Button, CloseButton, Heading, Datepicker, Timepicker, Helper, Label, Input, Select } from 'flowbite-svelte';
+  import { Button, CloseButton, Heading, Datepicker, Timepicker, Helper, Label, Input, Select, Checkbox } from 'flowbite-svelte';
   import { CloseOutline, ClockSolid, TrashBinSolid } from 'flowbite-svelte-icons';
-  import { processedEntries } from '$lib/utils/calendarUtils';
+  import { processedEntries, parseRecurrenceFrequency, createRecurrenceRule, canEditRecurrence } from '$lib/utils/calendarUtils';
   import { deleteScheduleEntry } from '$lib/stores/schedules';
   import { computeDateUTC, currentDate } from '$lib/utils/dateUtils';
   import { commitUpdate, getOriginalRecurrenceStart } from '$lib/utils/calendarUtils';
@@ -21,6 +21,8 @@
   let isDeleting = $state(false);
   let teamsData = $state<Team[]>([]);
   let fieldsData = $state<FlattenedField[]>([]);
+  let hasRecurrence = $state(false);
+  let recurrenceFrequency = $state('WEEKLY');
 
   let entry = $derived($processedEntries.find(e => e.ui_id === entryUiId));
   
@@ -30,6 +32,12 @@
       const oldStart = entry.dtstart.toISOString().slice(11,16);
       const oldEnd = entry.dtend.toISOString().slice(11,16);
       selectedTimerange = { time: oldStart, endTime: oldEnd };
+      
+      // Initialize recurrence state using helper function
+      if (canEditRecurrence(entry)) {
+        hasRecurrence = !!entry.recurrence_rule;
+        recurrenceFrequency = parseRecurrenceFrequency(entry.recurrence_rule);
+      }
     }
   });
 
@@ -70,6 +78,31 @@
     const recDate = recDateStr ? new Date(recDateStr) : null;
     deleteScheduleEntry(entry.uid, entry.schedule_id!, recDate);
     isDeleting = false;
+  }
+
+  function handleRecurrenceToggle() {
+    if (!entry) return;
+    
+    hasRecurrence = !hasRecurrence;
+    
+    const recurrenceRule = hasRecurrence ? createRecurrenceRule(recurrenceFrequency) : null;
+    console.log('Recurrence toggle - hasRecurrence:', hasRecurrence, 'rule:', recurrenceRule);
+    
+    // Update the entry first, preserving the ui_id
+    const updatedEntry = { ...entry, recurrence_rule: recurrenceRule, ui_id: entryUiId };
+    
+    processedEntries.update(es => es.map(e => e.ui_id === entryUiId ? updatedEntry : e));
+    commitUpdate(updatedEntry, getOriginalRecurrenceStart(entry));
+  }
+
+  function handleRecurrenceFrequencyChange() {
+    if (!entry || !hasRecurrence) return;
+    
+    const recurrenceRule = createRecurrenceRule(recurrenceFrequency);
+    const updatedEntry = { ...entry, recurrence_rule: recurrenceRule, ui_id: entryUiId };
+    
+    processedEntries.update(es => es.map(e => e.ui_id === entryUiId ? updatedEntry : e));
+    commitUpdate(updatedEntry, getOriginalRecurrenceStart(entry));
   }
 </script>
 
@@ -157,6 +190,36 @@
         on:select={handleTimeChange} 
       />
     </Label>
+
+    <!-- Recurrence Controls - only show for entries that can edit recurrence -->
+    {#if canEditRecurrence(entry)}
+      <div class="space-y-3 border-t pt-4">
+        <div class="flex items-center space-x-3">
+          <Checkbox 
+            checked={hasRecurrence}
+            on:click={handleRecurrenceToggle}
+          />
+          <span class="text-sm font-medium">
+            Repeats {hasRecurrence ? recurrenceFrequency.toLowerCase() : ''}
+          </span>
+        </div>
+        
+        {#if hasRecurrence}
+          <Label class="space-y-2">
+            <span>Frequency</span>
+            <Select
+              items={[
+                { value: "DAILY", name: "Daily" },
+                { value: "WEEKLY", name: "Weekly" },
+                { value: "MONTHLY", name: "Monthly" }
+              ]}
+              bind:value={recurrenceFrequency}
+              on:change={handleRecurrenceFrequencyChange}
+            />
+          </Label>
+        {/if}
+      </div>
+    {/if}
   {/if}
 
   <div class="bottom-0 left-0 flex w-full justify-center space-x-4 pb-4 md:absolute md:px-4">
