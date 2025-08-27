@@ -12,6 +12,8 @@
   import type { FlattenedField } from '$lib/schemas/field';
   import { applyEntryChanges, updateEntryField, updateEntryDate, updateEntryTimeRange, toggleRecurrence } from '$lib/utils/entryEditUtils';
   import RecurringDialog from '$lib/components/Recurring.svelte';
+  import DeleteRecurringDialog from '$lib/components/DeleteRecurringDialog.svelte';
+  import { handleRecurringDelete } from '$lib/utils/deleteRecurringUtils';
 
   let { hidden = $bindable(true), entryUiId }: { 
     hidden: boolean; 
@@ -58,9 +60,7 @@
   function handleDelete() {
     if (!entry) return;
     isDeleting = true;
-    const recDateStr = getOriginalRecurrenceStart(entry);
-    const recDate = recDateStr ? new Date(recDateStr) : null;
-    deleteScheduleEntry(entry.uid, entry.schedule_id!, recDate);
+    handleRecurringDelete(entry);
     isDeleting = false;
   }
 
@@ -167,3 +167,4 @@
   </div>
 </div>
 <RecurringDialog />
+<DeleteRecurringDialog />

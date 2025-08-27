@@ -13,6 +13,8 @@
   import EntryDrawer from '$lib/components/EntryDrawer.svelte';
   import { updateEntryField, applyEntryChanges } from '$lib/utils/entryEditUtils';
   import RecurringDialog from '$lib/components/Recurring.svelte';
+  import DeleteRecurringDialog from '$lib/components/DeleteRecurringDialog.svelte';
+  import { handleRecurringDelete } from '$lib/utils/deleteRecurringUtils';
 
   let { entryUiId }: { entryUiId: string } = $props();
 
@@ -48,9 +50,7 @@
   function handleDelete() {
     if (!entry) return;
     isDeleting = true;
-    const recDateStr = getOriginalRecurrenceStart(entry);
-    const recDate = recDateStr ? new Date(recDateStr) : null;
-    deleteScheduleEntry(entry.uid, entry.schedule_id!, recDate);
+    handleRecurringDelete(entry);
     isDeleting = false;
   }
 </script>
@@ -127,3 +127,4 @@
   <EntryDrawer bind:hidden={hiddenDrawer} {entryUiId} />
 </Drawer>
 <RecurringDialog />
+<DeleteRecurringDialog />
