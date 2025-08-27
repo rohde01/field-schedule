@@ -17,6 +17,7 @@
   import { Heading, Button, Toggle, Tooltip, DarkMode, Dropdown, DropdownItem, Search, Checkbox } from 'flowbite-svelte';
   import { AngleLeftOutline, AngleRightOutline, ChevronDownOutline } from 'flowbite-svelte-icons';
   import { page } from '$app/stores';
+  import { onMount, onDestroy } from 'svelte';
 
   // Function to find the active schedule for a given date
   function findActiveScheduleForDate(date: Date): number | null {
@@ -158,6 +159,26 @@
     }
     window.location.href = `${protocol}//${mainDomain}${portSegment}/`;
   }
+  
+  // Responsive: detect narrow screens (mobile) and only show schedule when a team is selected
+  let isNarrow = false;
+  if (browser) {
+    const mq = window.matchMedia('(max-width: 640px)');
+    const handleMq = (e: MediaQueryListEvent | MediaQueryList) => {
+      // some browsers pass MediaQueryListEvent, others MediaQueryList
+      isNarrow = ('matches' in e) ? e.matches : (mq.matches);
+    };
+    onMount(() => {
+      isNarrow = mq.matches;
+      // use addEventListener where supported
+      if (mq.addEventListener) mq.addEventListener('change', handleMq as any);
+      else mq.addListener(handleMq as any);
+    });
+    onDestroy(() => {
+      if (mq.removeEventListener) mq.removeEventListener('change', handleMq as any);
+      else mq.removeListener(handleMq as any);
+    });
+  }
 </script>
 
 
@@ -176,7 +197,8 @@
       </div>
     {/if}
     <div class="schedule-controls flex items-center my-2 py-2">
-      <div class="current-date flex-1">
+      <!-- Show full controls on wider screens; on narrow screens only show the team filter dropdown -->
+      <div class="current-date flex-1" style:display={isNarrow ? 'none' : 'block'}>
         <Heading tag="h2">
           {formatDate($currentDate)}
         </Heading>
@@ -216,11 +238,13 @@
             {/if}
           </Dropdown>
         </div>
-        <div class="toggle-container">
+
+        <!-- Only display these extra controls on non-narrow screens -->
+        <div class="toggle-container" style:display={isNarrow ? 'none' : 'flex'}>
           <Toggle bind:checked={$showEarlyTimeslots}></Toggle>
           <Tooltip placement="top">Vis hele dagen</Tooltip>
         </div>
-        <div class="day-nav flex items-center gap-2">
+        <div class="day-nav flex items-center gap-2" style:display={isNarrow ? 'none' : 'flex'}>
           <Button outline={true} class="p-2!" on:click={previousDay}>
             <AngleLeftOutline class="w-5 h-5" />
           </Button>
@@ -231,94 +255,101 @@
       </div>
     </div>
 
-    <!-- Display message when no schedule is active -->
-    {#if !$selectedSchedule}
+    <!-- Mobile: if narrow and no team selected show only the dropdown and a prompt; otherwise show existing schedule/no-schedule messaging -->
+    {#if isNarrow && $selectedTeamIds.size === 0}
       <div class="no-schedule-message bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-8 text-center my-4">
-        <p class="text-gray-600 dark:text-gray-400 text-lg">No active schedule on this day</p>
-      </div>
-    {:else if $selectedTeamIds.size > 0 && filteredEntries.length === 0}
-      <div class="no-schedule-message bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-8 text-center my-4">
-        <p class="text-gray-600 dark:text-gray-400 text-lg">Ingen træning i dag</p>
+        <p class="text-gray-600 dark:text-gray-400 text-lg">Vælg et hold for at se skemaet</p>
       </div>
     {:else}
-    <!-- HEADER ROW OUTSIDE SCROLLABLE CONTAINER -->
-    <div class="schedule-grid bg-gray-100 dark:bg-gray-700">
-      <div 
-        class="p-4 font-medium text-gray-900 dark:text-white"
-        style="grid-column: 1;"
-      >
-      </div>
-      {#each headerCells as cell}
-        <div
-          class="p-4 font-medium text-gray-900 dark:text-white text-center {cell.logoUrl ? 'field-header-with-logo' : ''}"
-          style="grid-column: {cell.colIndex} / span {cell.colSpan}; border-right: none;"
+      <!-- Display message when no schedule is active -->
+      {#if !$selectedSchedule}
+        <div class="no-schedule-message bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-8 text-center my-4">
+          <p class="text-gray-600 dark:text-gray-400 text-lg">No active schedule on this day</p>
+        </div>
+      {:else if $selectedTeamIds.size > 0 && filteredEntries.length === 0}
+        <div class="no-schedule-message bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-8 text-center my-4">
+          <p class="text-gray-600 dark:text-gray-400 text-lg">Ingen træning i dag</p>
+        </div>
+      {:else}
+      <!-- HEADER ROW OUTSIDE SCROLLABLE CONTAINER -->
+      <div class="schedule-grid bg-gray-100 dark:bg-gray-700">
+        <div 
+          class="p-4 font-medium text-gray-900 dark:text-white"
+          style="grid-column: 1;"
         >
-          {#if cell.logoUrl}
-            <div class="header-content">
+        </div>
+        {#each headerCells as cell}
+          <div
+            class="p-4 font-medium text-gray-900 dark:text-white text-center {cell.logoUrl ? 'field-header-with-logo' : ''}"
+            style="grid-column: {cell.colIndex} / span {cell.colSpan}; border-right: none;"
+          >
+            {#if cell.logoUrl}
+              <div class="header-content">
+                <div class="flex items-center justify-center gap-2">
+                  <img src={cell.logoUrl} alt="{cell.label} logo" class="w-8 h-8 rounded object-cover" />
+                  {cell.label}
+                </div>
+              </div>
+            {:else}
               <div class="flex items-center justify-center gap-2">
-                <img src={cell.logoUrl} alt="{cell.label} logo" class="w-8 h-8 rounded object-cover" />
                 {cell.label}
               </div>
-            </div>
-          {:else}
-            <div class="flex items-center justify-center gap-2">
-              {cell.label}
-            </div>
-          {/if}
-        </div>
-      {/each}
-    </div>
-    <div class="daily-schedule-wrapper" style="margin-top: 7px;">
-      <div 
-        class="schedule-grid"
-        style="--total-columns: {totalColumns}; --total-rows: {$timeSlots.length + 1};">
-        <!-- TIMESLOT ROWS -->
-        {#each $timeSlots as time, rowIndex}
-          <div
-            class="schedule-time text-gray-900 dark:text-white"
-            style="grid-column: 1; grid-row: {rowIndex + 2}; justify-content: flex-end;"
-          >
-            {#if isHourMark(time)}
-              <span style="position:absolute; bottom:50%; right:5;">{time}</span>
             {/if}
           </div>
-
-          {#each headerCells as cell}
-            <div
-              class={`schedule-cell ${isHourMark(time) ? 'schedule-hour-mark' : ''} ${cell.colIndex > 1 && cell.colIndex < totalColumns ? 'border-grid' : ''}`}
-              style="grid-column: {cell.colIndex} / span {cell.colSpan}; grid-row: {rowIndex + 2};"
-            ></div>
-          {/each}
-        {/each}
-
-        <!-- ENTRIES -->
-        {#each filteredEntries as entry (entry.ui_id)}
-          {#if entry.field_id != null && fieldToGridColMap.has(entry.field_id)}
-            {@const mapping = fieldToGridColMap.get(entry.field_id)!}
-            {@const startRow = getRowForTimeWithSlots(entry.start_time, $timeSlots)}
-            {@const endRow = getEntryRowEndWithSlots(entry.end_time, $timeSlots)}
-            {@const visibility = getEntryContentVisibility(startRow, endRow)}
-            <div class="schedule-event {getCategoryClass(entry)}"
-               style="grid-row-start: {startRow}; grid-row-end: {endRow + 1}; grid-column-start: {mapping.colIndex}; grid-column-end: span {mapping.colSpan};"
-             >
-              <div class="event-team font-bold text-[1.15em]">
-                {getEntryTitle(entry, $teamNameLookup)}
-              </div>
-              {#if visibility.showField}
-                <div class="event-field text-[1.12em] text-gray-600">
-                  {getFieldName(entry.field_id!, $activeFields)}
-                </div>
-              {/if}
-              {#if visibility.showTime}
-                <div class="event-time text-[1.12em] text-gray-600">
-                  {entry.start_time} - {entry.end_time}
-                </div>
-              {/if}
-            </div>
-          {/if}
         {/each}
       </div>
-    </div>
+      <div class="daily-schedule-wrapper" style="margin-top: 7px;">
+        <div 
+          class="schedule-grid"
+          style="--total-columns: {totalColumns}; --total-rows: {$timeSlots.length + 1};">
+          <!-- TIMESLOT ROWS -->
+          {#each $timeSlots as time, rowIndex}
+            <div
+              class="schedule-time text-gray-900 dark:text-white"
+              style="grid-column: 1; grid-row: {rowIndex + 2}; justify-content: flex-end;"
+            >
+              {#if isHourMark(time)}
+                <span style="position:absolute; bottom:50%; right:5;">{time}</span>
+              {/if}
+            </div>
+
+            {#each headerCells as cell}
+              <div
+                class={`schedule-cell ${isHourMark(time) ? 'schedule-hour-mark' : ''} ${cell.colIndex > 1 && cell.colIndex < totalColumns ? 'border-grid' : ''}`}
+                style="grid-column: {cell.colIndex} / span {cell.colSpan}; grid-row: {rowIndex + 2};"
+              ></div>
+            {/each}
+          {/each}
+
+          <!-- ENTRIES -->
+          {#each filteredEntries as entry (entry.ui_id)}
+            {#if entry.field_id != null && fieldToGridColMap.has(entry.field_id)}
+              {@const mapping = fieldToGridColMap.get(entry.field_id)!}
+              {@const startRow = getRowForTimeWithSlots(entry.start_time, $timeSlots)}
+              {@const endRow = getEntryRowEndWithSlots(entry.end_time, $timeSlots)}
+              {@const visibility = getEntryContentVisibility(startRow, endRow)}
+              <div class="schedule-event {getCategoryClass(entry)}"
+                 style="grid-row-start: {startRow}; grid-row-end: {endRow + 1}; grid-column-start: {mapping.colIndex}; grid-column-end: span {mapping.colSpan};"
+               >
+                <div class="event-team font-bold text-[1.15em]">
+                  {getEntryTitle(entry, $teamNameLookup)}
+                </div>
+                {#if visibility.showField}
+                  <div class="event-field text-[1.12em] text-gray-600">
+                    {getFieldName(entry.field_id!, $activeFields)}
+                  </div>
+                {/if}
+                {#if visibility.showTime}
+                  <div class="event-time text-[1.12em] text-gray-600">
+                    {entry.start_time} - {entry.end_time}
+                  </div>
+                {/if}
+              </div>
+            {/if}
+          {/each}
+        </div>
+      </div>
+      {/if}
     {/if}
-  </div>
-</div>
+   </div>
+ </div>
