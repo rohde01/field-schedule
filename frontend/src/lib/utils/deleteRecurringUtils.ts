@@ -46,14 +46,15 @@ export function confirmRecurringDelete(scope: 'this' | 'future') {
     
     if (master) {
       // Create new recurrence rule with UNTIL parameter
-      const untilDate = new Date(recDate.getTime() - 24 * 60 * 60 * 1000); // Day before this occurrence
-      const untilString = untilDate.toISOString().slice(0, 10).replace(/-/g, '');
+      // Set UNTIL to one second before this occurrence to exclude it and all future
+      const untilDate = new Date(recDate.getTime() - 1000); // 1 second before this occurrence
+      const untilString = untilDate.toISOString().slice(0, 19).replace(/[-:]/g, '') + 'Z';
       
       let newRule = master.recurrence_rule;
       if (newRule) {
         // Remove existing UNTIL if present
         newRule = newRule.replace(/;UNTIL=\d{8}T?\d{0,6}Z?/, '');
-        // Add new UNTIL
+        // Add new UNTIL with full datetime
         newRule += `;UNTIL=${untilString}`;
         
         // Update the master entry with new rule
