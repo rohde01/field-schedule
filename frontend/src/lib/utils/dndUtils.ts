@@ -2,11 +2,10 @@ import { processedEntries, timeSlots } from '$lib/utils/calendarUtils';
 import { getCandidateStatesForMainField, getMainFieldForEvent } from './fieldUtils';
 import type { Field } from '$lib/schemas/field';
 import { get } from 'svelte/store';
-import { commitUpdate, getOriginalRecurrenceStart } from '$lib/utils/calendarUtils';
 import { computeDateUTC } from './dateUtils';
+import { applyEntryChanges } from './entryEditUtils';
 
 export function resizeHandle(node: HTMLElement, { ui_id, edge }: { ui_id: string; edge: 'top'|'bottom' }) {
-  // make handle visible as resizer and prevent text selection
   node.style.cursor = 'ns-resize';
   node.style.userSelect = 'none';
   let moved = false;
@@ -14,7 +13,13 @@ export function resizeHandle(node: HTMLElement, { ui_id, edge }: { ui_id: string
   let initialIndex: number;
   let slots: string[];
   let rowHeight: number;
-  let originalStartTimeForRecurrence: string | null;
+  let pendingChanges: any = null;
+
+  const commitIfNeeded = () => {
+    if (moved && pendingChanges) {
+      applyEntryChanges(ui_id, pendingChanges); // Let interceptor decide (recurring dialog)
+    }
+  };
 
   const onMouseMove = (e: MouseEvent) => {
     moved = true;
@@ -32,17 +37,20 @@ export function resizeHandle(node: HTMLElement, { ui_id, edge }: { ui_id: string
       entries.map(entry => {
         if (entry.ui_id !== ui_id) return entry;
         const newDate = computeDateUTC(entry.dtstart as Date, newTime);
-        return edge === 'top'
-          ? { ...entry, start_time: newTime, dtstart: newDate }
-          : { ...entry, end_time: newTime, dtend: newDate };
+        if (edge === 'top') {
+          pendingChanges = { start_time: newTime, dtstart: newDate };
+          return { ...entry, ...pendingChanges };
+        } else {
+          pendingChanges = { end_time: newTime, dtend: newDate };
+          return { ...entry, ...pendingChanges };
+        }
       })
     );
   };
 
   const onMouseUp = () => {
     node.dispatchEvent(new CustomEvent('dragend', { detail: moved, bubbles: true }));
-    const finalEntry = get(processedEntries).find(e => e.ui_id === ui_id);
-    if (moved && finalEntry) commitUpdate(finalEntry, originalStartTimeForRecurrence);
+    commitIfNeeded();
     document.removeEventListener('mousemove', onMouseMove);
     document.removeEventListener('mouseup', onMouseUp);
   };
@@ -55,8 +63,7 @@ export function resizeHandle(node: HTMLElement, { ui_id, edge }: { ui_id: string
     slots = get(timeSlots);
     const entry = get(processedEntries).find(e => e.ui_id === ui_id);
     if (!entry) return;
-    originalStartTimeForRecurrence = getOriginalRecurrenceStart(entry);
-    const time = edge === 'top' ? entry?.start_time : entry?.end_time;
+    const time = edge === 'top' ? entry.start_time : entry.end_time;
     initialIndex = time ? slots.indexOf(time) : 0;
     const wrapper = node.closest('.daily-schedule-wrapper') as HTMLElement;
     rowHeight = wrapper.clientHeight / slots.length;
@@ -65,25 +72,26 @@ export function resizeHandle(node: HTMLElement, { ui_id, edge }: { ui_id: string
   };
 
   node.addEventListener('mousedown', onMouseDown);
-  return {
-    destroy() {
-      node.removeEventListener('mousedown', onMouseDown);
-    }
-  };
+  return { destroy() { node.removeEventListener('mousedown', onMouseDown); } };
 }
 
 export function horizontalDrag(node: HTMLElement, { ui_id, direction, totalColumns, activeFields, fieldToGridColMap }: any) {
   node.style.cursor = 'ew-resize';
   node.style.userSelect = 'none';
   let moved = false;
-  let originalStartTimeForRecurrence: string | null;
+  let lastFieldId: number | null = null;
+
+  const commitIfNeeded = () => {
+    if (moved && lastFieldId) {
+      applyEntryChanges(ui_id, { field_id: lastFieldId }); // Trigger interceptor if needed
+    }
+  };
   
   const onMouseDown = (ev: MouseEvent) => {
     moved = false;
     ev.preventDefault(); ev.stopPropagation();
     const entry = get(processedEntries).find(e => e.ui_id === ui_id);
     if (!entry) return;
-    originalStartTimeForRecurrence = getOriginalRecurrenceStart(entry);
     const gridEl = node.closest('.schedule-grid') as HTMLElement;
     const { left, width } = gridEl.getBoundingClientRect();
     const columnWidth = width / totalColumns;
@@ -100,7 +108,6 @@ export function horizontalDrag(node: HTMLElement, { ui_id, direction, totalColum
         ? (a.colIndex + a.width) - (b.colIndex + b.width)
         : b.colIndex - a.colIndex
       );
-    let lastUpdate: Partial<any> | null = null;
 
     const onMove = (e2: MouseEvent) => {
       moved = true;
@@ -116,24 +123,13 @@ export function horizontalDrag(node: HTMLElement, { ui_id, direction, totalColum
         if (isRight ? target >= edge : target <= edge) chosen = c;
       }
       if (chosen.field_id !== currentEntry.field_id) {
-        lastUpdate = { field_id: chosen.field_id };
-        processedEntries.update(entries =>
-          entries.map(ent =>
-            ent.ui_id === ui_id ? { ...ent, ...lastUpdate! } : ent
-          )
-        );
+        lastFieldId = chosen.field_id;
+        processedEntries.update(entries => entries.map(ent => ent.ui_id === ui_id ? { ...ent, field_id: chosen.field_id } : ent));
       }
     };
     const onUp = () => {
       node.dispatchEvent(new CustomEvent('dragend', { detail: moved, bubbles: true }));
-      if (lastUpdate) processedEntries.update(entries =>
-        entries.map(ent =>
-          ent.ui_id === entry.ui_id ? { ...ent, ...lastUpdate! } : ent
-        )
-      );
-
-      const finalEntry = get(processedEntries).find(e => e.ui_id === ui_id);
-      if (moved && finalEntry) commitUpdate(finalEntry, originalStartTimeForRecurrence);
+      commitIfNeeded();
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
     };
@@ -141,28 +137,25 @@ export function horizontalDrag(node: HTMLElement, { ui_id, direction, totalColum
     window.addEventListener('mouseup', onUp);
   };
   node.addEventListener('mousedown', onMouseDown);
-  return {
-    destroy() {
-      node.removeEventListener('mousedown', onMouseDown);
-    }
-  };
-
+  return { destroy() { node.removeEventListener('mousedown', onMouseDown); } };
 }
 
 export function moveHandle(node: HTMLElement, { ui_id, totalColumns, activeFields, fieldToGridColMap }: any) {
   node.style.userSelect = 'none';
-
   let startY: number;
   let initialStartIndex: number;
   let initialEndIndex: number;
   let slots: string[];
   let rowHeight: number;
-  let candidates: any[];
   let originalType: string;
   let mainField: any;
   let moved = false;
-  let originalStartTimeForRecurrence: string | null;
   let originalDtDate: Date;
+  let pendingChanges: any = {};
+
+  const commitIfNeeded = () => {
+    if (moved) applyEntryChanges(ui_id, pendingChanges); // Let interceptor decide
+  };
 
   const onMouseMove = (e: MouseEvent) => {
     moved = true;
@@ -202,19 +195,16 @@ export function moveHandle(node: HTMLElement, { ui_id, totalColumns, activeField
       Math.abs(curr.colIndex - targetCol) < Math.abs(prev.colIndex - targetCol) ? curr : prev
     );
 
+    pendingChanges = {
+      start_time: slots[newStartIndex],
+      end_time: slots[newEndIndex],
+      dtstart: computeDateUTC(originalDtDate, slots[newStartIndex]),
+      dtend: computeDateUTC(originalDtDate, slots[newEndIndex]),
+      field_id: chosen.field_id
+    };
+
     processedEntries.update(entries =>
-      entries.map(ent =>
-        ent.ui_id === ui_id
-          ? {
-              ...ent,
-              start_time: slots[newStartIndex],
-              end_time: slots[newEndIndex],
-              dtstart: computeDateUTC(originalDtDate, slots[newStartIndex]),
-              dtend: computeDateUTC(originalDtDate, slots[newEndIndex]),
-              field_id: chosen.field_id
-            }
-          : ent
-      )
+      entries.map(ent => ent.ui_id === ui_id ? { ...ent, ...pendingChanges } : ent)
     );
   };
 
@@ -222,8 +212,7 @@ export function moveHandle(node: HTMLElement, { ui_id, totalColumns, activeField
     document.removeEventListener('mousemove', onMouseMove);
     document.removeEventListener('mouseup', onMouseUp);
     node.dispatchEvent(new CustomEvent('dragend', { detail: moved }));
-    const finalEntry = get(processedEntries).find(e => e.ui_id === ui_id);
-    if (moved && finalEntry) commitUpdate(finalEntry, originalStartTimeForRecurrence);
+    commitIfNeeded();
   };
 
   const onMouseDown = (e: MouseEvent) => {
@@ -245,10 +234,9 @@ export function moveHandle(node: HTMLElement, { ui_id, totalColumns, activeField
     rowHeight = wrapper.clientHeight / slots.length;
 
     mainField = getMainFieldForEvent(entry.field_id!, activeFields)!;
-    candidates = getCandidateStatesForMainField(mainField, fieldToGridColMap);
+    const candidates = getCandidateStatesForMainField(mainField, fieldToGridColMap);
     const original = candidates.find(c => c.field_id === entry.field_id);
     originalType = original?.candidateType || 'main';
-    originalStartTimeForRecurrence = getOriginalRecurrenceStart(entry);
     originalDtDate = entry.dtstart as Date;
 
     document.addEventListener('mousemove', onMouseMove);
@@ -256,10 +244,6 @@ export function moveHandle(node: HTMLElement, { ui_id, totalColumns, activeField
   };
 
   node.addEventListener('mousedown', onMouseDown);
-  return {
-    destroy() {
-      node.removeEventListener('mousedown', onMouseDown);
-    }
-  };
+  return { destroy() { node.removeEventListener('mousedown', onMouseDown); } };
 }
 

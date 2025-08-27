@@ -4,7 +4,7 @@
   import type { ProcessedScheduleEntry } from '$lib/utils/calendarUtils';
   import { fields } from '$lib/stores/fields';
   import { teams } from '$lib/stores/teams';
-  import { derived } from 'svelte/store';
+  import { derived, writable } from 'svelte/store';
   import { buildResources, timeSlots, 
           getRowForTimeWithSlots, getEntryRowEndWithSlots,
           getEntryContentVisibility, 
@@ -14,9 +14,10 @@
   import { getFieldColumns, buildFieldToGridColumnMap, generateHeaderCells, getFieldName } from '$lib/utils/fieldUtils';
   import { getCategoryClass } from '$lib/utils/CalendarStyling';
   import { selectedSchedule, schedules } from '$lib/stores/schedules';
-  import { Heading, Button, Toggle, Tooltip, Input, DarkMode } from 'flowbite-svelte';
-  import { AngleLeftOutline, AngleRightOutline } from 'flowbite-svelte-icons';
+  import { Heading, Button, Toggle, Tooltip, DarkMode, Dropdown, DropdownItem, Search, Checkbox } from 'flowbite-svelte';
+  import { AngleLeftOutline, AngleRightOutline, ChevronDownOutline } from 'flowbite-svelte-icons';
   import { page } from '$app/stores';
+  import { onMount, onDestroy } from 'svelte';
 
   // Function to find the active schedule for a given date
   function findActiveScheduleForDate(date: Date): number | null {
@@ -54,9 +55,43 @@
     }
   }
 
-  const activeFields = browser ? derived([fields, selectedSchedule], ([$fields, $selectedSchedule]) => {
+  let teamSearchTerm = "";
+  const selectedTeamIds = writable(new Set<number>());
+
+  const allActiveFields = browser ? derived([fields, selectedSchedule], ([$fields, $selectedSchedule]) => {
     return buildResources($fields, $selectedSchedule);
   }) : derived(fields, () => []);
+
+  // Filter fields based on selected teams - only show fields that have entries for selected teams
+  const activeFields = browser ? derived([allActiveFields, processedEntries, selectedTeamIds], ([$allActiveFields, $processedEntries, $selectedTeamIds]) => {
+    if ($selectedTeamIds.size === 0) {
+      return $allActiveFields;
+    }
+    
+    // Get field IDs that are being used by selected teams
+    const fieldsInUse = new Set<number>();
+    $processedEntries
+      .filter(entry => entry.team_id != null && $selectedTeamIds.has(entry.team_id))
+      .forEach(entry => {
+        if (entry.field_id != null) {
+          fieldsInUse.add(entry.field_id);
+        }
+      });
+    
+    // Filter fields to only include those being used
+    return $allActiveFields.filter(field => {
+      // Check if main field is in use
+      if (fieldsInUse.has(field.field_id)) return true;
+      
+      // Check if any half subfields are in use
+      if (field.half_subfields.some(half => fieldsInUse.has(half.field_id))) return true;
+      
+      // Check if any quarter subfields are in use
+      if (field.quarter_subfields.some(quarter => fieldsInUse.has(quarter.field_id))) return true;
+      
+      return false;
+    });
+  }) : derived(allActiveFields, ($allActiveFields) => $allActiveFields);
 
   $: headerCells = $activeFields.length > 0 
     ? generateHeaderCells($activeFields, fieldToGridColMap)
@@ -76,12 +111,36 @@
 
   const logoUrl = derived(page, $page => $page.data.club?.logo_url || '/favicon.png');
 
-  let teamSearchTerm = "";
-  $: filteredEntries = teamSearchTerm
-    ? $processedEntries.filter(entry =>
-        $teamNameLookup.get(entry.team_id)?.toLowerCase().includes(teamSearchTerm.toLowerCase())
-      )
-    : $processedEntries;
+  $: teamList = Array.from($teamNameLookup.entries()).map(([id, name]) => ({
+    id,
+    name,
+    checked: $selectedTeamIds.has(id)
+  }));
+  
+  $: filteredTeams = teamList.filter(team => 
+    team.name.toLowerCase().includes(teamSearchTerm.toLowerCase())
+  );
+  
+  $: filteredEntries = $selectedTeamIds.size === 0 
+    ? $processedEntries 
+    : $processedEntries.filter(entry => 
+        entry.team_id != null && $selectedTeamIds.has(entry.team_id)
+      );
+
+  function toggleTeam(teamId: number) {
+    selectedTeamIds.update(ids => {
+      if (ids.has(teamId)) {
+        ids.delete(teamId);
+      } else {
+        ids.add(teamId);
+      }
+      return new Set(ids);
+    });
+  }
+
+  function clearTeamFilter() {
+    selectedTeamIds.set(new Set<number>());
+  }
 
   // Navigate to root domain without subdomain
   function navigateHome() {
@@ -99,6 +158,26 @@
       mainDomain = hostname.replace(/^[^.]+\./, '');
     }
     window.location.href = `${protocol}//${mainDomain}${portSegment}/`;
+  }
+  
+  // Responsive: detect narrow screens (mobile) and only show schedule when a team is selected
+  let isNarrow = false;
+  if (browser) {
+    const mq = window.matchMedia('(max-width: 640px)');
+    const handleMq = (e: MediaQueryListEvent | MediaQueryList) => {
+      // some browsers pass MediaQueryListEvent, others MediaQueryList
+      isNarrow = ('matches' in e) ? e.matches : (mq.matches);
+    };
+    onMount(() => {
+      isNarrow = mq.matches;
+      // use addEventListener where supported
+      if (mq.addEventListener) mq.addEventListener('change', handleMq as any);
+      else mq.addListener(handleMq as any);
+    });
+    onDestroy(() => {
+      if (mq.removeEventListener) mq.removeEventListener('change', handleMq as any);
+      else mq.removeListener(handleMq as any);
+    });
   }
 </script>
 
@@ -118,7 +197,8 @@
       </div>
     {/if}
     <div class="schedule-controls flex items-center my-2 py-2">
-      <div class="current-date flex-1">
+      <!-- Show full controls on wider screens; on narrow screens only show the team filter dropdown -->
+      <div class="current-date flex-1" style:display={isNarrow ? 'none' : 'block'}>
         <Heading tag="h2">
           {formatDate($currentDate)}
         </Heading>
@@ -129,13 +209,42 @@
 
       <div class="navigation-controls flex-1 flex items-center gap-8 justify-end">
         <div class="team-filter flex items-center ms-4">
-          <Input size="md" bind:value={teamSearchTerm} placeholder="Find dit hold" />
+          <Button>Find dit hold<ChevronDownOutline class="ms-2 h-4 w-4" /></Button>
+          <Dropdown class="w-64">
+            <div class="p-3">
+              <Search size="md" bind:value={teamSearchTerm} placeholder="Søg efter hold" />
+            </div>
+            <div class="max-h-48 overflow-y-auto">
+              {#each filteredTeams as team (team.id)}
+                <DropdownItem class="p-2 whitespace-nowrap overflow-hidden text-ellipsis">
+                  <Checkbox 
+                    checked={team.checked} 
+                    on:change={() => toggleTeam(team.id)}
+                  >
+                    {team.name}
+                  </Checkbox>
+                </DropdownItem>
+              {/each}
+            </div>
+            {#if $selectedTeamIds.size > 0}
+              <div class="border-t border-gray-200 dark:border-gray-600">
+                <button
+                  class="w-full p-3 text-sm font-medium text-red-600 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-red-500"
+                  on:click={clearTeamFilter}
+                >
+                  Ryd filter
+                </button>
+              </div>
+            {/if}
+          </Dropdown>
         </div>
-        <div class="toggle-container">
+
+        <!-- Only display these extra controls on non-narrow screens -->
+        <div class="toggle-container" style:display={isNarrow ? 'none' : 'flex'}>
           <Toggle bind:checked={$showEarlyTimeslots}></Toggle>
           <Tooltip placement="top">Vis hele dagen</Tooltip>
         </div>
-        <div class="day-nav flex items-center gap-2">
+        <div class="day-nav flex items-center gap-2" style:display={isNarrow ? 'none' : 'flex'}>
           <Button outline={true} class="p-2!" on:click={previousDay}>
             <AngleLeftOutline class="w-5 h-5" />
           </Button>
@@ -146,90 +255,101 @@
       </div>
     </div>
 
-    <!-- Display message when no schedule is active -->
-    {#if !$selectedSchedule}
+    <!-- Mobile: if narrow and no team selected show only the dropdown and a prompt; otherwise show existing schedule/no-schedule messaging -->
+    {#if isNarrow && $selectedTeamIds.size === 0}
       <div class="no-schedule-message bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-8 text-center my-4">
-        <p class="text-gray-600 dark:text-gray-400 text-lg">No active schedule on this day</p>
+        <p class="text-gray-600 dark:text-gray-400 text-lg">Vælg et hold for at se skemaet</p>
       </div>
     {:else}
-    <!-- HEADER ROW OUTSIDE SCROLLABLE CONTAINER -->
-    <div class="schedule-grid bg-gray-100 dark:bg-gray-700">
-      <div 
-        class="p-4 font-medium text-gray-900 dark:text-white"
-        style="grid-column: 1;"
-      >
-      </div>
-      {#each headerCells as cell}
-        <div
-          class="p-4 font-medium text-gray-900 dark:text-white text-center {cell.logoUrl ? 'field-header-with-logo' : ''}"
-          style="grid-column: {cell.colIndex} / span {cell.colSpan}; border-right: none;"
+      <!-- Display message when no schedule is active -->
+      {#if !$selectedSchedule}
+        <div class="no-schedule-message bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-8 text-center my-4">
+          <p class="text-gray-600 dark:text-gray-400 text-lg">No active schedule on this day</p>
+        </div>
+      {:else if $selectedTeamIds.size > 0 && filteredEntries.length === 0}
+        <div class="no-schedule-message bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-8 text-center my-4">
+          <p class="text-gray-600 dark:text-gray-400 text-lg">Ingen træning i dag</p>
+        </div>
+      {:else}
+      <!-- HEADER ROW OUTSIDE SCROLLABLE CONTAINER -->
+      <div class="schedule-grid bg-gray-100 dark:bg-gray-700">
+        <div 
+          class="p-4 font-medium text-gray-900 dark:text-white"
+          style="grid-column: 1;"
         >
-          {#if cell.logoUrl}
-            <div class="header-content">
+        </div>
+        {#each headerCells as cell}
+          <div
+            class="p-4 font-medium text-gray-900 dark:text-white text-center {cell.logoUrl ? 'field-header-with-logo' : ''}"
+            style="grid-column: {cell.colIndex} / span {cell.colSpan}; border-right: none;"
+          >
+            {#if cell.logoUrl}
+              <div class="header-content">
+                <div class="flex items-center justify-center gap-2">
+                  <img src={cell.logoUrl} alt="{cell.label} logo" class="w-8 h-8 rounded object-cover" />
+                  {cell.label}
+                </div>
+              </div>
+            {:else}
               <div class="flex items-center justify-center gap-2">
-                <img src={cell.logoUrl} alt="{cell.label} logo" class="w-8 h-8 rounded object-cover" />
                 {cell.label}
               </div>
-            </div>
-          {:else}
-            <div class="flex items-center justify-center gap-2">
-              {cell.label}
-            </div>
-          {/if}
-        </div>
-      {/each}
-    </div>
-    <div class="daily-schedule-wrapper" style="margin-top: 7px;">
-      <div 
-        class="schedule-grid"
-        style="--total-columns: {totalColumns}; --total-rows: {$timeSlots.length + 1};">
-        <!-- TIMESLOT ROWS -->
-        {#each $timeSlots as time, rowIndex}
-          <div
-            class="schedule-time text-gray-900 dark:text-white"
-            style="grid-column: 1; grid-row: {rowIndex + 2}; justify-content: flex-end;"
-          >
-            {#if isHourMark(time)}
-              <span style="position:absolute; bottom:50%; right:5;">{time}</span>
             {/if}
           </div>
-
-          {#each headerCells as cell}
-            <div
-              class={`schedule-cell ${isHourMark(time) ? 'schedule-hour-mark' : ''} ${cell.colIndex > 1 && cell.colIndex < totalColumns ? 'border-grid' : ''}`}
-              style="grid-column: {cell.colIndex} / span {cell.colSpan}; grid-row: {rowIndex + 2};"
-            ></div>
-          {/each}
-        {/each}
-
-        <!-- ENTRIES -->
-        {#each filteredEntries as entry (entry.ui_id)}
-          {#if entry.field_id != null && fieldToGridColMap.has(entry.field_id)}
-            {@const mapping = fieldToGridColMap.get(entry.field_id)!}
-            {@const startRow = getRowForTimeWithSlots(entry.start_time, $timeSlots)}
-            {@const endRow = getEntryRowEndWithSlots(entry.end_time, $timeSlots)}
-            {@const visibility = getEntryContentVisibility(startRow, endRow)}
-            <div class="schedule-event {getCategoryClass(entry)}"
-               style="grid-row-start: {startRow}; grid-row-end: {endRow + 1}; grid-column-start: {mapping.colIndex}; grid-column-end: span {mapping.colSpan};"
-             >
-              <div class="event-team font-bold text-[1.15em]">
-                {getEntryTitle(entry, $teamNameLookup)}
-              </div>
-              {#if visibility.showField}
-                <div class="event-field text-[1.12em] text-gray-600">
-                  {getFieldName(entry.field_id!, $activeFields)}
-                </div>
-              {/if}
-              {#if visibility.showTime}
-                <div class="event-time text-[1.12em] text-gray-600">
-                  {entry.start_time} - {entry.end_time}
-                </div>
-              {/if}
-            </div>
-          {/if}
         {/each}
       </div>
-    </div>
+      <div class="daily-schedule-wrapper" style="margin-top: 7px;">
+        <div 
+          class="schedule-grid"
+          style="--total-columns: {totalColumns}; --total-rows: {$timeSlots.length + 1};">
+          <!-- TIMESLOT ROWS -->
+          {#each $timeSlots as time, rowIndex}
+            <div
+              class="schedule-time text-gray-900 dark:text-white"
+              style="grid-column: 1; grid-row: {rowIndex + 2}; justify-content: flex-end;"
+            >
+              {#if isHourMark(time)}
+                <span style="position:absolute; bottom:50%; right:5;">{time}</span>
+              {/if}
+            </div>
+
+            {#each headerCells as cell}
+              <div
+                class={`schedule-cell ${isHourMark(time) ? 'schedule-hour-mark' : ''} ${cell.colIndex > 1 && cell.colIndex < totalColumns ? 'border-grid' : ''}`}
+                style="grid-column: {cell.colIndex} / span {cell.colSpan}; grid-row: {rowIndex + 2};"
+              ></div>
+            {/each}
+          {/each}
+
+          <!-- ENTRIES -->
+          {#each filteredEntries as entry (entry.ui_id)}
+            {#if entry.field_id != null && fieldToGridColMap.has(entry.field_id)}
+              {@const mapping = fieldToGridColMap.get(entry.field_id)!}
+              {@const startRow = getRowForTimeWithSlots(entry.start_time, $timeSlots)}
+              {@const endRow = getEntryRowEndWithSlots(entry.end_time, $timeSlots)}
+              {@const visibility = getEntryContentVisibility(startRow, endRow)}
+              <div class="schedule-event {getCategoryClass(entry)}"
+                 style="grid-row-start: {startRow}; grid-row-end: {endRow + 1}; grid-column-start: {mapping.colIndex}; grid-column-end: span {mapping.colSpan};"
+               >
+                <div class="event-team font-bold text-[1.15em]">
+                  {getEntryTitle(entry, $teamNameLookup)}
+                </div>
+                {#if visibility.showField}
+                  <div class="event-field text-[1.12em] text-gray-600">
+                    {getFieldName(entry.field_id!, $activeFields)}
+                  </div>
+                {/if}
+                {#if visibility.showTime}
+                  <div class="event-time text-[1.12em] text-gray-600">
+                    {entry.start_time} - {entry.end_time}
+                  </div>
+                {/if}
+              </div>
+            {/if}
+          {/each}
+        </div>
+      </div>
+      {/if}
     {/if}
-  </div>
-</div>
+   </div>
+ </div>
