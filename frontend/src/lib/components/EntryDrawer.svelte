@@ -1,6 +1,6 @@
 <!-- filepath: /Users/rohdee/Github/field-schedule/frontend/src/lib/components/EntryDrawer.svelte -->
 <script lang="ts">
-  import { Button, CloseButton, Heading, Datepicker, Timepicker, Label, Input, Select, Checkbox } from 'flowbite-svelte';
+  import { Button, CloseButton, Heading, Datepicker, Timepicker, Label, Input, Select } from 'flowbite-svelte';
   import { CloseOutline, ClockSolid, TrashBinSolid } from 'flowbite-svelte-icons';
   import { processedEntries, parseRecurrenceFrequency, createRecurrenceRule, canEditRecurrence } from '$lib/utils/calendarUtils';
   import { currentDate } from '$lib/utils/dateUtils';
@@ -23,6 +23,7 @@
   let fieldsData = $state<FlattenedField[]>([]);
   let hasRecurrence = $state(false);
   let recurrenceFrequency = $state('WEEKLY');
+  let recurrenceSelection = $state<'NONE' | 'DAILY' | 'WEEKLY' | 'MONTHLY'>('NONE');
 
   let entry = $derived($processedEntries.find(e => e.ui_id === entryUiId));
   
@@ -33,6 +34,7 @@
       if (canEditRecurrence(entry)) {
         hasRecurrence = !!entry.recurrence_rule;
         recurrenceFrequency = parseRecurrenceFrequency(entry.recurrence_rule);
+        recurrenceSelection = hasRecurrence ? recurrenceFrequency as any : 'NONE';
       }
     }
   });
@@ -60,17 +62,17 @@
     isDeleting = false;
   }
 
-  function handleRecurrenceToggle() {
+  function handleRecurrenceChange() {
     if (!entry) return;
-    hasRecurrence = !hasRecurrence;
-    const recurrenceRule = hasRecurrence ? createRecurrenceRule(recurrenceFrequency) : null;
-    toggleRecurrence(entryUiId, hasRecurrence, recurrenceRule);
-  }
-
-  function handleRecurrenceFrequencyChange() {
-    if (!entry || !hasRecurrence) return;
-    const recurrenceRule = createRecurrenceRule(recurrenceFrequency);
-    toggleRecurrence(entryUiId, true, recurrenceRule);
+    if (recurrenceSelection === 'NONE') {
+      hasRecurrence = false;
+      toggleRecurrence(entryUiId, false, null);
+    } else {
+      hasRecurrence = true;
+      recurrenceFrequency = recurrenceSelection;
+      const recurrenceRule = createRecurrenceRule(recurrenceFrequency);
+      toggleRecurrence(entryUiId, true, recurrenceRule);
+    }
   }
 </script>
 
@@ -133,21 +135,15 @@
     </Label>
 
     {#if canEditRecurrence(entry)}
-      <div class="space-y-3 border-t pt-4">
-        <div class="flex items-center space-x-3">
-          <Checkbox checked={hasRecurrence} on:click={handleRecurrenceToggle} />
-          <span class="text-sm font-medium">Repeats {hasRecurrence ? recurrenceFrequency.toLowerCase() : ''}</span>
-        </div>
-        {#if hasRecurrence}
-          <Label class="space-y-2">
-            <span>Frequency</span>
-            <Select
-              items={[{ value: 'DAILY', name: 'Daily' }, { value: 'WEEKLY', name: 'Weekly' }, { value: 'MONTHLY', name: 'Monthly' }]}
-              bind:value={recurrenceFrequency}
-              on:change={handleRecurrenceFrequencyChange}
-            />
-          </Label>
-        {/if}
+      <div class="space-y-3 pt-4">
+        <Label class="space-y-2">
+          <span>Repeats</span>
+          <Select
+            items={[{ value: 'NONE', name: 'None' }, { value: 'DAILY', name: 'Daily' }, { value: 'WEEKLY', name: 'Weekly' }, { value: 'MONTHLY', name: 'Monthly' }]}
+            bind:value={recurrenceSelection}
+            on:change={handleRecurrenceChange}
+          />
+        </Label>
       </div>
     {/if}
   {/if}
