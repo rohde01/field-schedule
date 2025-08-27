@@ -3,16 +3,12 @@
   import { Button, CloseButton, Heading, Datepicker, Timepicker, Label, Input, Select, Checkbox } from 'flowbite-svelte';
   import { CloseOutline, ClockSolid, TrashBinSolid } from 'flowbite-svelte-icons';
   import { processedEntries, parseRecurrenceFrequency, createRecurrenceRule, canEditRecurrence } from '$lib/utils/calendarUtils';
-  import { deleteScheduleEntry } from '$lib/stores/schedules';
   import { currentDate } from '$lib/utils/dateUtils';
-  import { getOriginalRecurrenceStart } from '$lib/utils/calendarUtils';
   import { teams } from '$lib/stores/teams';
   import type { Team } from '$lib/schemas/team';
   import { fields, getFlattenedFields } from '$lib/stores/fields';
   import type { FlattenedField } from '$lib/schemas/field';
   import { applyEntryChanges, updateEntryField, updateEntryDate, updateEntryTimeRange, toggleRecurrence } from '$lib/utils/entryEditUtils';
-  import RecurringDialog from '$lib/components/Recurring.svelte';
-  import DeleteRecurringDialog from '$lib/components/DeleteRecurringDialog.svelte';
   import { handleRecurringDelete } from '$lib/utils/deleteRecurringUtils';
 
   let { hidden = $bindable(true), entryUiId }: { 
@@ -166,5 +162,3 @@
     </Button>
   </div>
 </div>
-<RecurringDialog />
-<DeleteRecurringDialog />

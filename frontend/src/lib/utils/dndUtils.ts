@@ -2,7 +2,6 @@ import { processedEntries, timeSlots } from '$lib/utils/calendarUtils';
 import { getCandidateStatesForMainField, getMainFieldForEvent } from './fieldUtils';
 import type { Field } from '$lib/schemas/field';
 import { get } from 'svelte/store';
-import { getOriginalRecurrenceStart } from '$lib/utils/calendarUtils';
 import { computeDateUTC } from './dateUtils';
 import { applyEntryChanges } from './entryEditUtils';
 
@@ -14,11 +13,12 @@ export function resizeHandle(node: HTMLElement, { ui_id, edge }: { ui_id: string
   let initialIndex: number;
   let slots: string[];
   let rowHeight: number;
-  let originalStartTimeForRecurrence: string | null;
+  let pendingChanges: any = null;
 
   const commitIfNeeded = () => {
-    const finalEntry = get(processedEntries).find(e => e.ui_id === ui_id);
-    if (moved && finalEntry) applyEntryChanges(ui_id, {}, { commit: true, originalRecurrence: originalStartTimeForRecurrence });
+    if (moved && pendingChanges) {
+      applyEntryChanges(ui_id, pendingChanges); // Let interceptor decide (recurring dialog)
+    }
   };
 
   const onMouseMove = (e: MouseEvent) => {
@@ -37,9 +37,13 @@ export function resizeHandle(node: HTMLElement, { ui_id, edge }: { ui_id: string
       entries.map(entry => {
         if (entry.ui_id !== ui_id) return entry;
         const newDate = computeDateUTC(entry.dtstart as Date, newTime);
-        return edge === 'top'
-          ? { ...entry, start_time: newTime, dtstart: newDate }
-          : { ...entry, end_time: newTime, dtend: newDate };
+        if (edge === 'top') {
+          pendingChanges = { start_time: newTime, dtstart: newDate };
+          return { ...entry, ...pendingChanges };
+        } else {
+          pendingChanges = { end_time: newTime, dtend: newDate };
+          return { ...entry, ...pendingChanges };
+        }
       })
     );
   };
@@ -59,8 +63,7 @@ export function resizeHandle(node: HTMLElement, { ui_id, edge }: { ui_id: string
     slots = get(timeSlots);
     const entry = get(processedEntries).find(e => e.ui_id === ui_id);
     if (!entry) return;
-    originalStartTimeForRecurrence = getOriginalRecurrenceStart(entry);
-    const time = edge === 'top' ? entry?.start_time : entry?.end_time;
+    const time = edge === 'top' ? entry.start_time : entry.end_time;
     initialIndex = time ? slots.indexOf(time) : 0;
     const wrapper = node.closest('.daily-schedule-wrapper') as HTMLElement;
     rowHeight = wrapper.clientHeight / slots.length;
@@ -76,12 +79,12 @@ export function horizontalDrag(node: HTMLElement, { ui_id, direction, totalColum
   node.style.cursor = 'ew-resize';
   node.style.userSelect = 'none';
   let moved = false;
-  let originalStartTimeForRecurrence: string | null;
   let lastFieldId: number | null = null;
 
   const commitIfNeeded = () => {
-    if (!moved) return;
-    applyEntryChanges(ui_id, lastFieldId ? { field_id: lastFieldId } : {}, { commit: true, originalRecurrence: originalStartTimeForRecurrence });
+    if (moved && lastFieldId) {
+      applyEntryChanges(ui_id, { field_id: lastFieldId }); // Trigger interceptor if needed
+    }
   };
   
   const onMouseDown = (ev: MouseEvent) => {
@@ -89,7 +92,6 @@ export function horizontalDrag(node: HTMLElement, { ui_id, direction, totalColum
     ev.preventDefault(); ev.stopPropagation();
     const entry = get(processedEntries).find(e => e.ui_id === ui_id);
     if (!entry) return;
-    originalStartTimeForRecurrence = getOriginalRecurrenceStart(entry);
     const gridEl = node.closest('.schedule-grid') as HTMLElement;
     const { left, width } = gridEl.getBoundingClientRect();
     const columnWidth = width / totalColumns;
@@ -148,12 +150,11 @@ export function moveHandle(node: HTMLElement, { ui_id, totalColumns, activeField
   let originalType: string;
   let mainField: any;
   let moved = false;
-  let originalStartTimeForRecurrence: string | null;
   let originalDtDate: Date;
   let pendingChanges: any = {};
 
   const commitIfNeeded = () => {
-    if (moved) applyEntryChanges(ui_id, pendingChanges, { commit: true, originalRecurrence: originalStartTimeForRecurrence });
+    if (moved) applyEntryChanges(ui_id, pendingChanges); // Let interceptor decide
   };
 
   const onMouseMove = (e: MouseEvent) => {
@@ -236,7 +237,6 @@ export function moveHandle(node: HTMLElement, { ui_id, totalColumns, activeField
     const candidates = getCandidateStatesForMainField(mainField, fieldToGridColMap);
     const original = candidates.find(c => c.field_id === entry.field_id);
     originalType = original?.candidateType || 'main';
-    originalStartTimeForRecurrence = getOriginalRecurrenceStart(entry);
     originalDtDate = entry.dtstart as Date;
 
     document.addEventListener('mousemove', onMouseMove);

@@ -14,6 +14,8 @@
     import { filteredFields } from '$lib/stores/fields';
     import { teams } from '$lib/stores/teams';
     import { schedules } from '$lib/stores/schedules';
+    import RecurringDialog from '$lib/components/Recurring.svelte';
+    import DeleteRecurringDialog from '$lib/components/DeleteRecurringDialog.svelte';
     
     let { data } = $props();
     
@@ -99,3 +101,6 @@
 </Drawer>
 
 <ToastMessage message={$updateMessage} />
+
+<RecurringDialog />
+<DeleteRecurringDialog />
