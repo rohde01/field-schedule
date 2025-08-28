@@ -193,7 +193,7 @@
         <DarkMode class="text-primary-500 dark:text-primary-600 border dark:border-gray-800" />
       </div>
       <div class="mb-4">
-        <Heading tag="h1">{$selectedSchedule.name}</Heading>
+        <Heading tag="h1" class={isNarrow ? 'text-2xl' : ''}>{$selectedSchedule.name}</Heading>
       </div>
     {/if}
     <div class="schedule-controls flex items-center my-2 py-2">
@@ -207,7 +207,19 @@
         </Heading>
       </div>
 
-      <div class="navigation-controls flex-1 flex items-center gap-8 justify-end">
+      <!-- Compact date display for narrow screens -->
+      {#if isNarrow}
+        <div class="compact-date">
+          <Heading tag="h2" class="text-xl">
+            {$currentDate.toLocaleDateString('da-DK', { day: 'numeric', month: 'long' })}
+          </Heading>
+          <Heading tag="h3" class="mt-1 text-gray-600 text-base">
+            {$currentDate.toLocaleDateString('da-DK', { weekday: 'long' })}
+          </Heading>
+        </div>
+      {/if}
+
+      <div class="navigation-controls {isNarrow ? 'flex items-center justify-end gap-4 flex-1' : 'flex-1 flex items-center gap-8 justify-end'}">
         <div class="team-filter flex items-center ms-4">
           <Button>Find dit hold<ChevronDownOutline class="ms-2 h-4 w-4" /></Button>
           <Dropdown class="w-64">
@@ -244,7 +256,7 @@
           <Toggle bind:checked={$showEarlyTimeslots}></Toggle>
           <Tooltip placement="top">Vis hele dagen</Tooltip>
         </div>
-        <div class="day-nav flex items-center gap-2" style:display={isNarrow ? 'none' : 'flex'}>
+        <div class="day-nav flex items-center gap-2">
           <Button outline={true} class="p-2!" on:click={previousDay}>
             <AngleLeftOutline class="w-5 h-5" />
           </Button>
@@ -258,7 +270,7 @@
     <!-- Mobile: if narrow and no team selected show only the dropdown and a prompt; otherwise show existing schedule/no-schedule messaging -->
     {#if isNarrow && $selectedTeamIds.size === 0}
       <div class="no-schedule-message bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-8 text-center my-4">
-        <p class="text-gray-600 dark:text-gray-400 text-lg">Vælg et hold for at se skemaet</p>
+        <p class="text-gray-600 dark:text-gray-400 text-lg">Vælg et hold for at aktuelle træninger</p>
       </div>
     {:else}
       <!-- Display message when no schedule is active -->
