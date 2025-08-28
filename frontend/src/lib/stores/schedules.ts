@@ -184,3 +184,15 @@ export function setScheduleEntries(schedule_id: number, entries: ScheduleEntry[]
     const updated = get(schedules).find(s => s.schedule_id === schedule_id) ?? null;
     selectedSchedule.set(updated);
 }
+
+export function pruneFutureExceptions(schedule_id: number, uid: string, cutoff: Date) {
+    const cutoffTs = cutoff.getTime();
+    schedules.update(list => list.map(schedule => {
+        if (schedule.schedule_id !== schedule_id) return schedule;
+        const pruned = schedule.schedule_entries.filter(e => !(e.uid === uid && e.recurrence_id instanceof Date && e.recurrence_id.getTime() >= cutoffTs));
+        return pruned.length === schedule.schedule_entries.length ? schedule : { ...schedule, schedule_entries: pruned };
+    }));
+    const updated = get(schedules).find(s => s.schedule_id === schedule_id) ?? null;
+    selectedSchedule.set(updated);
+    if (!get(IsCreating)) unsavedChanges.set(true);
+}

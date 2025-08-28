@@ -4,7 +4,7 @@ import { computeDateUTC, currentDate } from './dateUtils';
 import { get, writable } from 'svelte/store';
 import type { ProcessedScheduleEntry } from './calendarUtils';
 import { selectedSchedule } from '$lib/stores/schedules';
-import { addScheduleEntry, updateScheduleEntry } from '$lib/stores/schedules';
+import { addScheduleEntry, updateScheduleEntry, pruneFutureExceptions } from '$lib/stores/schedules';
 
 function findEntry(ui_id: string): ProcessedScheduleEntry | undefined { return get(processedEntries).find(e => e.ui_id === ui_id); }
 export interface ApplyOptions { commit?: boolean; originalRecurrence?: string | null; }
@@ -87,6 +87,7 @@ export function confirmRecurringEdit(scope: 'this' | 'future') {
     const untilStr = untilDate.toISOString().replace(/[-:]/g, '').slice(0,15) + 'Z';
     const truncatedRule = baseParts.join(';') + `;UNTIL=${untilStr}`;
     updateScheduleEntry({ uid: master.uid, schedule_id: master.schedule_id, recurrence_rule: truncatedRule, recurrence_id: null });
+    pruneFutureExceptions(master.schedule_id, master.uid, splitPoint);
     const changes = { ...st.pending } as any;
     const startT = changes.start_time ?? entry.start_time; const endT = changes.end_time ?? entry.end_time;
     const newDtStart = computeDateUTC(splitPoint, startT);

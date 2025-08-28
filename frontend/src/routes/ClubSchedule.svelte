@@ -341,8 +341,11 @@
               {@const endRow = getEntryRowEndWithSlots(entry.end_time, $timeSlots)}
               {@const visibility = getEntryContentVisibility(startRow, endRow)}
               <div class="schedule-event {getCategoryClass(entry)}"
-                 style="grid-row-start: {startRow}; grid-row-end: {endRow + 1}; grid-column-start: {mapping.colIndex}; grid-column-end: span {mapping.colSpan};"
+                 style="grid-row-start: {startRow}; grid-row-end: {endRow + 1}; grid-column-start: {mapping.colIndex}; grid-column-end: span {mapping.colSpan}; position:relative;"
                >
+                {#if entry.recurrence_rule || entry.isRecurring || entry.recurrence_id}
+                  <span class="absolute top-1 right-1 text-xs opacity-70" title="Recurring">↻</span>
+                {/if}
                 <div class="event-team font-bold text-[1.15em]">
                   {getEntryTitle(entry, $teamNameLookup)}
                 </div>

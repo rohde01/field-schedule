@@ -199,6 +199,9 @@
              on:click={(e) => handleEntryInteraction(e, entry)}
              on:keydown={(e) => handleEntryInteraction(e, entry)}
            >
+            {#if entry.recurrence_rule || entry.isRecurring || entry.recurrence_id}
+              <span class="absolute top-1 right-1 text-xs opacity-70" title="Recurring">↻</span>
+            {/if}
             <div class="resize-handle top" use:resizeHandle={{ ui_id: entry.ui_id, edge: 'top' }}></div>
             <div class="resize-handle bottom" use:resizeHandle={{ ui_id: entry.ui_id, edge: 'bottom' }}></div>
             <div class="horizontal-handle left" use:horizontalDrag={{ ui_id: entry.ui_id, direction: 'left', totalColumns, headerCells, activeFields: $activeFields, fieldToGridColMap }}></div>
