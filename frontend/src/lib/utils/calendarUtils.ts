@@ -40,6 +40,7 @@ export type ProcessedScheduleEntry = ScheduleEntry & {
   end_time: string;
   ui_id: string;
   isRecurring: boolean;
+  original_instance_start?: Date; // immutable original start of generated recurring instance
 };
 
 // Store to control whether early time slots should be displayed
@@ -118,50 +119,24 @@ export function shouldShowEntryOnDate(entry: ScheduleEntry, date: Date): boolean
 
 function createRecurringEvents(entry: ScheduleEntry, schedule: any): ProcessedScheduleEntry[] {
   if (!entry.recurrence_rule) return [];
-
   try {
     const rruleSet = new RRuleSet();
     const dtstart = createUTCDate(entry.dtstart);
-    
-    // Parse and add the main recurrence rule
     const ruleContent = entry.recurrence_rule;
     const ruleText = ruleContent.startsWith('RRULE:') ? ruleContent : `RRULE:${ruleContent}`;
     const rule = rrulestr(ruleText, { dtstart });
     rruleSet.rrule(rule);
-
-    // Add exclusion dates if any
     if (entry.exdate && Array.isArray(entry.exdate)) {
-      entry.exdate.forEach(exdate => {
-        const exdateObj = createUTCDate(exdate);
-        rruleSet.exdate(exdateObj);
-      });
+      entry.exdate.forEach(exdate => { const exdateObj = createUTCDate(exdate); rruleSet.exdate(exdateObj); });
     }
-
-    // Determine date range for occurrences
     const { startDate, endDate } = getScheduleDateRange(schedule);
     const occurrences = rruleSet.between(startDate, endDate, true);
-    
-    // Calculate duration and create instances
-    const dtend = createUTCDate(entry.dtend);
-    const durationMs = dtend.getTime() - dtstart.getTime();
-    
+    const dtend = createUTCDate(entry.dtend); const durationMs = dtend.getTime() - dtstart.getTime();
     return occurrences.map(startOccurrenceDate => {
       const end = new Date(startOccurrenceDate.getTime() + durationMs);
-      return {
-        ...entry,
-        schedule_entry_id: null,
-        dtstart: startOccurrenceDate,
-        dtend: end,
-        start_time: getTimeFromDate(startOccurrenceDate),
-        end_time: getTimeFromDate(end),
-        ui_id: `${entry.uid}-${startOccurrenceDate.toISOString()}`,
-        isRecurring: true
-      };
+      return { ...entry, schedule_entry_id: null, dtstart: startOccurrenceDate, dtend: end, start_time: getTimeFromDate(startOccurrenceDate), end_time: getTimeFromDate(end), ui_id: `${entry.uid}-${startOccurrenceDate.toISOString()}`, isRecurring: true, original_instance_start: new Date(startOccurrenceDate.getTime()) };
     });
-  } catch (error) {
-    console.error("Error creating recurring events:", error, entry.recurrence_rule);
-    return [];
-  }
+  } catch (error) { console.error("Error creating recurring events:", error, entry.recurrence_rule); return []; }
 }
 
 function getScheduleDateRange(schedule: any) {
@@ -216,18 +191,21 @@ function getAllEntriesForDate(schedule: {schedule_entries?: ScheduleEntry[]} | n
   if (!schedule) return [];
   
   const { regularEntries, recurringMasters, exceptions } = categorizeScheduleEntries(schedule.schedule_entries || []);
+  console.debug('[getAllEntriesForDate] date', date.toISOString(), {
+    total: (schedule.schedule_entries || []).length,
+    regular: regularEntries.length,
+    masters: recurringMasters.length,
+    exceptions: exceptions.length
+  });
   
-  // Process single occurrences (non-recurring events)
   const oneTimeEntries = regularEntries
     .filter(entry => shouldShowEntryOnDate(entry, date))
     .map((entry, index) => createProcessedEntry(entry, 'onetime', index, false));
 
-  // Process master entries on their original date
   const masterEntries = recurringMasters
     .filter(entry => shouldShowEntryOnDate(entry, date))
     .map((entry, index) => createProcessedEntry(entry, 'master', index, false));
 
-  // Process exceptions for this date
   const exceptionEntries = exceptions
     .filter(entry => {
       const dtstart = createUTCDate(entry.dtstart);
@@ -235,9 +213,14 @@ function getAllEntriesForDate(schedule: {schedule_entries?: ScheduleEntry[]} | n
     })
     .map((entry, index) => createProcessedEntry(entry, 'exception', index, false));
 
-  // Process recurring entries
   const recurringEntries = processRecurringEvents(recurringMasters, exceptions, schedule, date);
   
+  console.debug('[getAllEntriesForDate] result counts', {
+    oneTime: oneTimeEntries.length,
+    masterOriginals: masterEntries.length,
+    exceptions: exceptionEntries.length,
+    recurringGenerated: recurringEntries.length
+  });
   return [...oneTimeEntries, ...masterEntries, ...exceptionEntries, ...recurringEntries];
 }
 
@@ -248,51 +231,68 @@ function processRecurringEvents(
   date: Date
 ): ProcessedScheduleEntry[] {
   const recurringEntries: ProcessedScheduleEntry[] = [];
-  
-  // Create a map of exceptions by master UID for efficient lookup
-  const masterExceptions = new Map<string, Date[]>();
-  exceptions.forEach(exception => {
-    if (!exception.recurrence_id || !exception.uid) return;
-    
-    const exDate = createUTCDate(exception.recurrence_id);
-    if (!masterExceptions.has(exception.uid)) {
-      masterExceptions.set(exception.uid, []);
+
+  const exclusionMap = new Map<string, Set<number>>();
+  const addExclusion = (uid: string, dateLike: any) => {
+    try {
+      const d = createUTCDate(dateLike);
+      const ts = d.getTime();
+      if (!exclusionMap.has(uid)) exclusionMap.set(uid, new Set());
+      exclusionMap.get(uid)!.add(ts);
+    } catch (err) {
+      console.warn('[processRecurringEvents] failed to add exclusion', { uid, dateLike, err });
     }
-    masterExceptions.get(exception.uid)?.push(exDate);
+  };
+  recurringMasters.forEach(master => { if (master.exdate) master.exdate.forEach(d => addExclusion(master.uid, d)); });
+  exceptions.forEach(ex => { if (ex.recurrence_id) addExclusion(ex.uid, ex.recurrence_id); });
+
+  console.debug('[processRecurringEvents] start', {
+    date: date.toISOString(),
+    masters: recurringMasters.length,
+    exceptions: exceptions.length,
+    exclusionSummary: Array.from(exclusionMap.entries()).map(([uid,set]) => ({ uid, count: set.size }))
   });
 
   const seenRecurringIds = new Set<string>();
   let recurringIndex = 0;
 
   recurringMasters.forEach(master => {
-    // Get recurring instances for this date (excluding original date to avoid duplicates)
-    const instances = createRecurringEvents(master, schedule)
-      .filter(instance => 
-        isSameDay(instance.dtstart, date) && 
-        !isSameDay(instance.dtstart, createUTCDate(master.dtstart))
-      );
-    
-    const exceptDates = masterExceptions.get(master.uid) || [];
-    
+    const masterOriginalStartTs = createUTCDate(master.dtstart).getTime();
+    const exclusionSet = exclusionMap.get(master.uid) || new Set<number>();
+    const instances = createRecurringEvents(master, schedule).filter(instance => isSameDay(instance.dtstart, date));
+
+    console.debug('[processRecurringEvents] master expand', {
+      uid: master.uid,
+      instances: instances.length,
+      exclusionCount: exclusionSet.size,
+      masterOriginalStart: masterOriginalStartTs
+    });
+
     instances.forEach(instance => {
-      const hasMatchingException = exceptDates.some(exceptDate => 
-        isSameDay(exceptDate, instance.dtstart) && 
-        exceptDate.getUTCHours() === instance.dtstart.getUTCHours() && 
-        exceptDate.getUTCMinutes() === instance.dtstart.getUTCMinutes()
-      );
-      
-      const instanceKey = `${master.uid}-${instance.dtstart.toISOString()}`;
-      
-      if (!hasMatchingException && !seenRecurringIds.has(instanceKey)) {
-        seenRecurringIds.add(instanceKey);
-        instance.ui_id = `recurring-${master.uid}-${instance.dtstart.toISOString()}-${recurringIndex}`;
-        instance.isRecurring = true;
-        recurringEntries.push(instance);
-        recurringIndex++;
+      const instTs = instance.dtstart.getTime();
+      const skipOriginal = instTs === masterOriginalStartTs;
+      const skipExcluded = exclusionSet.has(instTs);
+      const instanceKey = `${master.uid}-${instTs}`;
+      const skipSeen = seenRecurringIds.has(instanceKey);
+      if (skipOriginal || skipExcluded || skipSeen) {
+        console.debug('[processRecurringEvents] skip instance', {
+          uid: master.uid,
+            inst: instance.dtstart.toISOString(),
+            skipOriginal,
+            skipExcluded,
+            skipSeen
+        });
+        return;
       }
+      seenRecurringIds.add(instanceKey);
+      instance.ui_id = `recurring-${master.uid}-${instance.dtstart.toISOString()}-${recurringIndex}`;
+      instance.isRecurring = true;
+      recurringEntries.push(instance);
+      console.debug('[processRecurringEvents] add instance', { uid: master.uid, ui_id: instance.ui_id });
+      recurringIndex++;
     });
   });
-
+  console.debug('[processRecurringEvents] done', { generated: recurringEntries.length });
   return recurringEntries;
 }
 
@@ -309,25 +309,38 @@ if (browser) {
     }
   ).subscribe(val => {
     console.log('processedEntries updated:', val);
-    // Preserve existing ui_ids when possible to prevent drawer from closing
     processedEntries.update(currentEntries => {
       const preservedEntries = val.map(newEntry => {
-        // Find existing entry with same uid and dtstart to preserve ui_id
+        // Only preserve ui_id if previous entry matches both time and recurrence exception status (to avoid copying from mutated recurring to exception)
         const existing = currentEntries.find(e => 
-          e.uid === newEntry.uid && 
-          e.dtstart.getTime() === newEntry.dtstart.getTime()
+          e.uid === newEntry.uid &&
+          e.dtstart.getTime() === newEntry.dtstart.getTime() &&
+          (!!e.recurrence_id === !!newEntry.recurrence_id)
         );
-        return existing ? { ...newEntry, ui_id: existing.ui_id } : newEntry;
+        if (existing) {
+          if (existing.ui_id !== newEntry.ui_id) {
+            console.debug('[processedEntries] preserve ui_id', { old: existing.ui_id, incoming: newEntry.ui_id, uid: newEntry.uid, start: newEntry.dtstart.toISOString(), recurrence_id: newEntry.recurrence_id });
+          }
+          return { ...newEntry, ui_id: existing.ui_id };
+        }
+        return newEntry;
       });
-      return preservedEntries;
+      const seen = new Set<string>(); const duplicates: any[] = [];
+      const unique = preservedEntries.map((e, idx) => {
+        if (!seen.has(e.ui_id)) { seen.add(e.ui_id); return e; }
+        const newId = `${e.ui_id}-d${idx}`; duplicates.push({ original: e.ui_id, newId, idx, uid: e.uid, start: e.dtstart.toISOString(), recurrence_id: e.recurrence_id });
+        return { ...e, ui_id: newId };
+      });
+      if (duplicates.length) {
+        console.warn('[processedEntries] duplicate ui_ids detected', duplicates);
+        const byUid: Record<string, number> = {}; unique.forEach(u => { byUid[u.ui_id] = (byUid[u.ui_id] || 0) + 1; });
+        console.warn('[processedEntries] current ui_id counts snapshot', byUid);
+      }
+      return unique;
     });
   });
-} else {
-  // Server-side fallback
-  writable<ProcessedScheduleEntry[]>([]);
-}
+} else { writable<ProcessedScheduleEntry[]>([]); }
 
-// Export helper functions for use in components
 export { 
   parseRecurrenceFrequency, 
   createRecurrenceRule, 
@@ -337,7 +350,6 @@ export {
   isStandaloneEntry
 };
 
-// Determine original recurrence start time for update logic
 export function getOriginalRecurrenceStart(entry: any): string | null {
   if (entry.isRecurring) {
     return entry.dtstart instanceof Date ? entry.dtstart.toISOString() : entry.dtstart;
@@ -348,7 +360,6 @@ export function getOriginalRecurrenceStart(entry: any): string | null {
   }
 }
 
-// Commit schedule update using processed entry and original recurrence
 export function commitUpdate(entry: any, originalRecurrence: string | null) {
   console.log('🔧 commitUpdate called:', {
     entry_uid: entry.uid,
@@ -373,13 +384,8 @@ export function commitUpdate(entry: any, originalRecurrence: string | null) {
   });
 }
 
-// Function to get the best title for an entry, prioritizing summary
 export function getEntryTitle(entry: ProcessedScheduleEntry, teamNameLookup: Map<number, string>): string {
-  if (entry.summary) {
-    return entry.summary;
-  }
-  if (entry.team_id != null) {
-    return teamNameLookup.get(entry.team_id) ?? `Team ${entry.team_id}`;
-  }
-  return "Untitled Event";
+  if (entry.summary) return entry.summary;
+  if (entry.team_id != null) return teamNameLookup.get(entry.team_id) ?? `Team ${entry.team_id}`;
+  return 'Untitled Event';
 }
