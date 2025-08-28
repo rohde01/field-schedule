@@ -1,6 +1,7 @@
 // filepath: src/lib/utils/entryEditUtils.ts
 import { processedEntries, getOriginalRecurrenceStart, commitUpdate } from './calendarUtils';
 import { computeDateUTC } from './dateUtils';
+import { currentDate } from './dateUtils';
 import { get, writable } from 'svelte/store';
 import type { ProcessedScheduleEntry } from './calendarUtils';
 import { selectedSchedule } from '$lib/stores/schedules';
@@ -18,9 +19,19 @@ export const recurringEditStore = writable<{
   pending: Partial<ProcessedScheduleEntry> | null;
   newTime: string;
   eventTitle: string;
-}>({ open: false, ui_id: null, pending: null, newTime: '', eventTitle: '' });
+  original?: ProcessedScheduleEntry | null;
+}>({ open: false, ui_id: null, pending: null, newTime: '', eventTitle: '', original: null });
 
-function requestRecurringEdit(entry: ProcessedScheduleEntry, changes: Partial<ProcessedScheduleEntry>) {
+// Helper to produce a shallow clone of a processed entry and ensure Date objects are cloned
+function cloneEntry(e: ProcessedScheduleEntry): ProcessedScheduleEntry {
+  return {
+    ...e,
+    dtstart: e.dtstart instanceof Date ? new Date(e.dtstart.getTime()) : e.dtstart,
+    dtend: e.dtend instanceof Date ? new Date(e.dtend.getTime()) : e.dtend
+  };
+}
+
+function requestRecurringEdit(entry: ProcessedScheduleEntry, changes: Partial<ProcessedScheduleEntry>, originalSnapshot?: ProcessedScheduleEntry) {
   const start = changes.start_time ?? entry.start_time;
   const end = changes.end_time ?? entry.end_time;
   
@@ -40,17 +51,37 @@ function requestRecurringEdit(entry: ProcessedScheduleEntry, changes: Partial<Pr
     changeDescription = 'properties';
   }
 
+  // Use clone helper for original snapshot
+  const originalCopy = originalSnapshot ? cloneEntry(originalSnapshot) : cloneEntry(entry);
+
   recurringEditStore.set({
     open: true,
     ui_id: entry.ui_id,
     pending: changes,
     newTime: changeDescription,
-    eventTitle: entry.summary || 'Recurring Event'
+    eventTitle: entry.summary || 'Recurring Event',
+    original: originalCopy
   });
 }
 
-export function cancelRecurringEdit() {
-  recurringEditStore.update(s => ({ ...s, open: false, ui_id: null, pending: null }));
+export function cancelRecurringEdit(suppressRevert = false) {
+  const state = get(recurringEditStore);
+  if (!state.open) return;
+
+  if (!suppressRevert && state.ui_id && state.original) {
+    // Restore the original snapshot and set the store to a fresh array to force subscribers
+    const restored = get(processedEntries).map(e => e.ui_id === state.ui_id ? { ...state.original! } : e);
+    processedEntries.set(restored);
+
+    // Trigger derived stores that depend on currentDate/selectedSchedule to recompute
+    const cd = get(currentDate);
+    if (cd instanceof Date) currentDate.set(new Date(cd.getTime()));
+    const ss = get(selectedSchedule);
+    selectedSchedule.set(ss);
+  }
+
+  // Clear the modal store
+  recurringEditStore.set({ open: false, ui_id: null, pending: null, newTime: '', eventTitle: '', original: null });
 }
 
 export function confirmRecurringEdit(scope: 'this' | 'all') {
@@ -110,7 +141,8 @@ export function confirmRecurringEdit(scope: 'this' | 'all') {
       commitUpdate({ ...master, ...changes, uid: master.uid, schedule_id: master.schedule_id }, null);
     }
   }
-  cancelRecurringEdit();
+  // Close without reverting since we've committed
+  cancelRecurringEdit(true);
 }
 
 export function applyEntryChanges(ui_id: string, changes: Partial<ProcessedScheduleEntry>, opts: ApplyOptions = {}) {
@@ -139,7 +171,7 @@ export function applyEntryChanges(ui_id: string, changes: Partial<ProcessedSched
     if (updated.isRecurring && !updated.recurrence_id && originalRecurrence === undefined) {
       console.log('🚨 Intercepting recurring edit - showing modal');
       // Intercept to ask user scope (editing a generated occurrence of a master rule)
-      requestRecurringEdit(updated, changes);
+      requestRecurringEdit(updated, changes, entryBefore);
       return; // defer commit
     }
     const orig = originalRecurrence !== undefined ? originalRecurrence : getOriginalRecurrenceStart(updated);
