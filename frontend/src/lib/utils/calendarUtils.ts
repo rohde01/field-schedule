@@ -16,7 +16,15 @@ function createRecurrenceRule(frequency: string): string { return `FREQ=${freque
 function isRecurringMaster(entry: ScheduleEntry): boolean { return !!entry.recurrence_rule && !entry.recurrence_id; }
 function isRecurrenceException(entry: ScheduleEntry): boolean { return !!entry.recurrence_id; }
 function isStandaloneEntry(entry: ScheduleEntry): boolean { return !entry.recurrence_rule && !entry.recurrence_id; }
-function canEditRecurrence(entry: ProcessedScheduleEntry): boolean { return !entry.isRecurring && !entry.recurrence_id; }
+function canEditRecurrence(entry: ProcessedScheduleEntry): boolean {
+  // Allow editing from master, standalone, or generated instance; block exceptions
+  if (entry.recurrence_id) return false; // exception instance
+  return true;
+}
+function canShowRecurrenceSettings(entry: ProcessedScheduleEntry): boolean {
+  // Show settings for any member of a series (master / generated / exception) or standalone (to enable adding recurrence)
+  return !!entry.recurrence_rule || entry.isRecurring || !!entry.recurrence_id || isStandaloneEntry(entry);
+}
 
 export type ProcessedScheduleEntry = ScheduleEntry & {
   start_time: string;
@@ -129,7 +137,7 @@ if (browser) {
 } else { writable<ProcessedScheduleEntry[]>([]); }
 
 // ---------------- Update / Exports ----------------
-export { parseRecurrenceFrequency, createRecurrenceRule, canEditRecurrence, isRecurringMaster, isRecurrenceException, isStandaloneEntry };
+export { parseRecurrenceFrequency, createRecurrenceRule, canEditRecurrence, canShowRecurrenceSettings, isRecurringMaster, isRecurrenceException, isStandaloneEntry };
 
 export function getOriginalRecurrenceStart(entry: any): string | null {
   if (entry.isRecurring) return entry.dtstart instanceof Date ? entry.dtstart.toISOString() : entry.dtstart; // generated instance

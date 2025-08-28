@@ -4,6 +4,7 @@ import { computeDateUTC, currentDate } from './dateUtils';
 import { get, writable } from 'svelte/store';
 import type { ProcessedScheduleEntry } from './calendarUtils';
 import { selectedSchedule } from '$lib/stores/schedules';
+import { addScheduleEntry, updateScheduleEntry } from '$lib/stores/schedules';
 
 function findEntry(ui_id: string): ProcessedScheduleEntry | undefined { return get(processedEntries).find(e => e.ui_id === ui_id); }
 export interface ApplyOptions { commit?: boolean; originalRecurrence?: string | null; }
@@ -55,58 +56,51 @@ export function cancelRecurringEdit(suppressRevert = false) {
   recurringEditStore.set({ open: false, ui_id: null, pending: null, changeDesc: '', title: '', snapshot: null, originalOccurrence: null });
 }
 
-export function confirmRecurringEdit(scope: 'this' | 'all') {
+export function confirmRecurringEdit(scope: 'this' | 'future') {
   const st = get(recurringEditStore); if (!st.ui_id || !st.pending) { cancelRecurringEdit(); return; }
   const entry = findEntry(st.ui_id); if (!entry) { cancelRecurringEdit(); return; }
-  const originalOccurrence = st.originalOccurrence; // ISO or null
-  console.debug('[recurringEdit] confirm', { scope, ui_id: st.ui_id, uid: entry.uid, storedOriginal: originalOccurrence, entry_dtstart: entry.dtstart.toISOString(), occurrence_origin: entry.occurrence_origin?.toISOString?.(), pending: st.pending });
-
+  const originalOccurrence = st.originalOccurrence;
   if (scope === 'this') {
-    if (!originalOccurrence) { console.warn('[recurringEdit] missing originalOccurrence for single edit'); cancelRecurringEdit(true); return; }
+    if (!originalOccurrence) { cancelRecurringEdit(true); return; }
     const sched = get(selectedSchedule);
     const master = sched?.schedule_entries.find((e: any) => e.uid === entry.uid && e.recurrence_rule && !e.recurrence_id);
     if (master) {
-      const baseDate = new Date(originalOccurrence); // ORIGINAL generated occurrence start (old time)
+      const baseDate = new Date(originalOccurrence);
       const changes = { ...st.pending } as any;
       const startT = changes.start_time ?? entry.start_time; const endT = changes.end_time ?? entry.end_time;
       const newDtStart = computeDateUTC(baseDate, startT);
       const newDtEnd = computeDateUTC(baseDate, endT);
-      changes.dtstart = newDtStart; changes.dtend = newDtEnd; changes.start_time = startT; changes.end_time = endT;
-      const exception: ProcessedScheduleEntry = {
-        ...entry,
-        ...changes,
-        schedule_entry_id: null,
-        recurrence_id: new Date(originalOccurrence), // IMPORTANT: original occurrence start, not new time
-        recurrence_rule: null,
-        exdate: null,
-        dtstart: newDtStart,
-        dtend: newDtEnd,
-        isRecurring: false,
-        ui_id: `X|${entry.uid}|${newDtStart.toISOString()}|0`
-      } as ProcessedScheduleEntry;
-      console.debug('[recurringEdit] create exception', {
-        uid: entry.uid,
-        recurrence_id: originalOccurrence,
-        new_dtstart: newDtStart.toISOString(),
-        new_dtend: newDtEnd.toISOString(),
-        willExcludeTs: new Date(originalOccurrence).getTime()
-      });
+      const exception: ProcessedScheduleEntry = { ...entry, ...changes, schedule_entry_id: null, recurrence_id: new Date(originalOccurrence), recurrence_rule: null, exdate: null, dtstart: newDtStart, dtend: newDtEnd, start_time: startT, end_time: endT, isRecurring: false, ui_id: `X|${entry.uid}|${newDtStart.toISOString()}|0` } as ProcessedScheduleEntry;
       commitUpdate(exception, originalOccurrence);
     }
-  } else {
-    const sched = get(selectedSchedule);
-    const master = sched?.schedule_entries.find((e: any) => e.uid === entry.uid && e.recurrence_rule && !e.recurrence_id);
-    if (master) {
-      const masterBase = master.dtstart instanceof Date ? master.dtstart : new Date(master.dtstart);
-      const changes = { ...st.pending } as any;
-      if (changes.start_time || changes.end_time) {
-        const startT = changes.start_time ?? entry.start_time; const endT = changes.end_time ?? entry.end_time;
-        changes.dtstart = computeDateUTC(masterBase, startT); changes.dtend = computeDateUTC(masterBase, endT);
-        changes.start_time = startT; changes.end_time = endT;
-      }
-      console.debug('[recurringEdit] update master', { uid: entry.uid, changes });
-      commitUpdate({ ...master, ...changes }, null);
+  } else if (scope === 'future') {
+    if (!originalOccurrence) { cancelRecurringEdit(true); return; }
+    const sched: any = get(selectedSchedule);
+    if (!sched) { cancelRecurringEdit(true); return; }
+    const master = sched.schedule_entries.find((e: any) => e.uid === entry.uid && e.recurrence_rule && !e.recurrence_id);
+    if (!master) { cancelRecurringEdit(true); return; }
+    const splitPoint = new Date(originalOccurrence);
+    const oldRule = master.recurrence_rule as string;
+    const ruleCore = oldRule.replace(/^RRULE:/, '');
+    const baseParts = ruleCore.split(';').filter((p: string) => !/^UNTIL=/.test(p) && !/^COUNT=/.test(p) && p.length);
+    const untilDate = new Date(splitPoint.getTime() - 1000);
+    const untilStr = untilDate.toISOString().replace(/[-:]/g, '').slice(0,15) + 'Z';
+    const truncatedRule = baseParts.join(';') + `;UNTIL=${untilStr}`;
+    updateScheduleEntry({ uid: master.uid, schedule_id: master.schedule_id, recurrence_rule: truncatedRule, recurrence_id: null });
+    const changes = { ...st.pending } as any;
+    const startT = changes.start_time ?? entry.start_time; const endT = changes.end_time ?? entry.end_time;
+    const newDtStart = computeDateUTC(splitPoint, startT);
+    const newDtEnd = computeDateUTC(splitPoint, endT);
+    let futureRuleCore: string;
+    if (changes.recurrence_rule) {
+      const chCore = changes.recurrence_rule.replace(/^RRULE:/,'');
+      futureRuleCore = chCore.split(';').filter((p: string) => !/^UNTIL=/.test(p) && !/^COUNT=/.test(p) && p.length).join(';');
+    } else {
+      futureRuleCore = baseParts.join(';');
     }
+    const newUid = cryptoRandom();
+    const newMaster: any = { uid: newUid, schedule_id: master.schedule_id, field_id: changes.field_id ?? master.field_id, team_id: changes.team_id ?? master.team_id, summary: changes.summary ?? master.summary, categories: changes.categories ?? master.categories, dtstart: newDtStart, dtend: newDtEnd, recurrence_rule: futureRuleCore, recurrence_id: null, exdate: null };
+    addScheduleEntry(newMaster);
   }
   cancelRecurringEdit(true);
 }
@@ -123,3 +117,8 @@ export function updateEntryDate(ui_id: string, newDate: Date, opts?: ApplyOption
 export function updateEntryTimeRange(ui_id: string, startTime: string, endTime: string, opts?: ApplyOptions) { const e = findEntry(ui_id); if (!e) return; const ds = computeDateUTC(e.dtstart as Date, startTime); const de = computeDateUTC(e.dtstart as Date, endTime); applyEntryChanges(ui_id, { start_time: startTime, end_time: endTime, dtstart: ds, dtend: de }, opts); }
 export function updateEntryDateAndTime(ui_id: string, date: Date, startTime: string, endTime: string, opts?: ApplyOptions) { const ds = computeDateUTC(date,startTime); const de = computeDateUTC(date,endTime); applyEntryChanges(ui_id, { dtstart: ds, dtend: de, start_time: startTime, end_time: endTime }, opts); }
 export function toggleRecurrence(ui_id: string, enable: boolean, rule: string | null, opts?: ApplyOptions) { applyEntryChanges(ui_id, { recurrence_rule: enable ? rule : null }, opts); }
+
+function cryptoRandom(): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return (crypto as any).randomUUID();
+  return 'uid-' + Math.random().toString(36).slice(2,10) + Date.now().toString(36);
+}
