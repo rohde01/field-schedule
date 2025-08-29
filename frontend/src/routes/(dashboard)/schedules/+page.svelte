@@ -34,6 +34,14 @@
         }
     });
     
+    const deleteForm = superForm(data.deleteForm, {
+        onResult: ({ result }) => {
+            if (result.type === 'success' && result.data?.action === 'delete') {
+                hiddenDrawer = true;
+            }
+        }
+    });
+    
     const { message: updateMessage } = updateForm;
     
     function editSchedule() {
@@ -108,7 +116,7 @@
 {/if}
 
 <Drawer placement="right" bind:hidden={hiddenDrawer}>
-  <ScheduleDrawer title="Update schedule" bind:hidden={hiddenDrawer} form={updateForm} />
+  <ScheduleDrawer title="Update schedule" bind:hidden={hiddenDrawer} form={updateForm} deleteForm={deleteForm} />
 </Drawer>
 
 <ToastMessage message={$updateMessage} />
