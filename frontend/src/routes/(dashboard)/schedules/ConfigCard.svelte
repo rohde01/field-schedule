@@ -148,4 +148,4 @@
 </Card>
 
 <!-- Toast message -->
-<ToastMessage message={toastMessage} type={toastType} />
+<ToastMessage message={toastMessage} />

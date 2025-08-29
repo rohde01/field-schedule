@@ -64,6 +64,8 @@
     return buildResources($fields, $selectedSchedule);
   }) : derived(fields, () => []);
 
+  $: hasFacility = $selectedSchedule?.facility_id != null;
+
   $: headerCells = $activeFields.length > 0 
     ? generateHeaderCells($activeFields, fieldToGridColMap)
     : [];
@@ -129,6 +131,7 @@
     </div>
   </div>
 
+  {#if hasFacility}
   <!-- HEADER ROW OUTSIDE SCROLLABLE CONTAINER -->
   <div class="schedule-grid bg-gray-100 dark:bg-gray-700">
     <div 
@@ -229,4 +232,11 @@
       {/each}
     </div>
   </div>
+  {:else}
+  <div class="flex items-center justify-center p-8">
+    <p class="text-gray-500 dark:text-gray-400 text-lg">
+      Select a facility to get started.
+    </p>
+  </div>
+  {/if}
 </div>

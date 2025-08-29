@@ -3,9 +3,9 @@
     import CreateCard from './CreateCard.svelte'
     import TeamCard from './ConstraintCard.svelte'
     import ConfigCard from './ConfigCard.svelte'
-    import { Datepicker, P, Card, Drawer } from 'flowbite-svelte';
+    import { Datepicker, P, Card, Drawer, Tooltip } from 'flowbite-svelte';
     import { Heading, Button } from 'flowbite-svelte';
-    import { PenOutline, LightbulbOutline } from 'flowbite-svelte-icons';
+    import { PenOutline, LightbulbOutline, AngleLeftOutline, AngleRightOutline } from 'flowbite-svelte-icons';
     import { selectedSchedule, IsCreating } from '$lib/stores/schedules';
     import ScheduleDrawer from '$lib/components/ScheduleDrawer.svelte';
     import { superForm } from 'sveltekit-superforms/client';
@@ -20,6 +20,7 @@
     let { data } = $props();
     
     let hiddenDrawer = $state(true);
+    let showTeamConfig = $state(true);
     
     const updateForm = superForm(data.updateForm, {
         onResult: ({ result }) => {
@@ -70,16 +71,26 @@
 {:else}
   <div id="main-content" class="relative mx-auto h-full w-full overflow-y-auto bg-gray-50 p-4 dark:bg-gray-900">
     {#if $IsCreating}
-        <div class="flex gap-4">
-            <div style="flex: 2">
+        <div class="flex gap-1.5">
+            <div style="flex: 0 0 auto; width: 17%;">
                 <CreateCard />
             </div>
-            <div style="flex: 7">
-                <TeamCard />
+            <div class="flex items-center cursor-pointer text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100" style="height: 24rem;" onclick={() => showTeamConfig = !showTeamConfig} onkeydown={(e) => e.key === 'Enter' && (showTeamConfig = !showTeamConfig)} role="button" tabindex="0">
+                {#if showTeamConfig}
+                    <AngleLeftOutline class="shrink-0 h-6 w-6" />
+                {:else}
+                    <AngleRightOutline class="shrink-0 h-6 w-6" />
+                {/if}
+                <Tooltip placement="left">Toggle model settings</Tooltip>
             </div>
-            <div style="flex: 1">
-                <ConfigCard />
-            </div>
+            {#if showTeamConfig}
+                <div style="flex: 7">
+                    <TeamCard />
+                </div>
+                <div style="flex: 1">
+                    <ConfigCard />
+                </div>
+            {/if}
         </div>
     {/if}
     {#if $selectedSchedule}
