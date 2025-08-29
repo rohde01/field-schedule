@@ -16,3 +16,4 @@ class ScheduleEntry(BaseModel):
     exdate: Optional[List[datetime]] = None
     summary: Optional[str] = Field(None, max_length=255)
     description: Optional[str] = None
+    categories: List[str] = Field(default_factory=lambda: ["Training"])

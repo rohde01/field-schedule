@@ -183,6 +183,25 @@ export const actions: Actions = {
         form.message = 'Schedule updated successfully!';
         return { form, success: true, schedule: updatedSchedule };
     },
+    deleteSchedule: async ({ request, locals }) => {
+        if (!locals.user) throw error(401, 'Unauthorized');
+        const form = await superValidate(request, zod(deleteScheduleSchema));
+        if (!form.valid) return fail(400, { form });
+
+        const { schedule_id } = form.data;
+        const { error: deleteError } = await locals.supabase
+            .from('schedules')
+            .delete()
+            .eq('schedule_id', schedule_id);
+
+        if (deleteError) {
+            form.message = 'Failed to delete schedule';
+            return fail(500, { form, message: 'Failed to delete schedule', error: deleteError.message });
+        }
+
+        form.message = 'Schedule deleted successfully';
+        return { form, success: true, action: 'delete', schedule_id };
+    },
     logout: async ({ cookies, locals: { supabase } }) => {
         const { error } = await supabase.auth.signOut({
             scope: 'global'

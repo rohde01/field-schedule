@@ -98,9 +98,6 @@
           <Checkbox name="is_academy" bind:checked={$formData.is_academy} /> <span class="ms-2">Academy</span>
         </Label>
       </div>
-      {#if $message}
-        <div class="mt-4 text-sm text-red-600">{$message}</div>
-      {/if}
     </form>
   </div>
 

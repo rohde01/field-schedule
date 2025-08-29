@@ -7,7 +7,7 @@
 
     import NameModal from './NameModal.svelte';
     import ClubModal from './ClubModal.svelte';
-    import { Label, Select, Card, Heading, Button, Input, Helper, Spinner, Fileupload } from 'flowbite-svelte';
+    import { Label, Select, Card, Heading, Button, Input, Helper, Spinner, Fileupload, Tooltip } from 'flowbite-svelte';
     import { Breadcrumb, BreadcrumbItem } from 'flowbite-svelte';
     import ToastMessage from '$lib/components/Toast.svelte';
 
@@ -40,6 +40,7 @@
     // Destructure the form objects and explicitly type the errors
     const { form: userData, enhance: userEnhance, errors: userErrors, message: userMessage, submitting: userSubmitting } = nameForm;
     const { form: clubUpdateData, enhance: clubUpdateEnhance, errors: clubUpdateErrors, message: clubUpdateMessage, submitting: clubSubmitting } = updateClubForm;
+    const { message: clubMessage } = clubForm;
     
     let userSaving = $state(false);
     let clubSaving = $state(false);
@@ -60,6 +61,7 @@
 <!-- Toast messages -->
 <ToastMessage message={$userMessage} />
 <ToastMessage message={$clubUpdateMessage} />
+<ToastMessage message={$clubMessage} />
 
 <main class="p-4">
   <div class="grid grid-cols-1 space-y-2 xl:grid-cols-2 xl:gap-3.5 dark:bg-gray-900">
@@ -91,7 +93,18 @@
           </Label>
           <Label class="col-span-6 space-y-2 sm:col-span-3">
             <span>Club URL</span>
-            <Input name="club_url" id="club_url" type="text" bind:value={$clubUpdateData.club_url} class="border font-normal outline-none" />
+            <Input 
+              name="club_url" 
+              id="club_url" 
+              type="text" 
+              bind:value={$clubUpdateData.club_url} 
+              class="border font-normal outline-none" 
+              disabled={data.clubData?.subscription !== 'premium'}
+              readonly={data.clubData?.subscription !== 'premium'}
+            />
+            {#if data.clubData?.subscription !== 'premium'}
+              <Tooltip triggeredBy="#club_url">Public schedules are only available to premium users</Tooltip>
+            {/if}
             {#if $clubUpdateErrors?.club_url}<Helper class="mt-2" color="red">{$clubUpdateErrors.club_url}</Helper>{/if}
           </Label>
           <Button type="submit" form="club-form" class="w-fit whitespace-nowrap" disabled={clubSaving}>

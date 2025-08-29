@@ -64,6 +64,8 @@
     return buildResources($fields, $selectedSchedule);
   }) : derived(fields, () => []);
 
+  $: hasFacility = $selectedSchedule?.facility_id != null;
+
   $: headerCells = $activeFields.length > 0 
     ? generateHeaderCells($activeFields, fieldToGridColMap)
     : [];
@@ -129,6 +131,7 @@
     </div>
   </div>
 
+  {#if hasFacility}
   <!-- HEADER ROW OUTSIDE SCROLLABLE CONTAINER -->
   <div class="schedule-grid bg-gray-100 dark:bg-gray-700">
     <div 
@@ -199,6 +202,9 @@
              on:click={(e) => handleEntryInteraction(e, entry)}
              on:keydown={(e) => handleEntryInteraction(e, entry)}
            >
+            {#if entry.recurrence_rule || entry.isRecurring || entry.recurrence_id}
+              <span class="absolute top-1 right-1 text-xs opacity-70" title="Recurring">↻</span>
+            {/if}
             <div class="resize-handle top" use:resizeHandle={{ ui_id: entry.ui_id, edge: 'top' }}></div>
             <div class="resize-handle bottom" use:resizeHandle={{ ui_id: entry.ui_id, edge: 'bottom' }}></div>
             <div class="horizontal-handle left" use:horizontalDrag={{ ui_id: entry.ui_id, direction: 'left', totalColumns, headerCells, activeFields: $activeFields, fieldToGridColMap }}></div>
@@ -226,4 +232,11 @@
       {/each}
     </div>
   </div>
+  {:else}
+  <div class="flex items-center justify-center p-8">
+    <p class="text-gray-500 dark:text-gray-400 text-lg">
+      Select a facility to get started.
+    </p>
+  </div>
+  {/if}
 </div>

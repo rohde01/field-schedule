@@ -212,10 +212,6 @@
                   };
                 });
               }}>Add Availability</Button>
-              
-              {#if $errors.availabilities}
-                <Helper class="mt-2" color="red">{$errors.availabilities}</Helper>
-              {/if}
             {:else}
               <!-- In edit mode, show existing availabilities with disabled inputs -->
               {#if (data as Field).availability && Object.keys((data as Field).availability).length > 0}
@@ -240,9 +236,6 @@
           </div>
         </div>
         
-        {#if $message}
-          <div class="mt-4 text-sm text-red-600">{$message}</div>
-        {/if}
       </form>
       
       <!-- Field Logo section -->

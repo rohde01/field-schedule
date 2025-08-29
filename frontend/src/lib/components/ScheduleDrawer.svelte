@@ -1,22 +1,22 @@
 <script lang="ts">
     import { Button, CloseButton, Heading, Input, Label, Textarea, Toggle, Helper, Spinner } from 'flowbite-svelte';
-    import { CloseOutline } from 'flowbite-svelte-icons';
     import type { SuperForm } from 'sveltekit-superforms';
-    import ToastMessage from '$lib/components/Toast.svelte';
+    import DeleteModal from '$lib/components/DeleteModal.svelte';
   
-    let { hidden = $bindable(true), title = 'Update schedule', form }: { 
+    let { hidden = $bindable(true), title = 'Update schedule', form, deleteForm }: { 
         hidden: boolean; 
         title: string; 
         form: SuperForm<any, any>
+        deleteForm: SuperForm<any, any>
     } = $props();
     
     const { form: formData, enhance, errors, message, submitting } = form;
     let saving = $state(false);
+    let openDelete = $state(false);
     
     $effect(() => {
       saving = $submitting;
     });
-    
 </script>
   
 <Heading tag="h5" class="mb-6 text-sm font-semibold uppercase">{title}</Heading>
@@ -68,9 +68,16 @@
           Update Schedule
         {/if}
       </Button>
-      <Button color="alternative" class="w-full" onclick={() => (hidden = true)}>
-        <CloseOutline /> Cancel
-      </Button>
+      <Button color="red" type="button" class="w-full" on:click={() => (openDelete = true)}>Delete</Button>
     </div>
   </div>
 </form>
+<DeleteModal 
+  bind:open={openDelete}
+  form={deleteForm}
+  actionName="deleteSchedule"
+  title={`Are you sure you want to delete the schedule \"${$formData.name ?? ''}\"?`}
+  yes="Yes, delete schedule"
+  no="No, cancel">
+  <input type="hidden" name="schedule_id" value={$formData.schedule_id ?? ''} />
+</DeleteModal>

@@ -1,5 +1,5 @@
 import { writable, get } from 'svelte/store';
-import { deleteScheduleEntry, updateScheduleEntry } from '$lib/stores/schedules';
+import { deleteScheduleEntry, updateScheduleEntry, pruneFutureExceptions } from '$lib/stores/schedules';
 import { processedEntries, isRecurringMaster } from './calendarUtils';
 import type { ProcessedScheduleEntry } from './calendarUtils';
 import { selectedSchedule } from '$lib/stores/schedules';
@@ -52,25 +52,14 @@ export function confirmRecurringDelete(scope: 'this' | 'future') {
       );
       
       if (master) {
-        // Create new recurrence rule with UNTIL parameter
-        // Set UNTIL to one second before this occurrence to exclude it and all future
-        const untilDate = new Date(recDate.getTime() - 1000); // 1 second before this occurrence
+        const untilDate = new Date(recDate.getTime() - 1000);
         const untilString = untilDate.toISOString().slice(0, 19).replace(/[-:]/g, '') + 'Z';
-        
         let newRule = master.recurrence_rule;
         if (newRule) {
-          // Remove existing UNTIL if present
           newRule = newRule.replace(/;UNTIL=\d{8}T?\d{0,6}Z?/, '');
-          // Add new UNTIL with full datetime
           newRule += `;UNTIL=${untilString}`;
-          
-          // Update the master entry with new rule
-          updateScheduleEntry({
-            uid: master.uid,
-            schedule_id: master.schedule_id!,
-            recurrence_rule: newRule,
-            recurrence_id: null
-          });
+          updateScheduleEntry({ uid: master.uid, schedule_id: master.schedule_id!, recurrence_rule: newRule, recurrence_id: null });
+          pruneFutureExceptions(master.schedule_id!, master.uid, recDate);
         }
       }
     }
