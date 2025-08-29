@@ -4,9 +4,11 @@
 
   let { 
     message = $bindable(''),
-    type = 'success', // 'success', 'warning', 'error'
     position = 'top-right'
   } = $props();
+
+  // Determine type based on message content
+  let type = $derived(message.toLowerCase().includes('success') || message.toLowerCase().includes('updated') ? 'success' : 'error');
 
   // Determine color based on type
   let toastColor: 'green' | 'yellow' | 'red' = $derived(

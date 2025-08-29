@@ -89,10 +89,16 @@ export const actions: Actions = {
             .single();
 
         if (error) {
+            let message = 'Failed to update club';
+            if (error.code === '23505') {
+                message = 'Club URL is already taken';
+            } else {
+                message += `: ${error.message}`;
+            }
             return fail(400, {
                 form: {
                     ...form,
-                    message: 'Failed to update club'
+                    message
                 }
             });
         }
@@ -126,10 +132,16 @@ export const actions: Actions = {
             .single();
 
         if (clubError) {
+            let message = 'Failed to create club';
+            if (clubError.code === '23505') {
+                message = 'Club URL is already taken';
+            } else {
+                message += `: ${clubError.message}`;
+            }
             return fail(400, {
                 form: {
                     ...form,
-                    message: `Failed to create club: ${clubError.message}`
+                    message
                 }
             });
         }
