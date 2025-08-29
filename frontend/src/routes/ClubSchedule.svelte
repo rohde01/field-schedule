@@ -10,7 +10,7 @@
           getEntryContentVisibility, 
           processedEntries, showEarlyTimeslots, getEntryTitle } from '$lib/utils/calendarUtils';
   import { currentDate, formatDate, formatWeekdayOnly,
-          nextDay, previousDay, isHourMark } from '$lib/utils/dateUtils';
+          nextDay, previousDay, isHourMark, isToday, currentTime, updateCurrentTime, formatTimeForDisplay } from '$lib/utils/dateUtils';
   import { getFieldColumns, buildFieldToGridColumnMap, generateHeaderCells, getFieldName } from '$lib/utils/fieldUtils';
   import { getCategoryClass } from '$lib/utils/CalendarStyling';
   import { selectedSchedule, schedules } from '$lib/stores/schedules';
@@ -179,6 +179,62 @@
       else mq.removeListener(handleMq as any);
     });
   }
+
+  // --- Current Time Indicator Logic ---
+  let scheduleGridEl: HTMLElement | null = null;
+  let indicatorTopPx: number | null = null;
+  let slotHeight = 0;
+  let firstSlotOffset = 0; // top offset of first slot inside grid
+  let intervalMinutes = 15; // default; recalculated
+  let timeTicker: any;
+
+  function parseMinutes(hhmm: string): number { const [h,m]=hhmm.split(':').map(Number); return h*60+m; }
+
+  function measureGrid() {
+    if (!scheduleGridEl) return;
+    const firstCell = scheduleGridEl.querySelector('.schedule-cell');
+    if (firstCell) {
+      const gridRect = scheduleGridEl.getBoundingClientRect();
+      const cellRect = (firstCell as HTMLElement).getBoundingClientRect();
+      slotHeight = cellRect.height;
+      firstSlotOffset = cellRect.top - gridRect.top;
+    }
+    // derive interval from first two slots
+    if ($timeSlots.length > 1) {
+      intervalMinutes = parseMinutes($timeSlots[1]) - parseMinutes($timeSlots[0]);
+    }
+  }
+
+  function updateIndicatorPosition() {
+    if (!$timeSlots.length || !scheduleGridEl) { indicatorTopPx = null; return; }
+    if (!isToday()) { indicatorTopPx = null; return; }
+    const first = parseMinutes($timeSlots[0]);
+    const last = parseMinutes($timeSlots[$timeSlots.length - 1]);
+    const now = $currentTime;
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    if (nowMinutes < first || nowMinutes > last) { indicatorTopPx = null; return; }
+    const diff = nowMinutes - first;
+    const slotsOffset = diff / intervalMinutes; // fractional
+    indicatorTopPx = firstSlotOffset + slotsOffset * slotHeight;
+  }
+
+  $: if (scheduleGridEl && $timeSlots) { measureGrid(); updateIndicatorPosition(); }
+  $: if ($currentTime) { updateIndicatorPosition(); }
+  $: if ($showEarlyTimeslots) { setTimeout(() => { measureGrid(); updateIndicatorPosition(); }, 50); }
+
+  if (browser) {
+    onMount(() => {
+      updateCurrentTime();
+      timeTicker = setInterval(() => { updateCurrentTime(); }, 60000);
+      setTimeout(() => { measureGrid(); updateIndicatorPosition(); }, 100); // initial layout
+      window.addEventListener('resize', resizeHandler);
+    });
+    onDestroy(() => {
+      if (timeTicker) clearInterval(timeTicker);
+      window.removeEventListener('resize', resizeHandler);
+    });
+  }
+  function resizeHandler() { measureGrid(); updateIndicatorPosition(); }
 </script>
 
 
@@ -310,9 +366,10 @@
           </div>
         {/each}
       </div>
-      <div class="daily-schedule-wrapper" style="margin-top: 7px;">
+      <div class="daily-schedule-wrapper" style="margin-top: 7px; position:relative;">
         <div 
           class="schedule-grid"
+          bind:this={scheduleGridEl}
           style="--total-columns: {totalColumns}; --total-rows: {$timeSlots.length + 1};">
           <!-- TIMESLOT ROWS -->
           {#each $timeSlots as time, rowIndex}
@@ -363,8 +420,44 @@
             {/if}
           {/each}
         </div>
+        {#if indicatorTopPx !== null}
+          <div class="current-time-indicator" style="top: {indicatorTopPx}px;">
+            <div class="current-time-bubble">{formatTimeForDisplay($currentTime)}</div>
+            <div class="current-time-line"></div>
+          </div>
+        {/if}
       </div>
       {/if}
     {/if}
    </div>
  </div>
+
+<style>
+  .current-time-indicator {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    z-index: 100;
+    pointer-events: none;
+    width: 100%;
+    left: 0;
+    transform: translateY(-50%); /* align red line with grid hour line */
+  }
+  .current-time-bubble {
+    background-color: #ff3b30;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 6px;
+    padding: 2px 6px;
+    line-height: 1.2;
+    margin-left: 0;
+    min-width: 50px;
+    text-align: center;
+  }
+  .current-time-line {
+    flex: 1;
+    height: 2.5px;
+    background-color: #ff3b30;
+  }
+</style>
